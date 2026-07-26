@@ -1,0 +1,26 @@
+{
+  "name": "ingest",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "PDF → chunk → embedding → libSQL ingestion pipeline",
+  "scripts": {
+    "build": "tsc",
+    "ingest": "node --experimental-vm-modules dist/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.4",
+    "unpdf": "^1.8.0",
+    "p-limit": "^7.3.1",
+    "commander": "^15.0.0",
+    "cli-progress": "^3.12.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/cli-progress": "^3.11.5",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.0"
+  }
+}
