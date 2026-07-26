@@ -1,4 +1,4 @@
-import { extractText, getDocumentProxy } from 'unpdf';
+import { extractText } from 'unpdf';
 import { createHash } from 'crypto';
 
 export interface PageText {
@@ -21,14 +21,15 @@ export interface ChunkOpts {
 
 export async function extractPdfPages(filePath: string): Promise<PageText[]> {
   const buf = await readFile(filePath);
-  const pdf = await getDocumentProxy(buf);
-  const pages: PageText[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const text = await extractText(page, { mergePages: true });
-    pages.push({ page: i, text: text.trim() });
+  const { totalPages, text } = await extractText(buf, { mergePages: false });
+  // text is string[] (one per page); guard against unexpected shapes
+  if (!Array.isArray(text)) {
+    return [{ page: 1, text: String(text).trim() }];
   }
-  return pages;
+  return text.map((t, i) => ({
+    page: i + 1,
+    text: (t ?? '').trim(),
+  }));
 }
 
 // fs/promises 在 Node ESM 中
