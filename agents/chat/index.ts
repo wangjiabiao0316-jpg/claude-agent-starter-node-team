@@ -15,9 +15,11 @@
 import { createSdkMcpServer, getSessionInfo } from '@anthropic-ai/claude-agent-sdk';
 import { resolveModelName, collectGatewayEnv } from '../_model';
 import { createLogger } from '../_logger';
+import { retrieveContext, type LibSqlEnv } from '../_libsql';
 import { createChatStream } from './_stream';
 
 const logger = createLogger('chat');
+const retrieveLogger = createLogger('retrieve');
 
 const SYSTEM_PROMPT =
   'You are an EdgeOne Makers Claude Agent SDK starter example: an out-of-the-box Agent template that helps developers quickly run through and validate platform capabilities.\n' +
@@ -45,7 +47,15 @@ const SYSTEM_PROMPT =
   '5. Do not perform destructive file or shell operations unless the user explicitly asks for them.\n' +
   '6. If a tool returns an image or screenshot, do not include base64 strings, data:image URLs, or Markdown image links in your text. Briefly say the image is shown in the chat.\n' +
   '7. If the task can be answered without tools or skills, answer directly and keep the response concise.\n' +
-  'When the user explicitly names a project skill, load that skill before doing the task.';
+  'When the user explicitly names a project skill, load that skill before doing the task.\n\n' +
+  'Retrieved context (knowledge base + prior conversation):\n' +
+  '- When the [RETRIEVED CONTEXT] block below contains relevant snippets, prefer grounding your answer in them.\n' +
+  '- Cite sources inline as [doc:N] for document chunks and [hist:N] for prior conversation turns, where N is the bracketed index shown in the block.\n' +
+  '- If the block is empty or marked unavailable, answer normally without citing.\n' +
+  '- Do not fabricate citations or invent document filenames.\n\n' +
+  '[RETRIEVED CONTEXT]\n' +
+  '{retrieved_context}\n' +
+  '[END RETRIEVED CONTEXT]';
 
 function normalizeUuid(value: string): string | null {
   const trimmed = value.trim().toLowerCase();
@@ -90,6 +100,7 @@ function buildAgentOptions(opts?: {
   env?: Record<string, string | undefined>;
   sessionId?: string;
   resume?: string;
+  systemPrompt?: string;
 }) {
   const ctxEnv = opts?.env ?? {};
   const cwd = process.cwd();
@@ -100,7 +111,7 @@ function buildAgentOptions(opts?: {
   ];
   const options: Record<string, any> = {
     model: resolveModelName(ctxEnv),
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt: opts?.systemPrompt ?? SYSTEM_PROMPT,
     cwd,
     // Keep Claude Code's built-in tools narrowly scoped: Skill loads project
     // skills, and Read may only access skill resources under .claude/skills.
@@ -195,12 +206,57 @@ export async function onRequest(context: any) {
   logger.log('[tools] registered EdgeOne MCP tools:', allowedTools);
 
   const sessionBinding = await resolveClaudeSessionBinding(claudeSessionStore, conversationId, process.cwd());
+
+  // Augment SYSTEM_PROMPT with retrieved context from the libSQL vector DB
+  // (documents + prior conversations). Failures here must never break the
+  // chat path — we fall back to a marker string and let Claude answer cold.
+  let systemPrompt = SYSTEM_PROMPT;
+  const env = context.env ?? {};
+  const libsqlEnv: LibSqlEnv = {
+    LIBSQL_URL: env.LIBSQL_URL ?? '',
+    LIBSQL_RO_TOKEN: env.LIBSQL_RO_TOKEN ?? '',
+    ZHIPU_API_KEY: env.ZHIPU_API_KEY ?? '',
+  };
+  const retrievalConfigured = libsqlEnv.LIBSQL_URL && libsqlEnv.LIBSQL_RO_TOKEN && libsqlEnv.ZHIPU_API_KEY;
+  if (retrievalConfigured) {
+    try {
+      const hits = await retrieveContext(message, libsqlEnv, {
+        conversationId,
+        userId,
+        k: 5,
+      });
+      if (hits.length > 0) {
+        const ctxBlock = hits.map((h, i) => {
+          const meta = h.type === 'doc'
+            ? `source: ${h.source ?? 'unknown'}, page ${h.page ?? '?'}`
+            : `history (${h.role ?? 'unknown'})`;
+          return `[${i + 1}] (${meta})\n${h.content}`;
+        }).join('\n\n');
+        systemPrompt = systemPrompt.replace('{retrieved_context}', ctxBlock);
+        retrieveLogger.log(
+          `[retrieve] ${hits.length} hits, top dist=${hits[0].distance.toFixed(3)} for cid=${conversationId}`,
+        );
+      } else {
+        systemPrompt = systemPrompt.replace('{retrieved_context}', '(no relevant context found)');
+        retrieveLogger.log(`[retrieve] 0 hits for cid=${conversationId}`);
+      }
+    } catch (e) {
+      retrieveLogger.error('[retrieve] failed, fallback to no-context prompt:', e);
+      systemPrompt = systemPrompt.replace('{retrieved_context}', '(retrieval unavailable)');
+    }
+  } else {
+    // libSQL not configured — silently blank out the placeholder so the prompt
+    // still reads cleanly for the model.
+    systemPrompt = systemPrompt.replace('{retrieved_context}', '(retrieval not configured)');
+  }
+
   const options = buildAgentOptions({
     claudeSessionStore,
     mcpServer,
     mcpServerName: edgeoneMcp.name,
     allowedTools,
     env: context.env,
+    systemPrompt,
     ...sessionBinding,
   });
   const stream = createChatStream({
