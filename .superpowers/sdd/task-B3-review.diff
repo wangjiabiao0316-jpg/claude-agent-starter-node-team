@@ -1,0 +1,99 @@
+# Review package: 8533265b2923c32034ebc2822f217f60b85c63de..e9a8e37f2101a53713f553eb8dc97240b7ae990e
+
+## Commits
+e9a8e37 feat(ingest): add embed.ts (Zhipu embedding-3 client)
+
+## Files changed
+ scripts/ingest/src/__tests__/embed.test.ts | 20 +++++++++++++
+ scripts/ingest/src/embed.ts                | 47 ++++++++++++++++++++++++++++++
+ scripts/ingest/vitest.config.ts            |  2 ++
+ 3 files changed, 69 insertions(+)
+
+## Diff
+diff --git a/scripts/ingest/src/__tests__/embed.test.ts b/scripts/ingest/src/__tests__/embed.test.ts
+new file mode 100644
+index 0000000..6f464f2
+--- /dev/null
++++ b/scripts/ingest/src/__tests__/embed.test.ts
+@@ -0,0 +1,20 @@
++import { describe, it, expect } from 'vitest';
++import { embedText, embedBatch } from '../embed.js';
++
++describe('embed', () => {
++  it('returns 1024-dim vector for valid input', async () => {
++    const env = { ZHIPU_API_KEY: process.env.ZHIPU_API_KEY! };
++    if (!env.ZHIPU_API_KEY) return; // skip if no key
++    const vec = await embedText('测试', env);
++    expect(vec).toHaveLength(1024);
++    expect(vec.every(v => typeof v === 'number' && !Number.isNaN(v))).toBe(true);
++  });
++
++  it('embeds batch of 3', async () => {
++    const env = { ZHIPU_API_KEY: process.env.ZHIPU_API_KEY! };
++    if (!env.ZHIPU_API_KEY) return;
++    const vecs = await embedBatch(['a', 'b', 'c'], env);
++    expect(vecs).toHaveLength(3);
++    expect(vecs[0]).toHaveLength(1024);
++  });
++});
+diff --git a/scripts/ingest/src/embed.ts b/scripts/ingest/src/embed.ts
+new file mode 100644
+index 0000000..9b57e59
+--- /dev/null
++++ b/scripts/ingest/src/embed.ts
+@@ -0,0 +1,47 @@
++import { createHash } from 'crypto';
++
++const EMBED_URL = 'https://open.bigmodel.cn/api/paas/v4/embeddings';
++const MODEL = 'embedding-3';
++const DIMENSIONS = 1024;
++
++export interface EmbedEnv {
++  ZHIPU_API_KEY: string;
++}
++
++interface ZhipuEmbeddingResponse {
++  data: Array<{ embedding: number[] }>;
++  usage: { prompt_tokens: number; total_tokens: number };
++}
++
++async function callZhipu(input: string | string[], env: EmbedEnv): Promise<ZhipuEmbeddingResponse> {
++  const res = await fetch(EMBED_URL, {
++    method: 'POST',
++    headers: {
++      'Authorization': `Bearer ${env.ZHIPU_API_KEY}`,
++      'Content-Type': 'application/json',
++    },
++    body: JSON.stringify({ model: MODEL, input, dimensions: DIMENSIONS }),
++  });
++  if (!res.ok) {
++    const text = await res.text();
++    throw new Error(`Embedding API ${res.status}: ${text}`);
++  }
++  return res.json();
++}
++
++export async function embedText(text: string, env: EmbedEnv): Promise<number[]> {
++  const data = await callZhipu(text, env);
++  return data.data[0].embedding;
++}
++
++export async function embedBatch(texts: string[], env: EmbedEnv): Promise<number[][]> {
++  if (texts.length === 0) return [];
++  if (texts.length > 64) throw new Error('Batch size must be <= 64');
++  const data = await callZhipu(texts, env);
++  // Zhipu 返回顺序与输入顺序一致
++  return data.data.map(d => d.embedding);
++}
++
++export function hashText(text: string): string {
++  return createHash('sha256').update(text).digest('hex');
++}
+diff --git a/scripts/ingest/vitest.config.ts b/scripts/ingest/vitest.config.ts
+new file mode 100644
+index 0000000..7feff7f
+--- /dev/null
++++ b/scripts/ingest/vitest.config.ts
+@@ -0,0 +1,2 @@
++import { defineConfig } from 'vitest/config';
++export default defineConfig({});
