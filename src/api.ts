@@ -8,6 +8,7 @@
  *   cloud-functions/clear-history/index.ts → POST /clear-history  Clear conversation history
  *   cloud-functions/conversations/index.ts → POST /conversations List conversations for a user
  *   cloud-functions/delete-conversation/index.ts → POST /delete-conversation  Permanently delete a conversation
+ *   cloud-functions/log-message/index.ts → POST /log-message Append a row to the libSQL conversations table
  *
  * This file defines all API paths and request wrappers.
  */
@@ -21,6 +22,7 @@ export const API = {
   clearHistory: '/clear-history',
   conversations: '/conversations',
   deleteConversation: '/delete-conversation',
+  logMessage: '/log-message',
 } as const;
 
 export interface RawSseEvent {
@@ -352,5 +354,41 @@ export async function deleteConversation(conversationId: string, userId?: string
   } catch (e) {
     console.warn('[delete-conversation] request failed:', e);
     return false;
+  }
+}
+
+/**
+ * Fire-and-forget append a message row into the libSQL `conversations` table
+ * via the `/log-message` cloud-function. The endpoint handles Zhipu embedding
+ * and the actual INSERT.
+ *
+ * CONTRACT: this function MUST NEVER throw — it is called from the SSE
+ * `onDone` callback where any exception would surface as an unhandled
+ * promise rejection. Failures are silently swallowed (debug log only) so
+ * the chat UX is unaffected by telemetry hiccups.
+ *
+ * Returns void on purpose: callers cannot await a meaningful result.
+ */
+export async function logMessage(payload: {
+  conversationId: string;
+  userId?: string;
+  role: 'user' | 'assistant';
+  content: string;
+}): Promise<void> {
+  if (!payload.conversationId || !payload.content || !payload.role) return;
+  try {
+    await fetch(API.logMessage, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversation_id: payload.conversationId,
+        user_id: payload.userId,
+        role: payload.role,
+        content: payload.content,
+      }),
+    });
+  } catch (e) {
+    // Fire-and-forget — never block chat on telemetry.
+    console.warn('[log-message] request failed:', e);
   }
 }

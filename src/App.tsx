@@ -10,6 +10,7 @@ import {
   deleteConversation,
   fetchConversationHistory,
   listConversations,
+  logMessage,
   sendMessageStream,
   stopAgent,
 } from './api';
@@ -477,9 +478,18 @@ function AppInner() {
       });
     };
 
+    // Local accumulator for the assistant's full streamed text. We cannot
+    // read it back from React state inside onDone (state updates are async
+    // and closure-bound), so the SSE text_delta handler appends here too.
+    // Used only to fire-and-forget log the assistant message to /log-message.
+    let assistantText = '';
+
     const ctrl = sendMessageStream(text, {
       onTextDelta(delta) {
         finishBotActivity();
+        // Accumulate locally so onDone can fire-and-forget log the full
+        // assistant text without having to read it back from state.
+        assistantText += delta;
         updateBotMessage(content => content + delta);
       },
 
@@ -602,6 +612,21 @@ function AppInner() {
         // Reconcile with backend so the title (and any other fields the runtime
         // synthesized) reflect the server's authoritative state.
         void refreshConversations('replace');
+
+        // Fire-and-forget log of this complete turn (user + assistant) into
+        // the libSQL `conversations` table via /log-message. Promise.allSettled
+        // is intentionally NOT awaited — logging must never block the chat UX,
+        // and any rejection is swallowed silently inside logMessage().
+        const convId = conversationIdRef.current;
+        const uid = eoUuidRef.current;
+        const userContent = text;
+        const assistantContent = assistantText;
+        if (convId) {
+          void Promise.allSettled([
+            logMessage({ conversationId: convId, userId: uid, role: 'user', content: userContent }),
+            logMessage({ conversationId: convId, userId: uid, role: 'assistant', content: assistantContent }),
+          ]);
+        }
       },
 
       onError() {
