@@ -7,8 +7,13 @@
  * Writes one row into the `conversations` table:
  *   (conversation_id, user_id, role, content, embedding)
  *
- * The embedding is produced via Zhipu embedding-3 (1024-dim) so the row is
- * immediately searchable by the retrieval pipeline in `agents/_libsql.ts`.
+ * CRITICAL COMPATIBILITY NOTE
+ * ---------------------------
+ * EdgeOne cloud-functions runtime is a V8 isolate, not full Node.js.
+ * `@libsql/client` pulls in Node built-ins (`node:net`, `node:crypto`, etc)
+ * that fail to load in the isolate, causing "Cloud Functions not ready"
+ * (ReferenceError) on cold start. So we use raw fetch against libSQL's
+ * HTTP /v2/pipeline API instead — no client SDK dependency.
  *
  * Contract with the frontend (`src/api.ts` `logMessage`):
  *   - Request body: { conversation_id, user_id?, role, content }
@@ -24,15 +29,8 @@
  *     content TEXT,
  *     embedding F32_BLOB(1024)
  *   );
- *
- * Following the official EdgeOne Makers Node Functions docs:
- *   - export `onRequestPost` for POST handlers
- *   - read JSON body via `await context.request.json()`
- *   - return a `Response` object
- *   - https://pages.edgeone.ai/document/node-functions
  */
 
-import { createClient } from '@libsql/client';
 import { createLogger } from '../_logger';
 
 const logger = createLogger('log-message');
@@ -106,6 +104,60 @@ async function embedText(text: string, env: LogMessageEnv): Promise<number[]> {
   return data.data[0].embedding;
 }
 
+/**
+ * Insert one row into conversations via libSQL HTTP /v2/pipeline API.
+ *   https://docs.turso.tech/sdk/http/reference
+ *
+ * The vector value is passed as a JSON-encoded number[]; sqld parses it
+ * into the F32_BLOB(1024) column. This is the same binding convention
+ * used by @libsql/client under the hood.
+ */
+async function insertConversation(
+  row: {
+    conversationId: string;
+    userId: string;
+    role: string;
+    content: string;
+    embedding: number[];
+  },
+  env: LogMessageEnv,
+): Promise<void> {
+  const url = `${env.LIBSQL_URL.replace(/\/+$/, '')}/v2/pipeline`;
+  const body = {
+    statements: [
+      {
+        type: 'execute',
+        stmt: {
+          sql: `INSERT INTO conversations (conversation_id, user_id, role, content, embedding)
+                VALUES (?, ?, ?, ?, ?)`,
+          args: [
+            row.conversationId,
+            row.userId || null,
+            row.role,
+            row.content,
+            JSON.stringify(row.embedding),
+          ],
+        },
+      },
+      { type: 'close' },
+    ],
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.LIBSQL_RW_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '<no body>');
+    throw new Error(`libsql insert ${res.status}: ${detail}`);
+  }
+  // We don't need to parse the response body — the ok status is enough.
+}
+
 export async function onRequestPost(context: any): Promise<Response> {
   const startTime = Date.now();
   logger.log(`[log-message] start: ${new Date(startTime).toISOString()}`);
@@ -121,7 +173,6 @@ export async function onRequestPost(context: any): Promise<Response> {
   if (!conversationId || !role || !content) {
     logger.log(`[log-message] missing fields: conv=${!!conversationId} role=${!!role} content=${!!content}`);
     logger.log(`[log-message] end: ${new Date().toISOString()}, total: ${Date.now() - startTime}ms`);
-    // HTTP 200 to avoid blocking frontend retries; ok=false signals failure.
     return jsonResponse({ ok: false, error: 'missing fields' });
   }
 
@@ -139,25 +190,17 @@ export async function onRequestPost(context: any): Promise<Response> {
     // 1. Embed the content via Zhipu embedding-3 (1024-dim).
     const vec = await embedText(content, env);
 
-    // 2. Insert into conversations table.
-    // libSQL accepts the vector as a JSON-encoded number[] when binding
-    // against an F32_BLOB column (proven working in C2's retrieveContext).
-    const client = createClient({
-      url: env.LIBSQL_URL,
-      authToken: env.LIBSQL_RW_TOKEN,
-    });
-    await client.execute({
-      sql: `INSERT INTO conversations (conversation_id, user_id, role, content, embedding)
-            VALUES (?, ?, ?, ?, ?)`,
-      args: [conversationId, userId || null, role, content, JSON.stringify(vec)],
-    });
+    // 2. Insert into conversations table via raw HTTP API.
+    await insertConversation(
+      { conversationId, userId, role, content, embedding: vec },
+      env,
+    );
 
     logger.log(`[log-message] end: ${new Date().toISOString()}, total: ${Date.now() - startTime}ms, role=${role}`);
     return jsonResponse({ ok: true });
   } catch (e: any) {
     logger.error('[log-message] failed:', e?.message ?? e);
     logger.log(`[log-message] end: ${new Date().toISOString()}, total: ${Date.now() - startTime}ms`);
-    // HTTP 200 + ok=false so the frontend never blocks on a retry.
     return jsonResponse({ ok: false, error: e?.message ?? String(e) });
   }
 }
