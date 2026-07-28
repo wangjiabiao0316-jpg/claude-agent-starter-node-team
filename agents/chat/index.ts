@@ -218,6 +218,14 @@ export async function onRequest(context: any) {
     ZHIPU_API_KEY: env.ZHIPU_API_KEY ?? '',
   };
   const retrievalConfigured = libsqlEnv.LIBSQL_URL && libsqlEnv.LIBSQL_RO_TOKEN && libsqlEnv.ZHIPU_API_KEY;
+  // Temporary diagnostic — surface retrieval state in the prompt itself so we
+  // can debug from the chat response without EdgeOne console logs.
+  const diagParts: string[] = [];
+  diagParts.push(`configured=${retrievalConfigured ? 'YES' : 'NO'}`);
+  diagParts.push(`LIBSQL_URL=${libsqlEnv.LIBSQL_URL ? 'set' : 'MISSING'}`);
+  diagParts.push(`LIBSQL_RO_TOKEN=${libsqlEnv.LIBSQL_RO_TOKEN ? 'set' : 'MISSING'}`);
+  diagParts.push(`ZHIPU_API_KEY=${libsqlEnv.ZHIPU_API_KEY ? 'set' : 'MISSING'}`);
+
   if (retrievalConfigured) {
     try {
       const hits = await retrieveContext(message, libsqlEnv, {
@@ -225,7 +233,10 @@ export async function onRequest(context: any) {
         userId,
         k: 5,
       });
+      diagParts.push(`hits=${hits.length}`);
       if (hits.length > 0) {
+        diagParts.push(`top_dist=${hits[0].distance.toFixed(3)}`);
+        diagParts.push(`top_source=${hits[0].source ?? 'history'}`);
         const ctxBlock = hits.map((h, i) => {
           const meta = h.type === 'doc'
             ? `source: ${h.source ?? 'unknown'}, page ${h.page ?? '?'}`
@@ -242,19 +253,19 @@ export async function onRequest(context: any) {
       }
     } catch (e: any) {
       const errMsg = e?.message ?? String(e);
+      diagParts.push(`error=${errMsg.slice(0, 200)}`);
       retrieveLogger.error('[retrieve] failed, fallback to no-context prompt:', errMsg);
-      // Temporary diagnostic: include the actual error in the prompt so we can
-      // see it from the chat response without needing EdgeOne console logs.
       systemPrompt = systemPrompt.replace(
         '{retrieved_context}',
         `(retrieval failed: ${errMsg})`,
       );
     }
   } else {
-    // libSQL not configured — silently blank out the placeholder so the prompt
-    // still reads cleanly for the model.
     systemPrompt = systemPrompt.replace('{retrieved_context}', '(retrieval not configured)');
   }
+  // Append diagnostic line at the very end of the prompt so we can see it
+  // reflected in the model's reasoning via thinking blocks.
+  systemPrompt += `\n\n[DIAG] ${diagParts.join(' | ')}`;
 
   const options = buildAgentOptions({
     claudeSessionStore,
