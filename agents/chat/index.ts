@@ -263,9 +263,9 @@ export async function onRequest(context: any) {
   } else {
     systemPrompt = systemPrompt.replace('{retrieved_context}', '(retrieval not configured)');
   }
-  // Append diagnostic line at the very end of the prompt so we can see it
-  // reflected in the model's reasoning via thinking blocks.
-  systemPrompt += `\n\n[DIAG] ${diagParts.join(' | ')}`;
+  // Append diagnostic line at the very TOP of the prompt so Claude reliably
+  // sees and reflects it. Use very assertive language.
+  systemPrompt = `[RETRIEVAL DIAGNOSTICS — these reflect the actual state of the retrieval pipeline]\n${diagParts.join('\n')}\n\nIf any of these say MISSING or error=, you MUST begin your reply by quoting the [RETRIEVAL DIAGNOSTICS] block verbatim before answering.\n\n=== ORIGINAL SYSTEM PROMPT BELOW ===\n\n` + systemPrompt;
 
   const options = buildAgentOptions({
     claudeSessionStore,
