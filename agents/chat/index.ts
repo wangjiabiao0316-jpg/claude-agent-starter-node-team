@@ -240,9 +240,15 @@ export async function onRequest(context: any) {
         systemPrompt = systemPrompt.replace('{retrieved_context}', '(no relevant context found)');
         retrieveLogger.log(`[retrieve] 0 hits for cid=${conversationId}`);
       }
-    } catch (e) {
-      retrieveLogger.error('[retrieve] failed, fallback to no-context prompt:', e);
-      systemPrompt = systemPrompt.replace('{retrieved_context}', '(retrieval unavailable)');
+    } catch (e: any) {
+      const errMsg = e?.message ?? String(e);
+      retrieveLogger.error('[retrieve] failed, fallback to no-context prompt:', errMsg);
+      // Temporary diagnostic: include the actual error in the prompt so we can
+      // see it from the chat response without needing EdgeOne console logs.
+      systemPrompt = systemPrompt.replace(
+        '{retrieved_context}',
+        `(retrieval failed: ${errMsg})`,
+      );
     }
   } else {
     // libSQL not configured — silently blank out the placeholder so the prompt
