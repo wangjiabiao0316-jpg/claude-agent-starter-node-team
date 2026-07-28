@@ -95,9 +95,12 @@ function tagArgs(args: SqlArg[]): Array<{ type: string; value?: string }> {
 }
 
 interface PipelineExecuteResult {
-  type: 'execute';
+  // sqld /v2/pipeline response shape: outer type is "ok", inner response.type
+  // is "execute" (or "error"). This is the opposite of what you'd expect
+  // from the request shape.
+  type: 'ok';
   response: {
-    type: 'ok';
+    type: 'execute';
     result: {
       cols: Array<{ name: string; decltype: string | null }>;
       rows: PipelineRow[][];
@@ -184,8 +187,10 @@ async function executeSql(
   }
   const data = (await res.json()) as PipelineResponse;
   const first = data.results?.[0];
-  if (!first || first.type !== 'execute' || first.response?.type !== 'ok') {
-    throw new Error(`libsql execute: unexpected response shape: ${JSON.stringify(first).slice(0, 200)}`);
+  // sqld response: { type: "ok", response: { type: "execute", result: {...} } }
+  // On error: { type: "error", error: { message, code } }
+  if (!first || first.type !== 'ok' || first.response?.type !== 'execute') {
+    throw new Error(`libsql execute: unexpected response shape: ${JSON.stringify(first).slice(0, 300)}`);
   }
   return first.response.result.rows ?? [];
 }
