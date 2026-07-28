@@ -114,3 +114,40 @@ Phase B 代码任务全部完成。下一步必须用户参与：
 - C6 用户配 EdgeOne Makers Console 4 个变量
 - 部署 + 端到端测试
 - D 系列 DoD 验收
+
+## 🎉 END-TO-END RAG WORKING (2026-07-28)
+云端验证通过：agent 引用 [doc:1][doc:2][doc:3][doc:5]，内容来自真实 PDF。
+
+### 关键 bug 修复链
+1. **ReferenceError (cloud-functions not ready)**: @libsql/client 在 V8 isolate 加载失败 → 改用 raw fetch
+2. **libsql 400 "missing field requests"**: sqld v0.24.x 期望字段名是 requests 不是 statements
+3. **libsql 400 "invalid type: sequence"**: sqld 期望 args 是 {type, value} 标签格式，不是裸字符串
+4. **libsql "unexpected response shape"**: sqld 实际响应是 {type:"ok", response:{type:"execute"}}（我写反了）
+
+### 当前 main 分支 commits
+- e6c187c chore(chat): remove retrieval diagnostics, restore production fallback
+- 9092ecb fix(libsql): correct sqld pipeline response type check
+- 5e5161e diag(chat): put diagnostics at TOP of prompt
+- 0358af5 diag(chat): surface full retrieval state in prompt
+- f57f231 diag(chat): expose retrieveContext error in prompt
+- 11a4bc1 fix(libsql): tag pipeline args as {type, value}
+- ac8663c fix: replace @libsql/client with raw fetch
+- b6ad786 fix(cf): use raw fetch instead of @libsql/client in log-message
+- 4da4cd0 chore: force redeploy with libsql integration
+- aa57038 连接数据库
+- b8213ac feat(frontend): fire-and-forget log message
+- 91740f2 feat(cf): add log-message endpoint
+- ba554de feat(chat): inject retrieved context
+- 7ad7cbf feat(agents): add _libsql.ts
+- 7d84d78 chore: add @libsql/client dependency
+- bbc6297 feat(ingest): CLI entry
+- e480c29 fix(ingest): extractText mergePages:false
+- ddcf37e feat(ingest): pdf.ts
+- 618563f feat(ingest): db.ts
+- e9a8e37 feat(ingest): embed.ts
+- 8533265 chore: scaffold ingest CLI workspace
+
+### 用户待办
+- 推 e6c187c 到 GitHub（清理诊断代码，最终版）
+- 全量 ingest 5GB PDF（如果还没全量）
+- 改密码 + 轮换所有暴露过的凭证
