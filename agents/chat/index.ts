@@ -218,13 +218,6 @@ export async function onRequest(context: any) {
     ZHIPU_API_KEY: env.ZHIPU_API_KEY ?? '',
   };
   const retrievalConfigured = libsqlEnv.LIBSQL_URL && libsqlEnv.LIBSQL_RO_TOKEN && libsqlEnv.ZHIPU_API_KEY;
-  // Temporary diagnostic — surface retrieval state in the prompt itself so we
-  // can debug from the chat response without EdgeOne console logs.
-  const diagParts: string[] = [];
-  diagParts.push(`configured=${retrievalConfigured ? 'YES' : 'NO'}`);
-  diagParts.push(`LIBSQL_URL=${libsqlEnv.LIBSQL_URL ? 'set' : 'MISSING'}`);
-  diagParts.push(`LIBSQL_RO_TOKEN=${libsqlEnv.LIBSQL_RO_TOKEN ? 'set' : 'MISSING'}`);
-  diagParts.push(`ZHIPU_API_KEY=${libsqlEnv.ZHIPU_API_KEY ? 'set' : 'MISSING'}`);
 
   if (retrievalConfigured) {
     try {
@@ -233,10 +226,7 @@ export async function onRequest(context: any) {
         userId,
         k: 5,
       });
-      diagParts.push(`hits=${hits.length}`);
       if (hits.length > 0) {
-        diagParts.push(`top_dist=${hits[0].distance.toFixed(3)}`);
-        diagParts.push(`top_source=${hits[0].source ?? 'history'}`);
         const ctxBlock = hits.map((h, i) => {
           const meta = h.type === 'doc'
             ? `source: ${h.source ?? 'unknown'}, page ${h.page ?? '?'}`
@@ -252,20 +242,12 @@ export async function onRequest(context: any) {
         retrieveLogger.log(`[retrieve] 0 hits for cid=${conversationId}`);
       }
     } catch (e: any) {
-      const errMsg = e?.message ?? String(e);
-      diagParts.push(`error=${errMsg.slice(0, 200)}`);
-      retrieveLogger.error('[retrieve] failed, fallback to no-context prompt:', errMsg);
-      systemPrompt = systemPrompt.replace(
-        '{retrieved_context}',
-        `(retrieval failed: ${errMsg})`,
-      );
+      retrieveLogger.error('[retrieve] failed, fallback to no-context prompt:', e?.message ?? e);
+      systemPrompt = systemPrompt.replace('{retrieved_context}', '(retrieval unavailable)');
     }
   } else {
     systemPrompt = systemPrompt.replace('{retrieved_context}', '(retrieval not configured)');
   }
-  // Append diagnostic line at the very TOP of the prompt so Claude reliably
-  // sees and reflects it. Use very assertive language.
-  systemPrompt = `[RETRIEVAL DIAGNOSTICS — these reflect the actual state of the retrieval pipeline]\n${diagParts.join('\n')}\n\nIf any of these say MISSING or error=, you MUST begin your reply by quoting the [RETRIEVAL DIAGNOSTICS] block verbatim before answering.\n\n=== ORIGINAL SYSTEM PROMPT BELOW ===\n\n` + systemPrompt;
 
   const options = buildAgentOptions({
     claudeSessionStore,
