@@ -124,7 +124,7 @@ async function insertConversation(
 ): Promise<void> {
   const url = `${env.LIBSQL_URL.replace(/\/+$/, '')}/v2/pipeline`;
   const body = {
-    statements: [
+    requests: [
       {
         type: 'execute',
         stmt: {

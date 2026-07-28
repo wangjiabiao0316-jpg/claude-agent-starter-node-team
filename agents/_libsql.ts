@@ -3,15 +3,20 @@
  *
  * Private module (filename starts with `_`) — not mapped as a route.
  *
+ * CRITICAL COMPATIBILITY NOTE
+ * ---------------------------
+ * EdgeOne Makers agents/ and cloud-functions/ run in a V8 isolate, not full
+ * Node.js. `@libsql/client` pulls in Node built-ins (`node:net`, `node:crypto`)
+ * that fail to load in the isolate. So we use raw fetch against libSQL's
+ * HTTP /v2/pipeline API instead — no client SDK dependency.
+ *
  * Provides:
- *   - getLibSqlClient(env)         — create @libsql/client client (read-only)
  *   - embedQuery(text, env)        — Zhipu embedding-3, 1024-dim
  *   - retrieveContext(query, env)  — parallel query documents + conversations,
  *                                     weighted RRF fusion (docs 0.7 / history 0.3)
  *   - fuseHits(docs, hist)         — pure fusion helper (unit-tested)
  *
  * Schema assumption (matches Phase A server, sqld v0.24.32):
- *
  *   CREATE TABLE documents (
  *     id INTEGER PRIMARY KEY,
  *     source TEXT, page INT, chunk_index INT,
@@ -19,20 +24,13 @@
  *     embedding F32_BLOB(1024)
  *   );
  *   CREATE INDEX documents_vec_idx ON documents (libsql_vector_idx(embedding));
- *
  *   CREATE TABLE conversations (
  *     id INTEGER PRIMARY KEY,
  *     conversation_id TEXT, user_id TEXT, role TEXT,
  *     content TEXT,
  *     embedding F32_BLOB(1024)
  *   );
- *
- * The `<->` operator is libSQL's vector distance shorthand against the indexed
- * F32_BLOB column; `vector_distance_cos` returns the cosine distance as a scalar.
- * We select both so callers can read `distance` for logging/thresholding.
  */
-
-import { createClient, type Client } from '@libsql/client';
 
 const EMBED_URL = 'https://open.bigmodel.cn/api/paas/v4/embeddings';
 const EMBED_MODEL = 'embedding-3';
@@ -66,36 +64,29 @@ export interface SearchHit {
   role?: string;
 }
 
-interface DocRow {
-  id: number;
-  source: string;
-  page: number;
-  chunk_index: number;
-  content: string;
-  distance: number;
+interface PipelineRow {
+  type: 'integer' | 'text' | 'float' | 'null' | 'blob';
+  value?: string | number;
 }
 
-interface HistRow {
-  id: number;
-  content: string;
-  role: string;
-  distance: number;
+interface PipelineExecuteResult {
+  type: 'execute';
+  response: {
+    type: 'ok';
+    result: {
+      cols: Array<{ name: string; decltype: string | null }>;
+      rows: PipelineRow[][];
+    };
+  };
+}
+
+interface PipelineResponse {
+  results: PipelineExecuteResult[];
 }
 
 interface ZhipuEmbeddingResponse {
   data: Array<{ embedding: number[] }>;
   usage: { prompt_tokens: number; total_tokens: number };
-}
-
-/**
- * Build a read-only libSQL client bound to env. The same Client object is
- * safe to reuse across parallel queries within one request.
- */
-export function getLibSqlClient(env: LibSqlEnv): Client {
-  return createClient({
-    url: env.LIBSQL_URL,
-    authToken: env.LIBSQL_RO_TOKEN,
-  });
 }
 
 /**
@@ -127,6 +118,61 @@ export async function embedQuery(text: string, env: EmbedEnv): Promise<number[]>
     throw new Error('embedQuery: malformed response (missing data[0].embedding)');
   }
   return data.data[0].embedding;
+}
+
+/**
+ * Run a single SQL statement via libSQL HTTP /v2/pipeline API.
+ * Returns rows as PipelineRow[][] (each row is an array of typed cells).
+ *
+ *   https://docs.turso.tech/sdk/http/reference
+ *
+ * Note: sqld v0.24.x expects the wrapping key to be `requests`, not
+ * `statements` — older docs may show otherwise.
+ */
+async function executeSql(
+  sql: string,
+  args: Array<string | number | null>,
+  env: LibSqlEnv,
+): Promise<PipelineRow[][]> {
+  const url = `${env.LIBSQL_URL.replace(/\/+$/, '')}/v2/pipeline`;
+  const body = {
+    requests: [
+      {
+        type: 'execute',
+        stmt: { sql, args },
+      },
+      { type: 'close' },
+    ],
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.LIBSQL_RO_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '<no body>');
+    throw new Error(`libsql execute ${res.status}: ${detail}`);
+  }
+  const data = (await res.json()) as PipelineResponse;
+  const first = data.results?.[0];
+  if (!first || first.type !== 'execute' || first.response?.type !== 'ok') {
+    throw new Error(`libsql execute: unexpected response shape: ${JSON.stringify(first).slice(0, 200)}`);
+  }
+  return first.response.result.rows ?? [];
+}
+
+function rowCell(row: PipelineRow[], index: number): string | number | null {
+  const cell = row[index];
+  if (!cell || cell.type === 'null') return null;
+  if (cell.type === 'integer' || cell.type === 'float') {
+    return cell.value !== undefined ? Number(cell.value) : null;
+  }
+  // text / blob: return as string
+  return cell.value !== undefined ? String(cell.value) : null;
 }
 
 /**
@@ -163,7 +209,6 @@ export async function retrieveContext(
   opts: { conversationId?: string; userId?: string; k?: number } = {},
 ): Promise<SearchHit[]> {
   const qv = await embedQuery(query, env);
-  const client = getLibSqlClient(env);
   // libSQL accepts the vector as a JSON-encoded number[] when binding against
   // an F32_BLOB column.
   const qvStr = JSON.stringify(qv);
@@ -171,56 +216,46 @@ export async function retrieveContext(
   const userId = opts.userId ?? '';
   const excludeConversationId = opts.conversationId ?? '';
 
-  // Note on SQL syntax:
-  //   libSQL exposes `<->` as a binary vector-distance operator (column on
-  //   the left, vector literal on the right) AND a `vector_distance_cos()`
-  //   scalar function. Both are valid; using `<->` in ORDER BY enables the
-  //   vector index to be used. We pass the query vector twice: once bound
-  //   inside the scalar for the projected `distance` column, once bound as
-  //   the right operand of `<->` for ordering.
-  //
-  //   If `<->` ordering is rejected at runtime, drop it and order by
-  //   `distance` instead. The `LIMIT ?` placeholder counts as the only
-  //   positional arg consumed by `<->` ordering when used with prepared
-  //   statements in some driver versions; we keep both args for safety.
-  const [docsRes, histRes] = await Promise.all([
-    client.execute({
-      sql: `SELECT id, source, page, chunk_index, content,
-                   vector_distance_cos(embedding, ?) AS distance
-            FROM documents
-            ORDER BY vector_distance_cos(embedding, ?) ASC
-            LIMIT ?`,
-      args: [qvStr, qvStr, DEFAULT_K],
-    }),
-    client.execute({
-      sql: `SELECT id, content, role,
-                   vector_distance_cos(embedding, ?) AS distance
-            FROM conversations
-            WHERE user_id = ? AND conversation_id != ?
-            ORDER BY vector_distance_cos(embedding, ?) ASC
-            LIMIT ?`,
-      args: [qvStr, userId, excludeConversationId, qvStr, DEFAULT_K],
-    }),
+  // Use vector_distance_cos() scalar function for both projection and ordering.
+  // This works without relying on the `<->` operator (whose placeholder binding
+  // behavior differs across @libsql/client versions).
+  const [docRows, histRows] = await Promise.all([
+    executeSql(
+      `SELECT id, source, page, chunk_index, content,
+              vector_distance_cos(embedding, ?) AS distance
+       FROM documents
+       ORDER BY vector_distance_cos(embedding, ?) ASC
+       LIMIT ?`,
+      [qvStr, qvStr, DEFAULT_K],
+      env,
+    ),
+    executeSql(
+      `SELECT id, content, role,
+              vector_distance_cos(embedding, ?) AS distance
+       FROM conversations
+       WHERE user_id = ? AND conversation_id != ?
+       ORDER BY vector_distance_cos(embedding, ?) ASC
+       LIMIT ?`,
+      [qvStr, userId, excludeConversationId, qvStr, DEFAULT_K],
+      env,
+    ),
   ]);
 
-  const docRows = docsRes.rows as unknown as DocRow[];
-  const histRows = histRes.rows as unknown as HistRow[];
-
-  const docHits: SearchHit[] = docRows.map(d => ({
-    id: d.id,
-    content: d.content,
+  const docHits: SearchHit[] = docRows.map(r => ({
+    id: Number(rowCell(r, 0) ?? 0),
+    content: String(rowCell(r, 4) ?? ''),
     type: 'doc',
-    distance: Number(d.distance ?? 0),
-    source: d.source,
-    page: d.page,
+    distance: Number(rowCell(r, 5) ?? 0),
+    source: rowCell(r, 1) !== null ? String(rowCell(r, 1)) : undefined,
+    page: rowCell(r, 2) !== null ? Number(rowCell(r, 2)) : undefined,
   }));
 
-  const histHits: SearchHit[] = histRows.map(h => ({
-    id: h.id,
-    content: h.content,
+  const histHits: SearchHit[] = histRows.map(r => ({
+    id: Number(rowCell(r, 0) ?? 0),
+    content: String(rowCell(r, 1) ?? ''),
     type: 'history',
-    distance: Number(h.distance ?? 0),
-    role: h.role,
+    distance: Number(rowCell(r, 3) ?? 0),
+    role: rowCell(r, 2) !== null ? String(rowCell(r, 2)) : undefined,
   }));
 
   const fused = fuseHits(docHits, histHits);
