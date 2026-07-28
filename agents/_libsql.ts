@@ -69,6 +69,31 @@ interface PipelineRow {
   value?: string | number;
 }
 
+/**
+ * Tag a primitive value as a sqld positional argument.
+ * sqld /v2/pipeline expects each arg as an object {type, value}, not a raw
+ * string/number. Integers must be sent as their string representation per
+ * the libSQL binary protocol (the value field is a string for integer/blob too).
+ *
+ *   null  →  { "type": "null" }
+ *   "abc" →  { "type": "text", "value": "abc" }
+ *   42    →  { "type": "integer", "value": "42" }
+ *   3.14  →  { "type": "float", "value": "3.14" }
+ */
+type SqlArg = string | number | null;
+function tagArg(v: SqlArg): { type: string; value?: string } {
+  if (v === null) return { type: 'null' };
+  if (typeof v === 'number') {
+    if (Number.isInteger(v)) return { type: 'integer', value: String(v) };
+    return { type: 'float', value: String(v) };
+  }
+  return { type: 'text', value: String(v) };
+}
+
+function tagArgs(args: SqlArg[]): Array<{ type: string; value?: string }> {
+  return args.map(tagArg);
+}
+
 interface PipelineExecuteResult {
   type: 'execute';
   response: {
@@ -139,7 +164,7 @@ async function executeSql(
     requests: [
       {
         type: 'execute',
-        stmt: { sql, args },
+        stmt: { sql, args: tagArgs(args) },
       },
       { type: 'close' },
     ],

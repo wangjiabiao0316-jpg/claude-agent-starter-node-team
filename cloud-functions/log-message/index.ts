@@ -108,10 +108,21 @@ async function embedText(text: string, env: LogMessageEnv): Promise<number[]> {
  * Insert one row into conversations via libSQL HTTP /v2/pipeline API.
  *   https://docs.turso.tech/sdk/http/reference
  *
- * The vector value is passed as a JSON-encoded number[]; sqld parses it
- * into the F32_BLOB(1024) column. This is the same binding convention
- * used by @libsql/client under the hood.
+ * sqld /v2/pipeline expects each positional arg as an object {type, value},
+ * not a raw string/number. We tag the conversation_id/user_id/role/content
+ * as text (sqld stores them as TEXT columns), and the embedding as text
+ * containing a JSON number[] (sqld parses it into F32_BLOB(1024)).
  */
+type SqlArg = string | number | null;
+function tagArg(v: SqlArg): { type: string; value?: string } {
+  if (v === null) return { type: 'null' };
+  if (typeof v === 'number') {
+    if (Number.isInteger(v)) return { type: 'integer', value: String(v) };
+    return { type: 'float', value: String(v) };
+  }
+  return { type: 'text', value: String(v) };
+}
+
 async function insertConversation(
   row: {
     conversationId: string;
@@ -131,11 +142,11 @@ async function insertConversation(
           sql: `INSERT INTO conversations (conversation_id, user_id, role, content, embedding)
                 VALUES (?, ?, ?, ?, ?)`,
           args: [
-            row.conversationId,
-            row.userId || null,
-            row.role,
-            row.content,
-            JSON.stringify(row.embedding),
+            tagArg(row.conversationId),
+            tagArg(row.userId || null),
+            tagArg(row.role),
+            tagArg(row.content),
+            tagArg(JSON.stringify(row.embedding)),
           ],
         },
       },
