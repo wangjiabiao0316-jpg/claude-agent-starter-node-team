@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import type { ReportReady } from '../types';
 import styles from './ReportModal.module.css';
 
@@ -20,12 +20,16 @@ interface Props {
  * tool, not user input.
  */
 export const ReportModal: React.FC<Props> = ({ report, onClose }) => {
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     if (!report) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handler);
+    // Move focus into the dialog for keyboard users.
+    closeBtnRef.current?.focus();
     return () => window.removeEventListener('keydown', handler);
   }, [report, onClose]);
 
@@ -47,7 +51,13 @@ export const ReportModal: React.FC<Props> = ({ report, onClose }) => {
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+      <div
+        className={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${report.report_type} 决策报告`}
+        onClick={e => e.stopPropagation()}
+      >
         <div className={styles.header}>
           <div className={styles.headerLeft}>
             <span className={styles.badge}>{report.report_type}</span>
@@ -67,7 +77,7 @@ export const ReportModal: React.FC<Props> = ({ report, onClose }) => {
           <button type="button" className={styles.downloadBtn} onClick={handleDownload}>
             ⬇ 下载 HTML
           </button>
-          <button type="button" className={styles.closeBtn} onClick={onClose}>
+          <button type="button" ref={closeBtnRef} className={styles.closeBtn} onClick={onClose}>
             关闭
           </button>
         </div>

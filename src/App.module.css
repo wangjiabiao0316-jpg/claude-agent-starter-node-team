@@ -112,7 +112,7 @@
 .skillsLoading {
   font-size: .7rem;
   font-family: var(--font-mono);
-  color: var(--lamp-green);
+  color: var(--text-secondary);
   letter-spacing: .03em;
   animation: skillsFadeIn 300ms ease-out both, skillsFadeOut 600ms ease-in 1400ms both;
 }

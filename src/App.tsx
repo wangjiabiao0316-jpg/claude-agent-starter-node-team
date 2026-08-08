@@ -169,6 +169,18 @@ function AppInner() {
   // currently visible report (set when report_ready SSE fires from agent6.export_report)
   const [report, setReport] = useState<ReportReady | null>(null);
 
+  /**
+   * Reset all super-skill orchestrator UI state. Must run on every
+   * conversation switch / create / delete so the always-on cockpit and
+   * pipeline never show stale outputs from another conversation.
+   */
+  const resetAgentState = useCallback(() => {
+    setAgentOutputs({});
+    setSuggestActions([]);
+    setActiveAgentTab(DEFAULT_AGENT_TAB);
+    setReport(null);
+  }, []);
+
   // Conversation list state (left sidebar)
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [conversationsLoading, setConversationsLoading] = useState(true);
@@ -228,6 +240,7 @@ function AppInner() {
     setHistoryLoading(true);
     setMessages([]);
     setDebugEvents([]);
+    resetAgentState();
     initDoneRef.current = false;
 
     revokeAllObjectUrls();
@@ -275,7 +288,7 @@ function AppInner() {
     } finally {
       setHistoryLoading(false);
     }
-  }, []);
+  }, [resetAgentState]);
 
   /** Refresh the sidebar conversation list — usually after sending or switching. */
   const refreshConversations = useCallback(async (mode: 'replace' | 'append' = 'replace', cursor?: string) => {
@@ -438,6 +451,7 @@ function AppInner() {
   const handleSend = useCallback(async (text: string) => {
     initDoneRef.current = true;
     setDockMode('agents');
+    setSuggestActions([]); // previous turn's follow-ups are stale the moment a new run starts
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
@@ -682,6 +696,7 @@ function AppInner() {
 
   const handleClearHistory = useCallback(() => {
     const oldConvId = conversationIdRef.current;
+    resetAgentState();
 
     // The trash button in ChatInput is the same affordance as the trash
     // icon on a sidebar item: it should DELETE the conversation entirely,
@@ -716,7 +731,7 @@ function AppInner() {
     setDebugEvents([]);
     setDockMode('agents');
     initDoneRef.current = false;
-  }, [refreshConversations]);
+  }, [refreshConversations, resetAgentState]);
 
   const handleStop = useCallback(() => {
     if (abortCtrlRef.current) {
@@ -743,19 +758,20 @@ function AppInner() {
   const handleSelectConversation = useCallback((id: string) => {
     if (loading) return; // disabled while streaming
     if (id === conversationIdRef.current) return;
-
+    resetAgentState();
     localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, id);
     conversationIdRef.current = id;
     setActiveConversationId(id);
     setDockMode('agents');
     void loadConversation(id);
-  }, [loading, loadConversation]);
+  }, [loading, loadConversation, resetAgentState]);
 
   /** User clicked "New chat" in the sidebar. */
   const handleCreateConversation = useCallback(() => {
     if (loading) return;
 
     revokeAllObjectUrls();
+    resetAgentState();
 
     const newId = crypto.randomUUID();
     localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, newId);
@@ -766,7 +782,7 @@ function AppInner() {
     setDockMode('agents');
     initDoneRef.current = false;
     setHistoryLoading(false);
-  }, [loading]);
+  }, [loading, resetAgentState]);
 
   const handleLoadMoreConversations = useCallback(() => {
     if (!nextCursor || conversationsLoadingMore) return;
@@ -837,6 +853,7 @@ function AppInner() {
     //    so the chat panel doesn't keep rendering stale messages.
     if (isActive) {
       revokeAllObjectUrls();
+      resetAgentState();
       const newId = crypto.randomUUID();
       localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, newId);
       conversationIdRef.current = newId;
@@ -856,7 +873,7 @@ function AppInner() {
     void deleteConversation(id, eoUuidRef.current).catch(e => {
       console.warn('[delete-conversation] backend request failed:', e);
     });
-  }, [loading, t]);
+  }, [loading, t, resetAgentState]);
 
   const sidebarHasMore = useMemo(() => Boolean(nextCursor), [nextCursor]);
 

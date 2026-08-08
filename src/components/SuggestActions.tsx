@@ -29,7 +29,7 @@ export const SuggestActions: React.FC<Props> = ({ actions, onClick }) => {
             onClick={() => onClick(a)}
             title={a.description}
           >
-            <span className={styles.chipEmoji}>{a.emoji}</span>
+            {a.emoji && <span className={styles.chipEmoji}>{a.emoji}</span>}
             {a.title}
           </button>
         ))}

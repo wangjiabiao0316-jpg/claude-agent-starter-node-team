@@ -1,5 +1,6 @@
 import React from 'react';
 import type { AgentOutput } from '../types';
+import { readLamp as readLampFromJson } from '../lib/pipeline';
 import styles from './AgentPane.module.css';
 
 /**
@@ -37,10 +38,7 @@ export const DEFAULT_AGENT_TAB = AGENT_TABS.find(t => t.default)?.id ?? AGENT_TA
 type LampColor = 'green' | 'yellow' | 'red';
 
 function readLamp(output: AgentOutput | undefined): LampColor | null {
-  if (!output) return null;
-  const raw = output.output_json?.['灯色'];
-  if (raw === 'green' || raw === 'yellow' || raw === 'red') return raw;
-  return null;
+  return readLampFromJson(output?.output_json);
 }
 
 const LAMP_TEXT: Record<LampColor, string> = {
