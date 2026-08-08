@@ -1,16 +1,17 @@
 import { useEffect, useRef } from 'react';
 import type { Message } from '../types';
-import { useT } from '../i18n';
 import ChatBubble from './ChatBubble';
+import WelcomeScreen from './WelcomeScreen';
 import styles from './ChatWindow.module.css';
 
 interface Props {
   messages: Message[];
   loading: boolean;
+  /** Fired when the user clicks an example card on the welcome screen. */
+  onExampleSend?: (text: string) => void;
 }
 
-export default function ChatWindow({ messages, loading }: Props) {
-  const { t } = useT();
+export default function ChatWindow({ messages, loading, onExampleSend }: Props) {
   const windowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,16 +38,7 @@ export default function ChatWindow({ messages, loading }: Props) {
   return (
     <div ref={windowRef} className={styles.window}>
       {messages.length === 0 && (
-        <div className={styles.empty}>
-          <span className={styles.emptyIcon}>⬡</span>
-          <p className={styles.emptyTitle}>{t("empty.title")}</p>
-          <p className={styles.emptyHint}>
-            {t("empty.hint")}
-          </p>
-          <p className={styles.emptyFeatures}>
-            {t("empty.features")}
-          </p>
-        </div>
+        <WelcomeScreen onSend={text => onExampleSend?.(text)} disabled={loading} />
       )}
 
       {messages.map(msg => (
