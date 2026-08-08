@@ -1,0 +1,121 @@
+{
+  "skill_name": "agent2-政策应答",
+  "skill_version": "V2",
+  "evals_version": "V2",
+  "design_notes": "V2 7 条 eval 覆盖 implementation-plan Task 7 Step 4：15 城门槛边界 / 项目类型不匹配 / 业态限制 / 综合分排序 / 检索失败 / 单一维度 / 多维组合",
+  "evals": [
+    {
+      "id": "eval-1-15-city-threshold-green",
+      "name": "15 城门槛边界（上海 + 商业 → 全部政策可申请 → green）",
+      "type": "h1_threshold_pass",
+      "prompt": "上海某存量商业提质改造项目（5 亿投资，业主为国有商业地产公司），能否申请专项债自审自发？",
+      "retrieved_context_hint": "[RETRIEVED CONTEXT] 含 1 条候选：上海市专项债自审自发存量资产盘活支持条款",
+      "expectations": [
+        {"text": "正确识别上海 ∈ 15 试点城市（北京/上海/广州/深圳/杭州/成都/武汉/西安/重庆/南京/天津/长沙/青岛/郑州/厦门）"},
+        {"text": "H1 5 维门槛全部通过（城市/项目类型/规模/业主/业态）"},
+        {"text": "可适用政策清单非空，至少包含 1 条专项债相关政策"},
+        {"text": "Top1 条目按综合分 S1×0.5 + S2×0.5 排序，给出 Top1 推荐"},
+        {"text": "Top1 条目包含支持力度（S1 评分 + 文字描述）"},
+        {"text": "Top1 条目包含申请路径（S2 评分 + 文字描述）"},
+        {"text": "Top1 条目包含限制条件字段"},
+        {"text": "Top1 条目综合分数值 = S1×0.5 + S2×0.5（数值计算正确，保留 1 位小数）"},
+        {"text": "响应中不得包含任何信号灯或颜色类判定字段（灯色/red/yellow/green/light/color 一律禁止）"}
+      ]
+    },
+    {
+      "id": "eval-2-business-type-mismatch",
+      "name": "项目类型不匹配（工业仓储 + 旧厂房改造 → 不适用 REITs）",
+      "type": "h1_threshold_mismatch",
+      "prompt": "北京某仓储用地改数据中心（评估值 8 亿，运营 5 年，现金流稳定），能否走 REITs 退出？",
+      "retrieved_context_hint": "[RETRIEVED CONTEXT] 含 1 条候选：基础设施 REITs（产业园区类）",
+      "expectations": [
+        {"text": "未适用政策及原因中包含相关 REITs 政策条目"},
+        {"text": "不适用原因明确指出「业态方向数据中心不在 REITs 支持目录」或等义缺口描述"},
+        {"text": "虽北京属 15 试点城市之一，但业态方向不符导致门槛不符"},
+        {"text": "可适用政策清单不包含该 REITs 条目（应列入未适用）"},
+        {"text": "建议动作中建议调整业态（如改为产业园区 + 数据服务混合业态）或走其他退出通道"},
+        {"text": "响应中不得包含任何信号灯或颜色类判定字段"}
+      ]
+    },
+    {
+      "id": "eval-3-industry-restriction",
+      "name": "业态限制（文旅 + 偏远地段 → 税费减免不达标）",
+      "type": "h1_threshold_mismatch",
+      "prompt": "西安某历史文化保护类项目（业主为民企，资产规模 8000 万），房产税能免吗？",
+      "retrieved_context_hint": "[RETRIEVED CONTEXT] 含 1 条候选：城市更新历史建筑改造税费减免（房产税 + 土地使用税）",
+      "expectations": [
+        {"text": "未适用政策及原因中包含相关税费减免政策条目"},
+        {"text": "不适用原因附具体缺口（如「业主为民企，部分政策限定国企/政府平台公司」或「资产规模 8000 万低于政策门槛 1 亿」）"},
+        {"text": "可适用政策清单为空或不包含该税费减免条目"},
+        {"text": "建议动作中建议补齐缺口（如引入国资合作 / 政府平台公司授权）或换路径"},
+        {"text": "响应中不得包含任何信号灯或颜色类判定字段"}
+      ]
+    },
+    {
+      "id": "eval-4-multi-policy-ranking",
+      "name": "综合分排序（多政策候选，按 S1+S2 排序取 Top）",
+      "type": "applicable_top_ranking",
+      "prompt": "广州某老旧厂房改造（业主国企，资产 1.5 亿，改文创园），有哪些政策可以同时享受？",
+      "retrieved_context_hint": "[RETRIEVED CONTEXT] 含 3 条候选：1) 专项债自审自发存量资产盘活 2) 城市更新历史文化保护专项资金 3) 城市更新税费减免（房产税）",
+      "expectations": [
+        {"text": "可适用政策清单非空，至少包含 2 条可适用政策"},
+        {"text": "条目按综合分 S1×0.5 + S2×0.5 降序排序（Top1 综合分 ≥ Top2 综合分 ≥ Top3 综合分）"},
+        {"text": "每条目含支持力度（S1 评分 + 文字描述）"},
+        {"text": "每条目含申请路径（S2 评分 + 文字描述）"},
+        {"text": "每条目含限制条件字段"},
+        {"text": "每条目综合分数值 = S1×0.5 + S2×0.5（数值计算正确，保留 1 位小数）"},
+        {"text": "正确识别广州 ∈ 15 试点城市"},
+        {"text": "建议动作中说明叠加可行性（部分政策可叠加 / 部分互斥）"},
+        {"text": "响应中不得包含任何信号灯或颜色类判定字段"}
+      ]
+    },
+    {
+      "id": "eval-5-f1-fallback",
+      "name": "检索失败（[RETRIEVED CONTEXT] 为空 → fallback references/）",
+      "type": "f1_fallback",
+      "prompt": "西藏某文旅项目能否拿专项资金？",
+      "retrieved_context_hint": "[RETRIEVED CONTEXT] 为空（外部检索未注入候选条款）",
+      "expectations": [
+        {"text": "agent2 应 fallback 到 references/典型问答场景.md 4 类场景关键词匹配"},
+        {"text": "若 references 关键词也未命中 → 输出「未检索到适用政策」或等义表述"},
+        {"text": "可适用政策清单为空数组或明确标注为空"},
+        {"text": "建议动作中包含「人工复核」或等义表述"},
+        {"text": "未适用政策及原因中记录 F1 检索未命中（含 [RETRIEVED CONTEXT] 为空 + references 关键词未命中说明）"},
+        {"text": "响应中不得包含任何信号灯或颜色类判定字段"},
+        {"text": "禁止幻觉编造政策条款（不在 [RETRIEVED CONTEXT] 也不在 references 中的政策一律不得输出）"}
+      ]
+    },
+    {
+      "id": "eval-6-single-dimension",
+      "name": "单一维度（仅问专项债）→ 只输出与专项债相关",
+      "type": "single_dimension",
+      "prompt": "深圳某产业园区（业主国企，资产 3 亿）能否申请专项债？",
+      "retrieved_context_hint": "[RETRIEVED CONTEXT] 含 1 条候选：专项债自审自发存量资产盘活支持条款",
+      "expectations": [
+        {"text": "可适用政策清单仅包含专项债相关政策（不含 REITs / 税费减免 / 容积率奖励等无关政策）"},
+        {"text": "条目按综合分 S1×0.5 + S2×0.5 排序"},
+        {"text": "Top1 条目含支持力度、申请路径、限制条件、依据条款、综合分五字段"},
+        {"text": "正确识别深圳 ∈ 15 试点城市"},
+        {"text": "建议动作明确指向专项债申报通道"},
+        {"text": "响应中不得包含任何信号灯或颜色类判定字段"}
+      ]
+    },
+    {
+      "id": "eval-7-multi-dimension",
+      "name": "多维组合（融资可行性 + 财务）→ 部分激活（agent2 + agent3）",
+      "type": "multi_dimension",
+      "prompt": "重庆某文旅项目（业主国企，资产 1 亿，改造模式保留微更新）：专项资金 + 税费减免 + 容积率奖励三项能否同时享受？",
+      "retrieved_context_hint": "[RETRIEVED CONTEXT] 含 3 条候选：1) 重庆文旅消费 REITs + 城市更新专项资金（文旅方向） 2) 城市更新税费减免（房产税） 3) 容积率奖励条款",
+      "expectations": [
+        {"text": "可适用政策清单至少包含 1 条可适用政策条目"},
+        {"text": "未适用政策及原因至少包含 1 条门槛不符条目（如文旅非保障房/历史建筑不在房产税免征目录）"},
+        {"text": "门槛不符条目附具体缺口字段（如试点资格/业态/规模等）"},
+        {"text": "建议动作对三项政策分别给出能否同时享受的明确说明"},
+        {"text": "正确识别重庆 ∈ 15 试点城市"},
+        {"text": "可适用条目按 S1×0.5+S2×0.5 排序"},
+        {"text": "响应中不得包含任何信号灯或颜色类判定字段"},
+        {"text": "若问题涉及融资结构（agent3 职责），agent2 仅输出政策维度结论，不越权输出融资方案设计"}
+      ]
+    }
+  ]
+}
