@@ -1,0 +1,274 @@
+{
+  "_meta": {
+    "version": "V2",
+    "date": "2026-08-08",
+    "source": "super-skill-implementation-plan.md Task 6 Step 4 + V1 §5 L254-295",
+    "agent": "agent5-失败案例",
+    "total_evals": 8,
+    "scope": "5 类失败模式 H1 高危命中(各 1 条) + S1 高相似度根因重现 + libSQL fallback + 典型无危险项目",
+    "threshold_basis": {
+      "S1_权重": "0.6",
+      "S2_权重": "0.4",
+      "相似度纳入阈值": "0.4",
+      "高相似度阈值": "0.7",
+      "RECONSIDER阈值": "0.8",
+      "改造超预算阈值": "1.5× 基准",
+      "业态门槛基准": {
+        "商业": {"IRR下限": "8%", "IRR上限": "12%"},
+        "办公": {"IRR下限": "6%", "IRR上限": "9%"},
+        "文旅": {"IRR下限": "7%", "IRR上限": "10%"}
+      }
+    },
+    "engine_expected": {
+      "eval-1": "case-matcher-v2 OR libsql-fallback",
+      "eval-2": "case-matcher-v2 OR libsql-fallback",
+      "eval-3": "case-matcher-v2 OR libsql-fallback",
+      "eval-4": "case-matcher-v2 OR libsql-fallback",
+      "eval-5": "case-matcher-v2 OR libsql-fallback",
+      "eval-6": "case-matcher-v2 OR libsql-fallback",
+      "eval-7": "case-matcher-v2 OR libsql-fallback",
+      "eval-8": "libsql-fallback (libSQL 故意失败场景)"
+    },
+    "note": "V2 在 V1 6 条基础上增加 eval-7 (S1 高相似度根因重现 yellow) + eval-8 (libSQL 失败 fallback);S1 权重 0.6 / S2 权重 0.4 来源 V1 §5 L287-288,本文件不调参,仅做 skill 指令落地;5 类失败模式定义逐字保留 V1 §5 L281-285"
+  },
+  "evals": [
+    {
+      "id": "eval-1",
+      "category": "典型-无危险",
+      "scenario": "典型项目无失败模式命中(物理参数与融资结构正常,IRR 达标)→ green",
+      "input": "上海商业项目,可租赁面积 15000㎡(达标),文保等级=无文保,改造模式=混合,融资期限 10 年=持有年限,IRR=10.5%(高于商业下限 8%),agent1/3/4 输出齐备",
+      "input_data": {
+        "region": "上海",
+        "industry": "商业",
+        "scale": 15000,
+        "property_type": "独立产权商业空间",
+        "physical_params": {"文保等级": "无文保", "结构类型": "框架", "改造模式": "混合"},
+        "financing": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs"},
+        "agent1": {"产权": "独立产权商业空间", "业态方向": "商业", "文保约束": "无文保", "改造模式": "混合"},
+        "agent3": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs", "抵押物": "项目资产"},
+        "agent4": {"IRR": 0.105, "业态门槛对照": {"达标结论": "达标"}}
+      },
+      "expected_behavior": "无 H1 高危命中,Top3 案例相似度低或根因不重现,校验灯=green",
+      "expected_light": "green",
+      "difficulty": "easy",
+      "key_check_points": [
+        "H1 5 类高危均未触发",
+        "_calc.engine 含 case-matcher-v2 或 libsql-fallback",
+        "_calc.candidates_count > 0",
+        "校验灯 = green",
+        "命中判据.H1_高危模式 = null",
+        "Top3 案例可空或低相似度",
+        "JSON schema 完整含 _calc 字段",
+        "关键假设字段标注【待校准】"
+      ]
+    },
+    {
+      "id": "eval-2",
+      "category": "H1-招商失败",
+      "scenario": "H1 高危模式命中 — 招商失败(物理与区位前置条件缺失)→ red",
+      "input": "上海商业项目,可租赁面积 3000㎡(低于商业业态最低门槛 5000㎡),区位客流评级 D 级,融资结构已就绪",
+      "input_data": {
+        "region": "上海",
+        "industry": "商业",
+        "scale": 3000,
+        "property_type": "独立产权商业空间",
+        "physical_params": {"文保等级": "无文保", "结构类型": "框架", "改造模式": "混合"},
+        "financing": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs"},
+        "agent1": {"产权": "独立产权商业空间", "业态方向": "商业", "文保约束": "无文保", "改造模式": "混合", "可租赁面积": 3000, "区位客流评级": "D"},
+        "agent3": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs", "抵押物": "项目资产"},
+        "agent4": {"IRR": 0.095, "业态门槛对照": {"达标结论": "达标"}}
+      },
+      "expected_behavior": "H1 命中招商失败高危(可租赁面积 < 5000),校验灯=red,H1_高危模式=招商失败",
+      "expected_light": "red",
+      "difficulty": "medium",
+      "key_check_points": [
+        "H1 触发判定:可租赁面积 3000㎡ < 业态最低门槛 5000㎡(商业)",
+        "校验灯 = red",
+        "命中判据.H1_高危模式 = 招商失败",
+        "_calc.engine 含 case-matcher-v2 或 libsql-fallback",
+        "规避建议针对物理与区位前置条件",
+        "不直接终止后续 agent(红灯作为 agent6 关键输入)",
+        "关键假设字段标注【待校准】"
+      ]
+    },
+    {
+      "id": "eval-3",
+      "category": "H1-退出受阻",
+      "scenario": "H1 高危模式命中 — 退出受阻(融资期限与持有年限严重错配)→ red",
+      "input": "上海商业项目,融资期限 5 年但持有年限 20 年,退出策略 REITs 但资产属性禁止 REITs",
+      "input_data": {
+        "region": "上海",
+        "industry": "商业",
+        "scale": 10000,
+        "property_type": "独立产权商业空间",
+        "physical_params": {"文保等级": "无文保", "结构类型": "框架", "改造模式": "混合"},
+        "financing": {"融资期限": 5, "持有年限": 20, "退出策略": "REITs"},
+        "agent1": {"产权": "独立产权商业空间", "业态方向": "商业", "文保约束": "无文保", "改造模式": "混合", "资产属性": "禁止REITs"},
+        "agent3": {"融资期限": 5, "持有年限": 20, "退出策略": "REITs", "抵押物": "项目资产"},
+        "agent4": {"IRR": 0.095, "业态门槛对照": {"达标结论": "达标"}}
+      },
+      "expected_behavior": "H1 命中退出受阻高危(融资期限 < 持有年限/2 + 资产属性禁止 REITs),校验灯=red",
+      "expected_light": "red",
+      "difficulty": "medium",
+      "key_check_points": [
+        "H1 触发判定:融资期限 5 年 < 持有年限 20 年 / 2 = 10 年",
+        "H1 触发判定:资产属性禁止 REITs 退出",
+        "校验灯 = red",
+        "命中判据.H1_高危模式 = 退出受阻",
+        "规避建议针对退出路径重设",
+        "不直接终止后续 agent",
+        "关键假设字段标注【待校准】"
+      ]
+    },
+    {
+      "id": "eval-4",
+      "category": "H1-改造超预算",
+      "scenario": "H1 高危模式命中 — 改造超预算(文保硬约束致成本失控)→ red",
+      "input": "上海商业项目,文保核心保护区,改造模式=保留微更新,改造成本 1.6× 基准",
+      "input_data": {
+        "region": "上海",
+        "industry": "商业",
+        "scale": 12000,
+        "property_type": "独立产权商业空间",
+        "physical_params": {"文保等级": "核心保护", "结构类型": "砖混", "改造模式": "保留微更新"},
+        "financing": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs"},
+        "agent1": {"产权": "独立产权商业空间", "业态方向": "商业", "文保约束": "核心保护", "文保等级": "核心保护", "改造模式": "保留微更新", "改造成本倍数": 1.6},
+        "agent3": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs", "抵押物": "项目资产"},
+        "agent4": {"IRR": 0.095, "业态门槛对照": {"达标结论": "达标"}}
+      },
+      "expected_behavior": "H1 命中改造超预算高危(文保核心+保留微更新+1.6× 基准>1.5× 阈值),校验灯=red",
+      "expected_light": "red",
+      "difficulty": "hard",
+      "key_check_points": [
+        "H1 触发判定:文保等级 = 核心保护",
+        "H1 触发判定:改造模式 = 保留微更新",
+        "H1 触发判定:改造成本 1.6× > 阈值 1.5× 基准",
+        "校验灯 = red",
+        "命中判据.H1_高危模式 = 改造超预算",
+        "与「施工引发周边协调失败」边界区分正确(超预算聚焦改造模式内部成本)",
+        "规避建议针对改造模式与成本控制",
+        "关键假设字段标注【待校准】"
+      ]
+    },
+    {
+      "id": "eval-5",
+      "category": "H1-业态误判",
+      "scenario": "H1 高危模式命中 — 业态误判(IRR 低于业态门槛基准下限)→ red",
+      "input": "上海商业项目,IRR = 7.0%(低于商业业态门槛下限 8.0%),agent4 业态门槛对照=不达标",
+      "input_data": {
+        "region": "上海",
+        "industry": "商业",
+        "scale": 10000,
+        "property_type": "独立产权商业空间",
+        "physical_params": {"文保等级": "无文保", "结构类型": "框架", "改造模式": "混合"},
+        "financing": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs"},
+        "agent1": {"产权": "独立产权商业空间", "业态方向": "商业", "文保约束": "无文保", "改造模式": "混合"},
+        "agent3": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs", "抵押物": "项目资产"},
+        "agent4": {"IRR": 0.07, "业态门槛对照": {"达标结论": "不达标"}}
+      },
+      "expected_behavior": "H1 命中业态误判高危(IRR 7.0% < 商业下限 8.0% + agent4 不达标),校验灯=red",
+      "expected_light": "red",
+      "difficulty": "medium",
+      "key_check_points": [
+        "H1 触发判定:IRR = 7.0% < 商业业态门槛下限 8.0%",
+        "正确读取 agent4 业态门槛对照.达标结论 = 不达标",
+        "校验灯 = red",
+        "命中判据.H1_高危模式 = 业态误判",
+        "与「招商失败」边界区分正确(业态误判由 agent4 IRR 测算驱动)",
+        "规避建议针对业态方向调整",
+        "业态门槛基准未被自行修改",
+        "关键假设字段标注【待校准】"
+      ]
+    },
+    {
+      "id": "eval-6",
+      "category": "H1-施工协调",
+      "scenario": "H1 高危模式命中 — 施工引发周边协调失败(文保周边密集区施工扰动高风险)→ red",
+      "input": "上海商业项目,文保周边密集区,施工扰动评估=高风险,周边居民密集+交通导流难度高",
+      "input_data": {
+        "region": "上海",
+        "industry": "商业",
+        "scale": 15000,
+        "property_type": "独立产权商业空间",
+        "physical_params": {"文保等级": "建控地带", "结构类型": "框架", "改造模式": "混合"},
+        "financing": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs"},
+        "agent1": {"产权": "独立产权商业空间", "业态方向": "商业", "文保约束": "建控地带", "文保周边": true, "密集区": true, "施工扰动评估": "高风险"},
+        "agent3": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs", "抵押物": "项目资产"},
+        "agent4": {"IRR": 0.095, "业态门槛对照": {"达标结论": "达标"}}
+      },
+      "expected_behavior": "H1 命中施工引发周边协调失败高危,校验灯=red",
+      "expected_light": "red",
+      "difficulty": "medium",
+      "key_check_points": [
+        "H1 触发判定:文保周边密集区命中",
+        "H1 触发判定:施工扰动评估 = 高风险",
+        "校验灯 = red",
+        "命中判据.H1_高危模式 = 施工引发周边协调失败",
+        "与「改造超预算」边界区分正确(周边协调聚焦施工期外部环境)",
+        "规避建议针对施工期外部协调",
+        "不直接终止后续 agent",
+        "关键假设字段标注【待校准】"
+      ]
+    },
+    {
+      "id": "eval-7",
+      "category": "S1-高相似度根因重现",
+      "scenario": "S1 高相似度匹配(Top3 平均相似度 ≥ 0.7)+ 根因重现 → yellow(H1 未命中)",
+      "input": "上海商业项目,可租赁面积 6500㎡(达标但接近门槛),融资期限 8 年=持有年限 12 年(轻度错配但未触发 H1),IRR=8.5%(达标),agent1/3/4 输出齐备但与案例库存在高相似度",
+      "input_data": {
+        "region": "上海",
+        "industry": "商业",
+        "scale": 6500,
+        "property_type": "独立产权商业空间",
+        "physical_params": {"文保等级": "无文保", "结构类型": "框架", "改造模式": "混合"},
+        "financing": {"融资期限": 8, "持有年限": 12, "退出策略": "REITs"},
+        "agent1": {"产权": "独立产权商业空间", "业态方向": "商业", "文保约束": "无文保", "改造模式": "混合"},
+        "agent3": {"融资期限": 8, "持有年限": 12, "退出策略": "REITs", "抵押物": "项目资产"},
+        "agent4": {"IRR": 0.085, "业态门槛对照": {"达标结论": "达标"}}
+      },
+      "expected_behavior": "Top3 中存在相似度 ≥ 0.7 的案例且根因重现,校验灯=yellow",
+      "expected_light": "yellow",
+      "difficulty": "hard",
+      "key_check_points": [
+        "H1 5 类高危均未触发(融资期限 8 年 ≥ 持有年限 12 年 / 2 = 6 年,未严重错配)",
+        "Top3 中至少 1 条相似度 ≥ 0.7",
+        "根因重现判断 = true",
+        "校验灯 = yellow",
+        "命中判据.H1_高危模式 = null",
+        "命中判据.S1_相似度分 ≥ 0.7",
+        "命中判据.S2_归因分 > 0",
+        "规避建议针对 Top3 案例根因(条件推进)",
+        "关键假设字段标注【待校准】"
+      ]
+    },
+    {
+      "id": "eval-8",
+      "category": "F8-libSQL失败fallback",
+      "scenario": "libSQL 查询失败 → fallback references/case_library.json → 标 WARN 不阻断",
+      "input": "上海商业项目,libsql_client.query_cases 抛 RuntimeError(LIBSQL_URL 未注入或 HTTP 5xx),触发 _safe_query_cases fallback",
+      "input_data": {
+        "region": "上海",
+        "industry": "商业",
+        "scale": 8000,
+        "property_type": "独立产权商业空间",
+        "physical_params": {"文保等级": "无文保", "结构类型": "框架", "改造模式": "混合"},
+        "financing": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs"},
+        "agent1": {"产权": "独立产权商业空间", "业态方向": "商业", "文保约束": "无文保", "改造模式": "混合"},
+        "agent3": {"融资期限": 10, "持有年限": 10, "退出策略": "REITs", "抵押物": "项目资产"},
+        "agent4": {"IRR": 0.095, "业态门槛对照": {"达标结论": "达标"}},
+        "_test_libsql_force_fail": true
+      },
+      "expected_behavior": "case_matcher 走 fallback references/case_library.json, _calc.engine=libsql-fallback, 标 WARN 不阻断主流程",
+      "expected_light": "any (不强制,主要验证 _calc.engine=libsql-fallback)",
+      "difficulty": "medium",
+      "key_check_points": [
+        "_calc.engine = libsql-fallback",
+        "_calc.candidates_count > 0(从 fallback 加载成功)",
+        "依据字段含 fallback 案例库标记",
+        "校验流程未阻断(仍输出 Top3)",
+        "JSON schema 完整含 _calc",
+        "关键假设字段标注【待校准】"
+      ]
+    }
+  ]
+}
