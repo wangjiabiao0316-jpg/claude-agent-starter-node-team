@@ -256,6 +256,18 @@ function emitAssistantBlocks(
           : undefined;
         if (typeof skillName === 'string') {
           enqueueSse(controller, encoder, 'skill_loaded', { name: skillName, status: 'loaded' });
+
+          // Phase 4 Task 9 fix: detectSseEvent 之前基于 toolName（"Skill"），
+          // 无法区分具体哪个 agent。这里基于 skillName 检测 agent_output。
+          // 当 super-skill 调子 skill (Skill tool) 时，skillName = "agent{1-6}-<中文名>"，
+          // 触发 agent_output 让前端 AgentPane 累积输出。
+          const agentSseType = detectSseEvent(skillName);
+          if (agentSseType === 'agent_output') {
+            enqueueSse(controller, encoder, 'agent_output', {
+              agent_id: skillName,
+              timestamp: Date.now(),
+            });
+          }
         }
       }
     } else {

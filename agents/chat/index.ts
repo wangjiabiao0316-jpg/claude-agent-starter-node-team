@@ -128,7 +128,7 @@ function buildAgentOptions(opts?: {
         disableBypassPermissionsMode: 'disable',
       },
     },
-    maxTurns: 5,
+    maxTurns: 50,
     env: {
       ...ctxEnv,
       ...collectGatewayEnv(ctxEnv),
