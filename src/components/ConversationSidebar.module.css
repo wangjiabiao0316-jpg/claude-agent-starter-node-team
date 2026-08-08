@@ -246,3 +246,10 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Narrow viewports: collapse the sidebar so the chat column stays usable */
+@media (max-width: 900px) {
+  .sidebar {
+    display: none;
+  }
+}

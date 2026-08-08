@@ -7,10 +7,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* safe centering: fall back to flex-start when content overflows,
+     so the title is never clipped above the scrollport */
+  justify-content: safe center;
   text-align: center;
   padding: 32px 28px 24px;
   animation: welcomeIn 600ms cubic-bezier(.22, 1, .36, 1) both;
+  /* Soft dark core behind the content so text stays readable over the 3D city */
+  background: radial-gradient(ellipse 62% 55% at 50% 46%, rgba(5, 5, 7, 0.72) 0%, rgba(5, 5, 7, 0.35) 55%, transparent 100%);
 }
 
 @keyframes welcomeIn {

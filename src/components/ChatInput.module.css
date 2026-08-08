@@ -166,3 +166,21 @@
   color: var(--text-muted);
   letter-spacing: 0.03em;
 }
+
+/* Narrow viewports: preset chips scroll sideways instead of wrapping */
+@media (max-width: 640px) {
+  .presets {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .presets::-webkit-scrollbar { display: none; }
+  .presetChip {
+    flex-shrink: 0;
+    white-space: nowrap;
+    max-width: 78vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
