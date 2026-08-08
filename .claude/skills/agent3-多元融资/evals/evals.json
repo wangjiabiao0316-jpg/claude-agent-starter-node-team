@@ -1,0 +1,237 @@
+{
+  "version": "V2-2026-08-08",
+  "skill_name": "agent3-多元融资",
+  "description": "V2 evals 8 条 - 覆盖 H1-H4 硬约束边界 + S1-S4 综合分边界 + 灯色判定 + libSQL fallback",
+  "evals": [
+    {
+      "id": "eval-1",
+      "name": "典型项目-绿灯-4工具全过",
+      "trigger": "用户问：上海存量商业提质项目，总投资 1 亿，持有 10 年，REITs 退出，资本金 30%，抵押物土地使用权估值 1.2 亿，基准租金 80 元/㎡/月，可租赁面积 10000 ㎡。能做哪些融资工具？",
+      "user_input": {
+        "investment": 10000.0,
+        "holding_years": 10,
+        "exit_strategy": "REITs 退出",
+        "user_region": "上海",
+        "user_industry": "商业",
+        "capital_ratio": 0.30,
+        "mortgage_type": "土地使用权",
+        "mortgage_value": 12000.0,
+        "baseline_rent": 80.0,
+        "leasable_area": 10000.0
+      },
+      "agent1_output": {"灯色": "green", "业主资质": {"信用记录": "良好", "国资背景": "是"}, "业态方向": "商业", "改造模式": "保留微更新"},
+      "agent2_output": {"灯色": "green", "可适用政策清单": ["专项债自审自发", "REITs 试点"], "试点城市资格判定": {"城市": "上海", "是否试点": true, "分档": "一线"}},
+      "expected_light": "green",
+      "expected_action": "可推进",
+      "expected_candidate_min": 3,
+      "expected_engine": "libsql-direct | libsql-fallback-json",
+      "key_check_points": [
+        "灯色字段为 'green'（小写枚举）",
+        "可适用融资工具清单 ≥ 3 条（专项债/REITs/政策性银行 至少各 1 条）",
+        "综合分严格按 S1×0.3 + S2×0.3 + S3×0.2 + S4×0.2 计算（1 位小数）",
+        "推荐资金组合字段非空，含综合利率",
+        "_calc.engine ∈ {'libsql-direct', 'libsql-fallback-json'}",
+        "_calc.coverage_ratio ≥ 0.7",
+        "建议动作 = '可推进'",
+        "agent 字段 = 'agent3-多元融资'",
+        "依据字段含 4 项（融资产品库/抵押率阈值表/负面清单/15 城试点）"
+      ]
+    },
+    {
+      "id": "eval-2",
+      "name": "H1-资本金不足-red",
+      "trigger": "用户问：项目资本金比例仅 18%，低于 25% 门槛，能走哪些融资工具？",
+      "user_input": {
+        "investment": 10000.0,
+        "holding_years": 10,
+        "exit_strategy": "持有到期",
+        "user_region": "上海",
+        "user_industry": "商业",
+        "capital_ratio": 0.18,
+        "mortgage_type": "土地使用权",
+        "mortgage_value": 12000.0,
+        "baseline_rent": 80.0,
+        "leasable_area": 10000.0
+      },
+      "agent1_output": {"灯色": "yellow", "业主资质": {"信用记录": "良好"}, "业态方向": "商业"},
+      "agent2_output": {"灯色": "green"},
+      "expected_light": "red",
+      "expected_action": "终止",
+      "expected_candidate_max": 0,
+      "key_check_points": [
+        "灯色 = 'red'（资本金 18% < 25% 门槛，所有工具 H1 不通过）",
+        "可适用融资工具清单 = []",
+        "建议动作 = '终止'",
+        "关键审批风险点 ≥ 1 条，含 'H1 资本金比例' 关键字",
+        "_calc.candidate_count = 0"
+      ]
+    },
+    {
+      "id": "eval-3",
+      "name": "H2-抵押物不在5类-red",
+      "trigger": "用户问：抵押物是应收账款，能做银行开发贷吗？",
+      "user_input": {
+        "investment": 10000.0,
+        "holding_years": 10,
+        "exit_strategy": "持有到期",
+        "user_region": "上海",
+        "user_industry": "商业",
+        "capital_ratio": 0.30,
+        "mortgage_type": "应收账款",
+        "mortgage_value": 12000.0,
+        "baseline_rent": 80.0,
+        "leasable_area": 10000.0
+      },
+      "agent1_output": {"灯色": "green"},
+      "agent2_output": {"灯色": "green"},
+      "expected_light": "red",
+      "expected_action": "终止",
+      "key_check_points": [
+        "灯色 = 'red'（应收账款不在 5 类抵押物清单：土地使用权/运营权/收益权/经营权/收费权/组合）",
+        "可适用融资工具清单 = []",
+        "关键审批风险点含 'H2' + '5 类' 或 '抵押物类型' 关键字",
+        "建议动作 = '终止'"
+      ]
+    },
+    {
+      "id": "eval-4",
+      "name": "H3-命中负面清单-政策性剔除",
+      "trigger": "用户问：项目业态是高污染化工，能申报专项债吗？",
+      "user_input": {
+        "investment": 10000.0,
+        "holding_years": 10,
+        "exit_strategy": "持有到期",
+        "user_region": "上海",
+        "user_industry": "高污染化工",
+        "capital_ratio": 0.30,
+        "mortgage_type": "土地使用权",
+        "mortgage_value": 12000.0,
+        "baseline_rent": 80.0,
+        "leasable_area": 10000.0
+      },
+      "agent1_output": {"灯色": "yellow", "业态方向": "高污染化工"},
+      "agent2_output": {"灯色": "red", "试点城市资格判定": {"城市": "上海"}},
+      "expected_light": "green|yellow",
+      "expected_action": "可推进|条件推进",
+      "key_check_points": [
+        "专项债 + REITs 因 H3 命中负面清单被剔除（关键审批风险点含 'H3' + '负面清单'）",
+        "商业性融资（银行贷款/保险资金）保留（不受 H3 限制）",
+        "政策性银行的商业贷款不被 H3 误剔除（关键校验点）",
+        "关键审批风险点 ≥ 1 条含 'H3'",
+        "可适用融资工具清单中无 '专项债' 和 'REITs'"
+      ]
+    },
+    {
+      "id": "eval-5",
+      "name": "H4-非15城试点-政策性剔除",
+      "trigger": "用户问：项目在河南郑州，能申报专项债自审自发吗？",
+      "user_input": {
+        "investment": 10000.0,
+        "holding_years": 10,
+        "exit_strategy": "持有到期",
+        "user_region": "河南郑州",
+        "user_industry": "商业",
+        "capital_ratio": 0.30,
+        "mortgage_type": "土地使用权",
+        "mortgage_value": 12000.0,
+        "baseline_rent": 80.0,
+        "leasable_area": 10000.0
+      },
+      "agent1_output": {"灯色": "green"},
+      "agent2_output": {"灯色": "yellow", "试点城市资格判定": {"城市": "河南郑州", "是否试点": false}},
+      "expected_light": "green|yellow",
+      "expected_action": "可推进|条件推进",
+      "key_check_points": [
+        "专项债因 H4 非试点被剔除（关键审批风险点含 'H4' + '15 城试点' 或 '非试点'）",
+        "REITs 也因 H4 被剔除",
+        "商业性融资保留",
+        "可适用融资工具清单中无 '专项债' 和 'REITs'",
+        "关键审批风险点 ≥ 1 条含 'H4'"
+      ]
+    },
+    {
+      "id": "eval-6",
+      "name": "S4-DSCR边界-yellow",
+      "trigger": "用户问：基准租金较低、可租赁面积较小的项目，还款覆盖评分会到多少？灯色？",
+      "user_input": {
+        "investment": 50000.0,
+        "holding_years": 5,
+        "exit_strategy": "持有到期",
+        "user_region": "上海",
+        "user_industry": "商业",
+        "capital_ratio": 0.30,
+        "mortgage_type": "土地使用权",
+        "mortgage_value": 20000.0,
+        "baseline_rent": 30.0,
+        "leasable_area": 3000.0
+      },
+      "agent1_output": {"灯色": "green"},
+      "agent2_output": {"灯色": "green"},
+      "expected_light": "yellow|green",
+      "expected_action": "条件推进|可推进",
+      "key_check_points": [
+        "S4 评分低（DSCR < 1.0 → 评分 40，因基准租金 30×3000×12=108万 远小于年还款）",
+        "_calc.coverage_ratio 字段存在",
+        "综合分严格按公式计算",
+        "可适用融资工具清单按综合分降序"
+      ]
+    },
+    {
+      "id": "eval-7",
+      "name": "覆盖率不达标-yellow",
+      "trigger": "用户问：资本金 26%，仅有部分工具通过，覆盖率多少？",
+      "user_input": {
+        "investment": 10000.0,
+        "holding_years": 10,
+        "exit_strategy": "持有到期",
+        "user_region": "河南郑州",
+        "user_industry": "高污染化工",
+        "capital_ratio": 0.26,
+        "mortgage_type": "土地使用权",
+        "mortgage_value": 12000.0,
+        "baseline_rent": 80.0,
+        "leasable_area": 10000.0
+      },
+      "agent1_output": {"灯色": "yellow"},
+      "agent2_output": {"灯色": "red"},
+      "expected_light": "yellow|green",
+      "expected_action": "条件推进|可推进",
+      "key_check_points": [
+        "资本金 26% 触发部分工具 H1 不通过（专项债/保险资金/信托要求 ≥ 30%）",
+        "H3 + H4 进一步剔除政策性",
+        "_calc.coverage_ratio 字段值明确",
+        "若覆盖率 < 0.7 → 灯色 = 'yellow' + 建议动作 = '条件推进'",
+        "若覆盖率 ≥ 0.7 → 灯色 = 'green' + 建议动作 = '可推进'"
+      ]
+    },
+    {
+      "id": "eval-8",
+      "name": "libsql失败-fallback json",
+      "trigger": "（沙箱模拟 libSQL 不可用）用户问：libSQL 数据库不可达，能跑融资分析吗？",
+      "user_input": {
+        "investment": 10000.0,
+        "holding_years": 10,
+        "exit_strategy": "REITs 退出",
+        "user_region": "上海",
+        "user_industry": "商业",
+        "capital_ratio": 0.30,
+        "mortgage_type": "土地使用权",
+        "mortgage_value": 12000.0,
+        "baseline_rent": 80.0,
+        "leasable_area": 10000.0
+      },
+      "agent1_output": {"灯色": "green"},
+      "agent2_output": {"灯色": "green"},
+      "expected_light": "green",
+      "expected_engine": "libsql-fallback-json",
+      "expected_action": "可推进",
+      "key_check_points": [
+        "_calc.engine = 'libsql-fallback-json'（libSQL 不可达，自动 fallback references/*.json）",
+        "_calc.libsql_available = false",
+        "灯色判定不因 fallback 阻断（仍按综合分 + 覆盖率出灯）",
+        "可适用融资工具清单非空",
+        "依据字段含 'fallback-json' 标记"
+      ]
+    }
+  ]
+}

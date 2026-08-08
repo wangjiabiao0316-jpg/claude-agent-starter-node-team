@@ -1,0 +1,12 @@
+{
+  "version": "2026-08-08",
+  "description": "5 类抵押物 × 抵押率阈值上限（V1 §3 L138-145）",
+  "rows": [
+    {"类型": "土地使用权", "mortgage_type": "土地使用权", "阈值": 0.70, "threshold": "70%", "max_ratio": 0.70},
+    {"类型": "运营权", "mortgage_type": "运营权", "阈值": 0.50, "threshold": "50%", "max_ratio": 0.50},
+    {"类型": "收益权", "mortgage_type": "收益权", "阈值": 0.55, "threshold": "55%", "max_ratio": 0.55},
+    {"类型": "经营权", "mortgage_type": "经营权", "阈值": 0.55, "threshold": "55%", "max_ratio": 0.55},
+    {"类型": "收费权", "mortgage_type": "收费权", "阈值": 0.50, "threshold": "50%", "max_ratio": 0.50},
+    {"类型": "组合", "mortgage_type": "组合", "阈值": 0.60, "threshold": "60%", "max_ratio": 0.60}
+  ]
+}
