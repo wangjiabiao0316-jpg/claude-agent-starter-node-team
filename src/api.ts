@@ -13,7 +13,15 @@
  * This file defines all API paths and request wrappers.
  */
 
-import type { Message, ImageSsePayload, ListConversationsParams, ListConversationsResponse } from './types';
+import type {
+  Message,
+  ImageSsePayload,
+  ListConversationsParams,
+  ListConversationsResponse,
+  SuggestAction,
+  AgentOutput,
+  ReportReady,
+} from './types';
 
 export const API = {
   chat: '/chat',
@@ -52,6 +60,14 @@ export interface StreamCallbacks {
   onDone: () => void;
   onError: (err: Error) => void;
   onRawEvent?: (event: RawSseEvent) => void;
+  // === Phase 4 Task 10: super-skill orchestrator events ===
+  // Triggered by detectSseEvent() in agents/chat/_stream.ts:
+  //   - tool name = `super-skill.complete`    → suggest_actions
+  //   - tool name matches `agent{1-6}-<中文名>` → agent_output
+  //   - tool name = `agent6.export_report`     → report_ready
+  onSuggestActions?: (actions: SuggestAction[]) => void;
+  onAgentOutput?: (output: AgentOutput) => void;
+  onReportReady?: (report: ReportReady) => void;
 }
 
 /** Get conversation history for restoring the chat window after page refresh. */
@@ -219,6 +235,16 @@ function dispatchSseChunk(part: string, cb: StreamCallbacks, markDone: () => voi
         break;
       case 'skill_loaded':
         cb.onSkillLoaded?.({ name: parsed.name, status: 'loaded' });
+        break;
+      // === Phase 4 Task 10: super-skill orchestrator SSE events ===
+      case 'suggest_actions':
+        cb.onSuggestActions?.((parsed.actions as SuggestAction[]) ?? []);
+        break;
+      case 'agent_output':
+        cb.onAgentOutput?.(parsed as AgentOutput);
+        break;
+      case 'report_ready':
+        cb.onReportReady?.(parsed as ReportReady);
         break;
       case 'done':
         markDone();

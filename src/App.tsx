@@ -5,6 +5,9 @@ import type {
   ImageAttachment,
   ImageSsePayload,
   ConversationSummary,
+  SuggestAction,
+  AgentOutput,
+  ReportReady,
 } from './types';
 import {
   deleteConversation,
@@ -34,6 +37,10 @@ import CodeViewer from './components/CodeViewer';
 import ConversationSidebar from './components/ConversationSidebar';
 import GitHubLink from './components/GitHubLink';
 import DeployLink from './components/DeployLink';
+// === Phase 4 Task 10: super-skill orchestrator UI ===
+import { SuggestActions } from './components/SuggestActions';
+import { AgentPane, DEFAULT_AGENT_TAB } from './components/AgentPane';
+import { ReportModal } from './components/ReportModal';
 import styles from './App.module.css';
 
 const LAMP_IDS = ['commands', 'files', 'code_interpreter', 'browser'] as const;
@@ -144,6 +151,18 @@ function AppInner() {
   // after a short interval so the pill animates out.
   const [skillInUse, setSkillInUse] = useState<string | null>(null);
   const [rightPanelMode, setRightPanelMode] = useState<'code' | 'debug'>('code');
+
+  // === Phase 4 Task 10: super-skill orchestrator state ===
+  // suggest_actions: button group rendered under chat input after super-skill completes
+  const [suggestActions, setSuggestActions] = useState<SuggestAction[]>([]);
+  // agent_outputs: keyed by agent_id (e.g. "agent1-固有对象"), shown in right AgentPane
+  const [agentOutputs, setAgentOutputs] = useState<Record<string, AgentOutput>>({});
+  // active agent tab in the right pane — defaults to the synthesis agent (agent6)
+  const [activeAgentTab, setActiveAgentTab] = useState<string>(DEFAULT_AGENT_TAB);
+  // currently visible report (set when report_ready SSE fires from agent6.export_report)
+  const [report, setReport] = useState<ReportReady | null>(null);
+  // whether the right-side AgentPane is expanded (toggled by suggest_actions or manually)
+  const [agentPaneOpen, setAgentPaneOpen] = useState<boolean>(false);
 
   // Conversation list state (left sidebar)
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
@@ -520,6 +539,23 @@ function AppInner() {
         handleImageEvent(payload);
       },
 
+      // === Phase 4 Task 10: super-skill orchestrator SSE callbacks ===
+      onSuggestActions(actions) {
+        setSuggestActions(actions);
+        // Auto-expand the agent pane if any view_agent suggestion is present
+        if (actions.some(a => a.id.startsWith('view_agent'))) {
+          setAgentPaneOpen(true);
+        }
+      },
+
+      onAgentOutput(output) {
+        setAgentOutputs(prev => ({ ...prev, [output.agent_id]: output }));
+      },
+
+      onReportReady(nextReport) {
+        setReport(nextReport);
+      },
+
       onRawEvent(event) {
         // Every backend SSE frame flows through here, so this is the cheapest
         // hook for "first byte from backend" — covers text_delta, tool_called,
@@ -734,6 +770,46 @@ function AppInner() {
   }, [nextCursor, conversationsLoadingMore, refreshConversations]);
 
   /**
+   * Phase 4 Task 10 — Handle clicks on suggest_action buttons.
+   *
+   * Action id convention (set by super-skill orchestrator):
+   *   - `view_agent<id>`      → switch the right AgentPane to that tab and expand it
+   *   - `export_report`        → no-op client-side; the actual export is performed
+   *                              server-side by agent6.export_report and arrives
+   *                              later as a `report_ready` SSE event. The button
+   *                              is still useful as an explicit "I want this" signal.
+   *   - `rerun_agent`          → re-send the previous user message (best-effort
+   *                              re-run; the orchestrator decides what to actually do)
+   *   - any other id           → ignore (forward-compat for future actions)
+   */
+  const handleSuggestActionClick = useCallback((action: SuggestAction) => {
+    if (action.id.startsWith('view_agent')) {
+      // Strip "view_" prefix to get the agent_id (e.g. "agent1-固有对象")
+      const agentId = action.id.replace(/^view_/, '');
+      setActiveAgentTab(agentId);
+      setAgentPaneOpen(true);
+      return;
+    }
+
+    if (action.id === 'export_report') {
+      // The export itself is server-driven: agent6.export_report emits
+      // report_ready SSE which pops the modal. Nothing to do here but
+      // mark intent — could be wired to a tracking event if needed.
+      return;
+    }
+
+    if (action.id === 'rerun_agent') {
+      // Re-run = re-send the most recent user message (best-effort).
+      setSuggestActions([]); // clear suggestions to avoid stuck buttons
+      const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+      if (lastUserMsg?.content) {
+        void handleSend(lastUserMsg.content);
+      }
+      return;
+    }
+  }, [messages, handleSend]);
+
+  /**
    * User clicked the trash icon on a sidebar item.
    *
    * Optimistic delete: immediately remove the item from local UI state and
@@ -821,6 +897,13 @@ function AppInner() {
             )}
           </div>
           <ChatInput onSend={handleSend} onStop={handleStop} onClear={handleClearHistory} disabled={loading} />
+          {/* === Phase 4 Task 10: super-skill suggest_actions button group === */}
+          {suggestActions.length > 0 && (
+            <SuggestActions
+              actions={suggestActions}
+              onClick={handleSuggestActionClick}
+            />
+          )}
         </div>
 
         <div className={styles.codePanel}>
@@ -830,7 +913,23 @@ function AppInner() {
             <DebugPanel events={debugEvents} onClear={() => setDebugEvents([])} />
           )}
         </div>
+
+        {/* === Phase 4 Task 10: super-skill agent outputs pane === */}
+        {/* Rendered as a fourth column when the orchestrator surfaces
+            suggest_actions containing a view_agent* entry, or whenever
+            agent_output events have produced at least one pane of content. */}
+        {agentPaneOpen && (
+          <AgentPane
+            outputs={agentOutputs}
+            activeTab={activeAgentTab}
+            onTabChange={setActiveAgentTab}
+          />
+        )}
       </div>
+
+      {/* === Phase 4 Task 10: super-skill report modal === */}
+      <ReportModal report={report} onClose={() => setReport(null)} />
+
       <GitHubLink />
       <DeployLink />
     </div>

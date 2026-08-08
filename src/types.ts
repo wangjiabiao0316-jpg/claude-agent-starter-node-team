@@ -87,3 +87,37 @@ export interface ListConversationsResponse {
   nextCursor?: string;
   previousCursor?: string;
 }
+
+// === Phase 4 Task 10: SSE event 新类型 ===
+
+/**
+ * Suggested action button surfaced after super-skill completes.
+ * Backend emits via SSE event `suggest_actions` (triggered when
+ * tool name = `super-skill.complete` in agents/chat/_stream.ts).
+ */
+export interface SuggestAction {
+  id: string;            // e.g. "view_agent1-固有对象" / "export_report" / "rerun_agent"
+  emoji: string;         // e.g. "🏠" / "📑" / "📤"
+  title: string;         // short label
+  description: string;   // longer tooltip text
+}
+
+/**
+ * Output produced by an individual sub-agent (agent1 ~ agent6).
+ * Backend emits via SSE event `agent_output` when tool name matches
+ * `agent{1-6}-<中文名>`.
+ */
+export interface AgentOutput {
+  agent_id: string;                          // e.g. "agent1-固有对象"
+  output_json: Record<string, unknown>;      // structured payload
+  summary: string;                           // human-readable summary
+}
+
+/**
+ * Final HTML report ready for display in modal.
+ * Backend emits via SSE event `report_ready` when tool name = `agent6.export_report`.
+ */
+export interface ReportReady {
+  report_type: '投资人版' | '政府版' | '业主版' | '内部决策版';
+  html_content: string;
+}
