@@ -1,0 +1,31 @@
+/* Full-viewport 3D city backdrop. Sits under every UI layer (z-index 0). */
+
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  /* Poster fallback: visible before first WebGL frame, or when WebGL fails. */
+  background: #050507 url('../assets/city-poster.jpg') center / cover no-repeat;
+}
+
+.canvasHost {
+  position: absolute;
+  inset: 0;
+}
+
+.canvasHost canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Vignette + readability dim over the 3D scene. */
+.veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 42%, transparent 40%, rgba(5, 5, 7, 0.55) 100%),
+    linear-gradient(180deg, rgba(5, 5, 7, 0.35) 0%, transparent 22%, transparent 70%, rgba(5, 5, 7, 0.6) 100%);
+}
