@@ -1,0 +1,122 @@
+{
+  "skill": "super-skill",
+  "version": "V1",
+  "created": "2026-08-08",
+  "description": "super-skill 编排器端到端 evals（5 条）。覆盖：全流程 / H 硬规则触发 / 单 agent 不触发 / 子集 / 追加。每条 eval 测试 super-skill 的触发判定 + 调用顺序 + 数据传递正确性，不测试子 skill 内部算法（子 skill 由各自 evals 覆盖）。",
+  "evals": [
+    {
+      "id": "eval-1",
+      "name": "全流程模式_典型项目_全green",
+      "category": "trigger_full",
+      "text": "我们在上海有个旧厂房改造项目，建面 12000 ㎡，业态方向是商业+办公，业主要求算一下：产权和文保怎么判定？政策上能不能享受试点？融资方案有哪些？财务 IRR 能不能到 8%？类似项目失败案例？最终能不能上会？请做完整测算。",
+      "expected_behavior": {
+        "mode": "full",
+        "triggered_agents": ["agent1", "agent2", "agent3", "agent4", "agent5", "agent6"],
+        "skipped_agents": [],
+        "agent6_top_light": "green",
+        "push_suggest_actions": true,
+        "push_agent_output_count": 6
+      },
+      "grading": {
+        "text": "super-skill 必须被触发（query 含 6 维度 + 显式『完整测算』）。调用顺序必须 agent1+2 并行 → agent3 → agent4 → agent5 → agent6。agent6 顶层灯 = green（全 green 聚合）。必须推送 suggest_actions × 1 + agent_output × 6。",
+        "passed": false,
+        "evidence": ""
+      }
+    },
+    {
+      "id": "eval-2",
+      "name": "H硬规则触发_agent1_red_顶层red",
+      "category": "trigger_short_circuit_H1",
+      "text": "北京有个国家级文保单位，业主想推倒重建商业综合体。请做顶层判定：产权文保能不能过？政策有没有限制？融资方案？财务测算？失败案例？最终能不能上会？",
+      "expected_behavior": {
+        "mode": "full",
+        "triggered_agents": ["agent1", "agent2"],
+        "skipped_agents": ["agent3", "agent4"],
+        "agent6_top_light": "red",
+        "short_circuit_reason": "H1 国家级文保 → agent1 red → 跳过 agent3/4 直接进 agent6",
+        "push_suggest_actions": true,
+        "push_agent_output_count": 3
+      },
+      "grading": {
+        "text": "super-skill 必须被触发（query 含 ≥3 维度 + 『顶层判定』）。agent1 必须返回 red（H2 国家级文保）。super-skill 必须短路：跳过 agent3/4，直接调 agent6。agent6 顶层灯 = red（设计咨询 red → H 硬规则）。必须推送 suggest_actions × 1（agent3/4 按钮 description 标『已跳过』）+ agent_output × 3（agent1 + agent2 + agent6）。",
+        "passed": false,
+        "evidence": ""
+      }
+    },
+    {
+      "id": "eval-3",
+      "name": "单agent模式_算IRR_super-skill不触发",
+      "category": "trigger_single_no_trigger",
+      "text": "这个项目的 IRR 是多少？",
+      "expected_behavior": {
+        "mode": "single",
+        "super_skill_triggered": false,
+        "direct_child_skill": "agent4-财务模型",
+        "push_suggest_actions": false,
+        "push_agent_output_count": 0
+      },
+      "grading": {
+        "text": "super-skill 必须不被触发（query 仅含 1 维度『IRR』，无显式触发词）。Claude SDK 必须直接调 agent4-财务模型 子 skill，不调 super-skill。无 suggest_actions 推送，无 agent_output 事件（agent4 自身输出由 agent4 内部处理）。",
+        "passed": false,
+        "evidence": ""
+      }
+    },
+    {
+      "id": "eval-4",
+      "name": "子集模式_融资加财务_只调agent3+4+6",
+      "category": "trigger_subset",
+      "text": "帮我看下这个项目的融资方案和财务指标，业主想知道融资可行性 + IRR 能不能到 10%。",
+      "expected_behavior": {
+        "mode": "subset",
+        "triggered_agents": ["agent3", "agent4", "agent6"],
+        "skipped_agents": ["agent1", "agent2", "agent5"],
+        "push_suggest_actions": true,
+        "push_agent_output_count": 3,
+        "agent6_top_light": "any"
+      },
+      "grading": {
+        "text": "super-skill 必须被触发（query 含 2 维度『融资 + 财务』且非单 agent 模式）。调用顺序：agent3 → agent4 → agent6（agent6 强制调用聚合；agent1/2/5 不调）。必须推送 suggest_actions × 1（仅含 view_agent3 + view_agent4 + view_agent6 + export_report + rerun_agent，无 view_agent1 / view_agent2 / view_agent5）+ agent_output × 3。",
+        "passed": false,
+        "evidence": ""
+      }
+    },
+    {
+      "id": "eval-5",
+      "name": "追加模式_已有conversation追问_不重跑已完成",
+      "category": "trigger_append",
+      "text": "（在已有 conversation 中，前轮已跑 agent1/2/3/4/6）再算一下失败案例",
+      "context": {
+        "prior_conversation": {
+          "prior_agents_completed": ["agent1", "agent2", "agent3", "agent4", "agent6"],
+          "prior_agent5_completed": false
+        }
+      },
+      "expected_behavior": {
+        "mode": "append",
+        "triggered_agents": ["agent5", "agent6"],
+        "skipped_agents": ["agent1", "agent2", "agent3", "agent4"],
+        "skip_reason": "已完成（从 [RETRIEVED CONTEXT] 读）",
+        "push_suggest_actions": true,
+        "push_agent_output_count": 2,
+        "agent6_must_rerun": true
+      },
+      "grading": {
+        "text": "super-skill 必须被触发（query 是 followup『再算』）。super-skill 必须从 [RETRIEVED CONTEXT] 块读已完成 agent 列表（agent1/2/3/4/6），不重跑这些 agent。仅调用：agent5（用户问的）+ agent6（必须重跑，因为聚合依赖全部下游，agent5 输出变了）。必须推送 suggest_actions × 1（仅含 view_agent5 + view_agent6 + export_report + rerun_agent）+ agent_output × 2（agent5 + agent6）。",
+        "passed": false,
+        "evidence": ""
+      }
+    }
+  ],
+  "grading_rules": {
+    "pass_threshold": 0.70,
+    "scoring_method": "passed / total",
+    "scoring_dimensions": [
+      "触发判定正确（mode + 是否触发 super-skill）",
+      "调用顺序正确（agent1+2 并行 → 3 → 4 → 5 → 6 或短路）",
+      "数据传递正确（[AGENT_CONTEXT] 块注入对应上游字段）",
+      "推送事件正确（suggest_actions × 1 + agent_output × N）",
+      "短路逻辑正确（H1 / H2 触发时跳过对应 agent）",
+      "追加模式正确（不重跑已完成 agent，agent6 必重跑）"
+    ]
+  }
+}
