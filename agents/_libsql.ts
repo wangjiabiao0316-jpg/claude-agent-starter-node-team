@@ -156,8 +156,11 @@ export async function embedQuery(text: string, env: EmbedEnv): Promise<number[]>
  *
  * Note: sqld v0.24.x expects the wrapping key to be `requests`, not
  * `statements` — older docs may show otherwise.
+ *
+ * Renamed from `executeSql` to `libsqlPipeline` so the public SELECT-with-
+ * whitelist helper below can take the friendlier name `executeSql(table, env, opts)`.
  */
-async function executeSql(
+async function libsqlPipeline(
   sql: string,
   args: Array<string | number | null>,
   env: LibSqlEnv,
@@ -250,7 +253,7 @@ export async function retrieveContext(
   // This works without relying on the `<->` operator (whose placeholder binding
   // behavior differs across @libsql/client versions).
   const [docRows, histRows] = await Promise.all([
-    executeSql(
+    libsqlPipeline(
       `SELECT id, source, page, chunk_index, content,
               vector_distance_cos(embedding, ?) AS distance
        FROM documents
@@ -259,7 +262,7 @@ export async function retrieveContext(
       [qvStr, qvStr, DEFAULT_K],
       env,
     ),
-    executeSql(
+    libsqlPipeline(
       `SELECT id, content, role,
               vector_distance_cos(embedding, ?) AS distance
        FROM conversations
@@ -290,4 +293,178 @@ export async function retrieveContext(
 
   const fused = fuseHits(docHits, histHits);
   return fused.slice(0, opts.k ?? DEFAULT_K);
+}
+
+// ---------------------------------------------------------------------------
+// Public SELECT-with-whitelist API
+//
+// Exposed so sandboxed Python helpers (and other agents) can run a controlled
+// shape of SELECT against a small set of business tables without holding the
+// libSQL RO token themselves. SELECT-only — a table whitelist plus a keyword
+// blocklist act as defense-in-depth on top of the RO token's read-only scope.
+// ---------------------------------------------------------------------------
+
+const SQL_TABLE_WHITELIST = new Set<string>([
+  'finance_products',
+  'mortgage_thresholds',
+  'negative_list',
+  'pilot_cities',
+  'case_library',
+  'industry_thresholds',
+]);
+
+// Match forbidden verbs as whole words (case-insensitive). Applied AFTER
+// whitelist + sql assembly so a smuggled `; DROP TABLE x` is caught whether
+// it lands in the table slot, the columns list, or the WHERE values.
+const SQL_KEYWORD_BLOCKLIST = /\b(insert|update|delete|drop|create|alter|truncate|grant|revoke|attach|pragma)\b/i;
+
+export interface ExecuteSqlOptions {
+  /** Columns to project. Defaults to `*`. Each entry is interpolated verbatim. */
+  columns?: string[];
+  /** Equality filters combined with AND. Values become positional `?` args. */
+  where?: Record<string, string | number | null>;
+  /** Row cap. Hard ceiling at 1000 regardless of input. */
+  limit?: number;
+}
+
+/**
+ * Run a parameterized SELECT against a whitelisted business table.
+ *
+ * Safety:
+ *   1. Table must appear in SQL_TABLE_WHITELIST.
+ *   2. Columns and the assembled SQL are scanned against SQL_KEYWORD_BLOCKLIST.
+ *   3. WHERE values are always bound as positional args, never interpolated.
+ *   4. LIMIT is clamped to <= 1000.
+ *
+ * Returns rows as `Record<string, unknown>[]` keyed by column name from the
+ * sqld response `cols` array. Empty result set yields `[]`.
+ */
+export async function executeSql(
+  table: string,
+  env: LibSqlEnv,
+  opts: ExecuteSqlOptions = {},
+): Promise<Record<string, unknown>[]> {
+  if (!SQL_TABLE_WHITELIST.has(table)) {
+    throw new Error(`executeSql: table not in whitelist: ${table}`);
+  }
+  const cols =
+    opts.columns && opts.columns.length > 0
+      ? opts.columns.join(', ')
+      : '*';
+  let whereClause = '';
+  const args: Array<string | number | null> = [];
+  if (opts.where && Object.keys(opts.where).length > 0) {
+    const conds = Object.entries(opts.where).map(([col, val]) => {
+      args.push(val);
+      return `${col} = ?`;
+    });
+    whereClause = 'WHERE ' + conds.join(' AND ');
+  }
+  const limit = Math.min(opts.limit ?? 1000, 1000);
+  const sql = `SELECT ${cols} FROM ${table} ${whereClause} LIMIT ${limit}`.replace(/\s+/g, ' ').trim();
+  if (SQL_KEYWORD_BLOCKLIST.test(sql)) {
+    throw new Error('executeSql: SELECT only; detected forbidden keyword');
+  }
+  const colNames: string[] = [];
+  // Pass colNames through closure — libsqlPipeline returns PipelineRow[][],
+  // we need to map each row back to its column name from the response cols.
+  // Patch: libsqlPipeline currently returns rows only; we re-derive column
+  // names from the response by intercepting via a wrapping helper.
+  const rows = await libsqlPipelineWithCols(sql, args, env, colNames);
+  return rows.map((row) => {
+    const obj: Record<string, unknown> = {};
+    row.forEach((cell, i) => {
+      const name = colNames[i] ?? `col_${i}`;
+      if (cell.type === 'null') {
+        obj[name] = null;
+      } else if (cell.type === 'integer' || cell.type === 'float') {
+        obj[name] = cell.value !== undefined ? Number(cell.value) : null;
+      } else {
+        obj[name] = cell.value !== undefined ? String(cell.value) : null;
+      }
+    });
+    return obj;
+  });
+}
+
+export interface CaseFeatures {
+  region: string;
+  industry: string;
+  scale: number;
+  property_type: string;
+  physical_params: Record<string, unknown>;
+  financing: Record<string, unknown>;
+}
+
+/**
+ * Retrieve Top-K case_library rows matching the user's region + industry.
+ *
+ * Phase-A behavior is a SQL prefilter; agent5 may post-rank by scale /
+ * property_type / financing locally. Top-K is enforced both in SQL (`LIMIT ?`)
+ * and by slicing the result, so a misbehaving backend cannot exceed it.
+ */
+export async function queryCases(
+  features: CaseFeatures,
+  env: LibSqlEnv,
+  topK: number = 3,
+): Promise<Record<string, unknown>[]> {
+  const safeTopK = Math.max(1, Math.min(topK, 100));
+  const candidates = await executeSql('case_library', env, {
+    where: {
+      region: features.region,
+      industry: features.industry,
+    },
+    limit: safeTopK,
+  });
+  return candidates.slice(0, safeTopK);
+}
+
+/**
+ * Variant of `libsqlPipeline` that also exposes the column names from the
+ * response. Used by the public SELECT helper to map rows into objects.
+ *
+ * Implemented as a thin wrapper that re-issues the request shape but parses
+ * the `cols` array. Keeping it separate avoids disturbing existing callers
+ * of `libsqlPipeline` (retrieveContext) which only consume rows.
+ */
+async function libsqlPipelineWithCols(
+  sql: string,
+  args: Array<string | number | null>,
+  env: LibSqlEnv,
+  outCols: string[],
+): Promise<PipelineRow[][]> {
+  const url = `${env.LIBSQL_URL.replace(/\/+$/, '')}/v2/pipeline`;
+  const body = {
+    requests: [
+      {
+        type: 'execute',
+        stmt: { sql, args: tagArgs(args) },
+      },
+      { type: 'close' },
+    ],
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.LIBSQL_RO_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '<no body>');
+    throw new Error(`libsql execute ${res.status}: ${detail}`);
+  }
+  const data = (await res.json()) as PipelineResponse;
+  const first = data.results?.[0];
+  if (!first || first.type !== 'ok' || first.response?.type !== 'execute') {
+    throw new Error(
+      `libsql execute: unexpected response shape: ${JSON.stringify(first).slice(0, 300)}`,
+    );
+  }
+  for (const c of first.response.result.cols ?? []) {
+    outCols.push(c.name);
+  }
+  return first.response.result.rows ?? [];
 }
