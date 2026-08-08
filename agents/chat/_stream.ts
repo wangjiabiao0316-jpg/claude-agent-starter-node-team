@@ -165,6 +165,30 @@ function emitDebugMessage(
   }
 }
 
+// === Phase 4 Task 9: SSE event 类型扩展 ===
+
+const AGENT_PATTERN = /^agent[1-6]-(固有对象|政策应答|多元融资|财务模型|失败案例|双层决策)$/;
+
+/**
+ * 根据 Claude SDK tool_called 的 tool name 检测应触发的 SSE event 类型。
+ *
+ * - super-skill.complete → suggest_actions（super-skill 跑完，让用户选下一步）
+ * - agent6.export_report → report_ready（agent6 触发报告模板）
+ * - agent{1-6}-<中文名> → agent_output（子 agent 完成输出）
+ * - 其他 → null（不触发新事件）
+ */
+export function detectSseEvent(
+  toolName: string | undefined | null
+): 'suggest_actions' | 'agent_output' | 'report_ready' | null {
+  if (!toolName || typeof toolName !== 'string') {
+    return null;
+  }
+  if (toolName === 'super-skill.complete') return 'suggest_actions';
+  if (toolName === 'agent6.export_report') return 'report_ready';
+  if (AGENT_PATTERN.test(toolName)) return 'agent_output';
+  return null;
+}
+
 function emitAssistantBlocks(
   msg: any,
   state: { sentTextLenByBlock: Map<number, number>; fullAssistantText: string },
@@ -206,6 +230,15 @@ function emitAssistantBlocks(
       );
 
       enqueueSse(controller, encoder, 'tool_called', { tool: toolName });
+
+      // Phase 4 Task 9: 检测 super-skill / agent 输出事件
+      const sseType = detectSseEvent(toolName);
+      if (sseType) {
+        enqueueSse(controller, encoder, sseType, {
+          agent_id: toolName,
+          timestamp: Date.now(),
+        });
+      }
 
       // Detect skill loading. The Claude Agent SDK's built-in tool is named
       // `Skill` (capital S, current SDK) but `load_skill` exists as a legacy
