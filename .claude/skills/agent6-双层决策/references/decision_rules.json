@@ -1,0 +1,75 @@
+{
+  "version": "2026-08-08",
+  "skill": "agent6-双层决策",
+  "scripts_version": "V2",
+  "weights": {
+    "设计咨询": 0.3,
+    "投资拓展": 0.3,
+    "建造实施": 0.2,
+    "业主平台": 0.2,
+    "_comment": "权重状态【待校准】(V1 §6 L323)。本 V2 不调权重，仅落地为机器可读决策表。合计 = 1.0"
+  },
+  "H_rules": {
+    "trigger": "设计咨询.灯色 == 'red' OR 投资拓展.灯色 == 'red'",
+    "result": {
+      "顶层灯": "red",
+      "建议动作": "终止",
+      "顶层判据": "H.关键维度硬规则（设计咨询=red 或 投资拓展=red）"
+    },
+    "source": "V1 §6 L322 逐字保留",
+    "priority": "高于 S 软规则；触发后跳过 Step 3"
+  },
+  "S_rules": {
+    "trigger": "H 硬规则未触发时执行",
+    "weights_source": "weights 字段",
+    "green_rule": "四维全 green → 顶层 green + 可推进",
+    "yellow_rule": "存在 yellow（无 red）→ 顶层 yellow + 条件推进"
+  },
+  "dim_rules": {
+    "设计咨询": {
+      "agent1_red": "red",
+      "agent1_yellow_and_agent5_改造类根因": "red",
+      "agent1_yellow_otherwise": "yellow",
+      "agent1_green_and_agent5_green": "green",
+      "_改造类根因_定义": "agent5.Top3案例[].失败模式 ∈ {招商失败, 改造超预算, 业态误判} 且 根因重现判断 = true"
+    },
+    "投资拓展": {
+      "agent3_red_OR_agent4_达标结论_不达标": "red",
+      "agent3_yellow_OR_agent4_达标结论_达标": "yellow",
+      "agent3_green_AND_agent4_达标结论_优": "green",
+      "_agent4_engine_优先级": "见 agent4_engine_mapping；engine 异常时 override 本规则"
+    },
+    "建造实施": {
+      "agent1_H2_核心保护区_OR_agent5_施工协调根因重现": "red",
+      "agent1_H2_建控地带_OR_agent5_校验灯_yellow": "yellow",
+      "otherwise": "green",
+      "_Phase1_简化标注": "未接入施工风险子 agent，Phase2 待补"
+    },
+    "业主平台": {
+      "三维任一_red": "red",
+      "三维全_green_AND_数据完整": "green",
+      "otherwise": "yellow",
+      "_数据完整度_阈值": "【待校准】当前默认 100% 才算 green；< 100% 落入 yellow"
+    }
+  },
+  "agent4_engine_mapping": {
+    "_comment": "agent4._calc.engine 字段值 → agent6 投资拓展维度处置（覆盖 dim_rules.投资拓展）",
+    "numpy-financial": "normal",
+    "python-bisection": "force_yellow",
+    "timeout-at-30s": "force_yellow",
+    "unavailable": "force_red",
+    "sandbox_error": "force_red",
+    "not-invoked": "follow_v1"
+  },
+  "report_template_mapping": {
+    "_comment": "顶层灯 → 报告模板触发",
+    "red": "内部决策版（终止原因）",
+    "yellow": "投资人版 + 政府版（条件推进）",
+    "green": "全部 4 类用户版"
+  },
+  "pass_rate_targets": {
+    "通过线": ">=0.70",
+    "警戒线": "0.50-0.70",
+    "回退线": "<0.50（重写 SKILL.md）"
+  }
+}

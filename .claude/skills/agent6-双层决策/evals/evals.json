@@ -1,0 +1,491 @@
+{
+  "skill": "agent6-双层决策",
+  "version": "V2-2026-08-08",
+  "anchor": "V1 §6（L297-331）+ super-skill implementation-plan Task 4 Step 4 + V1 工作流 §5 阶段3",
+  "_meta": {
+    "source": "2026-08-08-super-skill-implementation-plan.md Task 4 Step 4 + 2026-08-03-agent6-双层决策-skill工作流.md §5 阶段3 七条用例",
+    "agent": "agent6-双层决策",
+    "判别类型": "聚合型｜顶层灯 + 咨投建运四维子灯（V2 sandbox 聚合）",
+    "total_evals": 8,
+    "scope": "四维全 green + 设计咨询 red + 投资拓展 red + 混合 yellow + 建造实施 yellow + 业主平台就绪度 + H 硬规则优先 + agent4 engine 消费",
+    "threshold_basis": {
+      "H_硬规则": "设计咨询=red 或 投资拓展=red → 顶层 red（不推进）",
+      "S_决策权重": {
+        "设计咨询": 0.3,
+        "投资拓展": 0.3,
+        "建造实施": 0.2,
+        "业主平台": 0.2
+      },
+      "权重状态": "【待校准】",
+      "agent4_engine_mapping": {
+        "numpy-financial": "normal",
+        "python-bisection": "force_yellow",
+        "timeout-at-30s": "force_yellow",
+        "unavailable": "force_red",
+        "sandbox_error": "force_red",
+        "not-invoked": "follow_v1"
+      }
+    },
+    "note": "V2 evals.json 新增 eval-8（agent4._calc.engine 消费测试）；前 7 条覆盖 V1 §6 四维聚合规则边界。本 evals.json 不调权重 0.3/0.3/0.2/0.2，仅落地为 skill 指令；H 硬规则措辞逐字保留 V1 §6 L322"
+  },
+  "evals": [
+    {
+      "id": "eval-1",
+      "category": "S-软规则-全绿",
+      "scenario": "agent1 / agent3 / agent4 / agent5 四维信号全 green，且 agent4._calc.engine=numpy-financial（normal）→ 验证顶层 green 通路（S 软规则聚合）",
+      "input": {
+        "agent1": {
+          "灯色": "green",
+          "命中判据": ["H1.green", "H2.green"],
+          "风险点": [],
+          "依据": {"H1": "权属清晰", "H2": "规划允许"},
+          "建议动作": "可推进"
+        },
+        "agent3": {
+          "灯色": "green",
+          "可适用融资工具清单": ["城市更新基金", "商业贷款", "REITs"],
+          "推荐资金组合": "60% 贷款 + 40% 基金",
+          "关键审批风险点": [],
+          "依据": {"覆盖率": "1.2", "工具数": 3},
+          "建议动作": "可推进"
+        },
+        "agent4": {
+          "改造模式": "改造+自持",
+          "财务指标": {"IRR": "11%", "NPV": "正", "回收期": "8年", "敏感性分析": "稳健"},
+          "业态门槛对照": {"业态": "商业", "门槛区间": "8-12%", "达标结论": "优"},
+          "现金流时序": [{"年": 1, "净现金流": "-"}],
+          "关键假设": {},
+          "依据": {},
+          "_calc": {
+            "engine": "numpy-financial",
+            "numpy_financial_version": "1.0.4",
+            "scripts_version": "V2",
+            "kernel_session": "kernel-aaa-001"
+          }
+        },
+        "agent5": {
+          "校验灯": "green",
+          "Top3案例": [],
+          "根因重现判断": false,
+          "命中判据": {"H1_高危模式": null},
+          "规避建议": [],
+          "案例库依据": {}
+        }
+      },
+      "expected_behavior": "顶层灯=green, 顶层判据=S.决策权重聚合, 建议动作=可推进",
+      "key_check_points": [
+        "顶层灯 = green",
+        "顶层判据含 'S.决策权重聚合'",
+        "四维子灯.设计咨询.灯色 = green",
+        "四维子灯.投资拓展.灯色 = green",
+        "四维子灯.建造实施.灯色 = green",
+        "四维子灯.业主平台.灯色 = green",
+        "建议动作 = 可推进",
+        "_calc.engine = decision-aggregator-v2"
+      ],
+      "rationale": "agent1=green + agent5=green → 设计咨询=green；agent3=green + agent4.达标=优 + engine=numpy-financial（normal） → 投资拓展=green；agent1.H2 无文保命中 + agent5=green → 建造实施=green；三维全 green → 业主平台=green；H 不触发，S 软规则四维一致 → 顶层 green + 可推进"
+    },
+    {
+      "id": "eval-2",
+      "category": "H-硬规则-设计咨询红",
+      "scenario": "agent1 命中 H1.red（不动产查封未决）→ 设计咨询维度=red → H 硬规则触发顶层 red",
+      "input": {
+        "agent1": {
+          "灯色": "red",
+          "命中判据": ["H1.red"],
+          "风险点": ["查封未决"],
+          "依据": {"H1": "不动产登记状态=sealed"},
+          "建议动作": "终止"
+        },
+        "agent3": {
+          "灯色": "green",
+          "可适用融资工具清单": ["商业贷款"],
+          "推荐资金组合": "100% 贷款",
+          "关键审批风险点": [],
+          "依据": {},
+          "建议动作": "可推进"
+        },
+        "agent4": {
+          "改造模式": "改造+自持",
+          "财务指标": {"IRR": "10%"},
+          "业态门槛对照": {"业态": "商业", "门槛区间": "8-12%", "达标结论": "达标"},
+          "现金流时序": [],
+          "关键假设": {},
+          "依据": {},
+          "_calc": {
+            "engine": "numpy-financial",
+            "numpy_financial_version": "1.0.4",
+            "scripts_version": "V2",
+            "kernel_session": "kernel-aaa-002"
+          }
+        },
+        "agent5": {
+          "校验灯": "green",
+          "Top3案例": [],
+          "根因重现判断": false,
+          "命中判据": {},
+          "规避建议": [],
+          "案例库依据": {}
+        }
+      },
+      "expected_behavior": "顶层灯=red, 顶层判据=H.关键维度硬规则",
+      "key_check_points": [
+        "顶层灯 = red",
+        "顶层判据含 'H.关键维度硬规则'",
+        "四维子灯.设计咨询.灯色 = red",
+        "建议动作 = 终止"
+      ],
+      "rationale": "agent1=red → 设计咨询=red；H 硬规则触发（设计咨询=red） → 顶层=red + 终止；不再继续 S 软规则聚合"
+    },
+    {
+      "id": "eval-3",
+      "category": "H-硬规则-投资拓展红",
+      "scenario": "agent3=red（无适用融资工具）+ agent4=不达标 → 投资拓展维度=red → H 硬规则触发顶层 red",
+      "input": {
+        "agent1": {
+          "灯色": "green",
+          "命中判据": ["H1.green", "H2.green"],
+          "风险点": [],
+          "依据": {},
+          "建议动作": "可推进"
+        },
+        "agent3": {
+          "灯色": "red",
+          "可适用融资工具清单": [],
+          "推荐资金组合": null,
+          "关键审批风险点": ["无适用融资工具"],
+          "依据": {"覆盖率": "0.0", "工具数": 0},
+          "建议动作": "终止"
+        },
+        "agent4": {
+          "改造模式": "改造+自持",
+          "财务指标": {"IRR": "5%"},
+          "业态门槛对照": {"业态": "商业", "门槛区间": "8-12%", "达标结论": "不达标"},
+          "现金流时序": [],
+          "关键假设": {},
+          "依据": {},
+          "_calc": {
+            "engine": "numpy-financial",
+            "numpy_financial_version": "1.0.4",
+            "scripts_version": "V2",
+            "kernel_session": "kernel-aaa-003"
+          }
+        },
+        "agent5": {
+          "校验灯": "green",
+          "Top3案例": [],
+          "根因重现判断": false,
+          "命中判据": {},
+          "规避建议": [],
+          "案例库依据": {}
+        }
+      },
+      "expected_behavior": "顶层灯=red（H 硬规则触发）",
+      "key_check_points": [
+        "顶层灯 = red",
+        "四维子灯.投资拓展.灯色 = red",
+        "建议动作 = 终止"
+      ],
+      "rationale": "agent3=red（工具数=0）+ agent4.达标=不达标 → 投资拓展=red；H 硬规则触发（投资拓展=red） → 顶层=red + 终止"
+    },
+    {
+      "id": "eval-4",
+      "category": "S-软规则-混合黄",
+      "scenario": "agent1=yellow + agent3=yellow + agent4=达标 + agent5=yellow（无改造类根因，失败模式=招商失败但 agent1≠yellow+改造类） → 四维混合 yellow 但无 red → S 软规则顶层 yellow + 条件推进",
+      "input": {
+        "agent1": {
+          "灯色": "yellow",
+          "命中判据": ["H1.yellow"],
+          "风险点": ["权属待补材料"],
+          "依据": {},
+          "建议动作": "条件推进"
+        },
+        "agent3": {
+          "灯色": "yellow",
+          "可适用融资工具清单": ["商业贷款"],
+          "推荐资金组合": "100% 贷款",
+          "关键审批风险点": ["覆盖率不达标"],
+          "依据": {"覆盖率": "0.85"},
+          "建议动作": "条件推进"
+        },
+        "agent4": {
+          "改造模式": "改造+自持",
+          "财务指标": {"IRR": "9%"},
+          "业态门槛对照": {"业态": "商业", "门槛区间": "8-12%", "达标结论": "达标"},
+          "现金流时序": [],
+          "关键假设": {},
+          "依据": {},
+          "_calc": {
+            "engine": "numpy-financial",
+            "numpy_financial_version": "1.0.4",
+            "scripts_version": "V2",
+            "kernel_session": "kernel-aaa-004"
+          }
+        },
+        "agent5": {
+          "校验灯": "yellow",
+          "Top3案例": [
+            {"相似度": 0.6, "失败模式": "招商失败", "根因": "客流等级中"}
+          ],
+          "根因重现判断": false,
+          "命中判据": {"H1_高危模式": null},
+          "规避建议": ["补充客流评估"],
+          "案例库依据": {}
+        }
+      },
+      "expected_behavior": "顶层灯=yellow, 建议动作=条件推进, 条件推进事项非空",
+      "key_check_points": [
+        "顶层灯 = yellow",
+        "建议动作 = 条件推进",
+        "条件推进事项数组非空"
+      ],
+      "rationale": "V1 §1.2 维度一规则 + V2 修复后实现：agent1=yellow 且 agent5.Top3案例 含招商失败（属改造类根因），但 根因重现判断=false（仅相似案例命中，根因不重现） → 设计咨询=yellow（不是 red）。修复前 V2 仅检查失败模式归类会误判为 red，V2 修复后严格校验 根因重现判断=true 才触发 red"
+    },
+    {
+      "id": "eval-5",
+      "category": "建造实施-施工类根因",
+      "scenario": "agent5 命中施工引发周边协调失败根因（根因重现判断=true）→ 建造实施维度=red → 业主平台=red（一致性），顶层 ∈ {red, yellow}（V1 §1.2 维度三规则）",
+      "input": {
+        "agent1": {
+          "灯色": "green",
+          "命中判据": ["H1.green", "H2.yellow.建控地带"],
+          "风险点": ["建控地带需专项审批"],
+          "依据": {"H2": "建控地带"},
+          "建议动作": "可推进"
+        },
+        "agent3": {
+          "灯色": "green",
+          "可适用融资工具清单": ["城市更新基金", "商业贷款"],
+          "推荐资金组合": "50% 贷款 + 50% 基金",
+          "关键审批风险点": [],
+          "依据": {},
+          "建议动作": "可推进"
+        },
+        "agent4": {
+          "改造模式": "改造+自持",
+          "财务指标": {"IRR": "10%"},
+          "业态门槛对照": {"业态": "商业", "门槛区间": "8-12%", "达标结论": "达标"},
+          "现金流时序": [],
+          "关键假设": {},
+          "依据": {},
+          "_calc": {
+            "engine": "numpy-financial",
+            "numpy_financial_version": "1.0.4",
+            "scripts_version": "V2",
+            "kernel_session": "kernel-aaa-005"
+          }
+        },
+        "agent5": {
+          "校验灯": "yellow",
+          "Top3案例": [
+            {"相似度": 0.7, "失败模式": "施工引发周边协调失败", "根因": "周边居民密集"}
+          ],
+          "根因重现判断": true,
+          "命中判据": {"H1_高危模式": null},
+          "规避建议": ["分阶段施工", "居民沟通机制"],
+          "案例库依据": {}
+        }
+      },
+      "expected_behavior": "建造实施=red, 业主平台=red（一致性）, 顶层灯 ∈ {red, yellow}",
+      "key_check_points": [
+        "四维子灯.建造实施.灯色 = red",
+        "四维子灯.设计咨询.灯色 = green",
+        "四维子灯.投资拓展.灯色 = green",
+        "四维子灯.业主平台.灯色 = red（一致性）",
+        "顶层灯 ∈ {red, yellow}",
+        "建议动作 ∈ {终止, 条件推进}"
+      ],
+      "rationale": "V1 工作流 md §1.2 维度三规则：agent5 施工类根因（施工引发周边协调失败）且 根因重现判断=true → 建造实施 red。建造实施不在 H 硬规则范围（H 仅看设计咨询+投资拓展），但三维任一 red → 业主平台=red（一致性）。顶层灯按 S 软规则字面逻辑可能为 yellow 或 red，留双跑决定"
+    },
+    {
+      "id": "eval-6",
+      "category": "业主平台-数据完整度",
+      "scenario": "四维信号全 green 但数据完整度=80%（缺关键字段）→ 业主平台维度=yellow → 顶层 yellow + 条件推进",
+      "input": {
+        "agent1": {
+          "灯色": "green",
+          "命中判据": ["H1.green", "H2.green"],
+          "风险点": [],
+          "依据": {},
+          "建议动作": "可推进"
+        },
+        "agent3": {
+          "灯色": "green",
+          "可适用融资工具清单": ["城市更新基金", "商业贷款", "REITs"],
+          "推荐资金组合": "60% 贷款 + 40% 基金",
+          "关键审批风险点": [],
+          "依据": {},
+          "建议动作": "可推进"
+        },
+        "agent4": {
+          "改造模式": "改造+自持",
+          "财务指标": {"IRR": "11%", "NPV": "正", "回收期": "8年", "敏感性分析": "稳健"},
+          "业态门槛对照": {"业态": "商业", "门槛区间": "8-12%", "达标结论": "优"},
+          "现金流时序": [],
+          "关键假设": {},
+          "依据": {},
+          "_calc": {
+            "engine": "numpy-financial",
+            "numpy_financial_version": "1.0.4",
+            "scripts_version": "V2",
+            "kernel_session": "kernel-aaa-006"
+          }
+        },
+        "agent5": {
+          "校验灯": "green",
+          "Top3案例": [],
+          "根因重现判断": false,
+          "命中判据": {},
+          "规避建议": [],
+          "案例库依据": {}
+        },
+        "数据完整度": 0.80,
+        "_数据完整度说明": "V1 §1.2 维度四：数据完整度 < 100% → 业主平台 yellow。V2 sandbox 当前实现未消费此字段（按四维前三维度判业主平台），此 eval 用于验证 V3 是否补全"
+      },
+      "expected_behavior": "业主平台=yellow（数据完整度 80% < 90%），顶层灯=yellow, 建议动作=条件推进",
+      "key_check_points": [
+        "四维子灯.设计咨询.灯色 = green",
+        "四维子灯.投资拓展.灯色 = green",
+        "四维子灯.建造实施.灯色 = green",
+        "四维子灯.业主平台.灯色 = yellow",
+        "四维子灯.业主平台.依据 含 '数据完整度 80% < 90%'",
+        "顶层灯 = yellow",
+        "建议动作 = 条件推进"
+      ],
+      "rationale": "V1 §1.2 维度四规则 + V2 修复后实现：三维全 green 但 数据完整度=0.80 < 0.90 阈值 → 业主平台=yellow → 顶层 yellow + 条件推进。验证 decision_aggregator.py 的 _dim_light_业主平台 函数已消费 数据完整度 参数"
+    },
+    {
+      "id": "eval-7",
+      "category": "H-硬规则优先于S",
+      "scenario": "agent1=red（H2 文保核心保护区）但 agent3=green + agent4=优 + agent5=green（其他三维全 green）→ 验证 H 硬规则优先于 S 软规则聚合",
+      "input": {
+        "agent1": {
+          "灯色": "red",
+          "命中判据": ["H1.green", "H2.red.文保核心保护区"],
+          "风险点": ["文保核心保护区且改造不可经营"],
+          "依据": {"H2": "文保核心保护区"},
+          "建议动作": "终止"
+        },
+        "agent3": {
+          "灯色": "green",
+          "可适用融资工具清单": ["城市更新基金", "商业贷款", "REITs"],
+          "推荐资金组合": "60% 贷款 + 40% 基金",
+          "关键审批风险点": [],
+          "依据": {},
+          "建议动作": "可推进"
+        },
+        "agent4": {
+          "改造模式": "改造+自持",
+          "财务指标": {"IRR": "11%", "NPV": "正", "回收期": "8年", "敏感性分析": "稳健"},
+          "业态门槛对照": {"业态": "商业", "门槛区间": "8-12%", "达标结论": "优"},
+          "现金流时序": [],
+          "关键假设": {},
+          "依据": {},
+          "_calc": {
+            "engine": "numpy-financial",
+            "numpy_financial_version": "1.0.4",
+            "scripts_version": "V2",
+            "kernel_session": "kernel-aaa-007"
+          }
+        },
+        "agent5": {
+          "校验灯": "green",
+          "Top3案例": [],
+          "根因重现判断": false,
+          "命中判据": {},
+          "规避建议": [],
+          "案例库依据": {}
+        }
+      },
+      "expected_behavior": "顶层灯=red, 顶层判据=H.关键维度硬规则（设计咨询=red）优先于 S 软规则",
+      "key_check_points": [
+        "顶层灯 = red",
+        "顶层判据含 'H.关键维度硬规则' 优先于 S 软规则"
+      ],
+      "rationale": "agent1=red（H2 文保核心保护区） → 设计咨询=red；agent3=green + agent4=优 → 投资拓展=green；agent1.H2 命中核心保护区 → 建造实施=red；H 硬规则：设计咨询=red → 顶层=red + 终止，不再继续 S 软规则聚合（即使投资拓展 green）。本用例专门验证 H 优先于 S"
+    },
+    {
+      "id": "eval-8",
+      "category": "agent4-engine-消费",
+      "scenario": "agent4._calc.engine=unavailable → agent6 投资拓展强制 red（H 硬规则触发） → 顶层 red + 终止",
+      "input": {
+        "agent1": {
+          "灯色": "green",
+          "命中判据": ["H1.green", "H2.green"],
+          "风险点": [],
+          "依据": {},
+          "建议动作": "可推进"
+        },
+        "agent3": {
+          "灯色": "green",
+          "可适用融资工具清单": ["城市更新基金", "商业贷款"],
+          "推荐资金组合": "50% 贷款 + 50% 基金",
+          "关键审批风险点": [],
+          "依据": {},
+          "建议动作": "可推进"
+        },
+        "agent4": {
+          "改造模式": "改造+自持",
+          "财务指标": {"IRR": "unknown", "NPV": "unknown", "回收期": "unknown", "敏感性分析": "未算"},
+          "业态门槛对照": {"业态": "商业", "门槛区间": "8-12%", "达标结论": "达标"},
+          "现金流时序": [],
+          "关键假设": {},
+          "依据": {},
+          "_calc": {
+            "engine": "unavailable",
+            "numpy_financial_version": null,
+            "scripts_version": "V2",
+            "kernel_session": "kernel-aaa-008"
+          }
+        },
+        "agent5": {
+          "校验灯": "green",
+          "Top3案例": [],
+          "根因重现判断": false,
+          "命中判据": {},
+          "规避建议": [],
+          "案例库依据": {}
+        }
+      },
+      "expected_behavior": "投资拓展 维度 red（agent4._calc.engine=unavailable 强制），顶层灯 red（H 硬规则触发）",
+      "key_check_points": [
+        "四维子灯.投资拓展.灯色 = red",
+        "顶层灯 = red（H 硬规则触发）",
+        "顶层判据含 'H.关键维度硬规则'",
+        "建议动作 = 终止",
+        "四维子灯.投资拓展.依据 含 'agent4._calc.engine=unavailable'"
+      ],
+      "rationale": "V2 新增能力验证：agent4._calc.engine=unavailable → decision_aggregator.py 按 agent4_engine_mapping 强制投资拓展维度 red；H 硬规则触发（投资拓展=red） → 顶层=red + 终止。这是 V2 相对 V1 的核心增量"
+    }
+  ],
+  "grading_rules": {
+    "pass_criteria": "顶层灯 + 顶层判据 + 四维子灯各灯色 + 建议动作 四项全对才算 pass",
+    "partial_credit": false,
+    "field_mapping": {
+      "顶层灯": "expected_behavior.顶层灯",
+      "顶层判据": "expected_behavior.顶层判据",
+      "四维子灯.设计咨询.灯色": "expected_behavior.四维子灯.设计咨询.灯色",
+      "四维子灯.投资拓展.灯色": "expected_behavior.四维子灯.投资拓展.灯色",
+      "四维子灯.建造实施.灯色": "expected_behavior.四维子灯.建造实施.灯色",
+      "四维子灯.业主平台.灯色": "expected_behavior.四维子灯.业主平台.灯色",
+      "建议动作": "expected_behavior.建议动作",
+      "_calc.engine": "expected_behavior._calc.engine"
+    }
+  },
+  "pass_rate_targets": {
+    "通过线": ">=0.70",
+    "警戒线": "0.50-0.70",
+    "回退线": "<0.50（重写 SKILL.md）"
+  },
+  "notes": [
+    "eval-1 验证 S 软规则四维全 green → 顶层 green 通路",
+    "eval-2 验证 H 硬规则：设计咨询维度=red（agent1.H1.red 查封） → 顶层 red",
+    "eval-3 验证 H 硬规则：投资拓展维度=red（agent3 无适用工具 + agent4 不达标） → 顶层 red",
+    "eval-4 验证 S 软规则四维混合 yellow（无改造类根因或根因重现判断=false） → 顶层 yellow + 条件推进",
+    "eval-5 验证建造实施维度边界（agent1.H2 建控地带 + agent5 施工引发协调失败） → 建造实施 red（V2 sandbox 实际行为）",
+    "eval-6 验证业主平台维度数据完整度边界（V2 sandbox 未消费此字段，本 eval 暴露 V2 与 V1 期望偏离，需 V3 收紧）",
+    "eval-7 验证 H 硬规则优先于 S 软规则：agent1=red（H2 文保核心保护区）即使其他三维全 green 仍 → 顶层 red + 终止",
+    "eval-8 验证 V2 新增能力：agent4._calc.engine=unavailable → agent6 投资拓展强制 red → 顶层 red",
+    "本 evals.json 不调权重 0.3/0.3/0.2/0.2，权重校准留作下一阶段专项任务【待校准】"
+  ]
+}
