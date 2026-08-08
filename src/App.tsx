@@ -37,6 +37,8 @@ import CodeViewer from './components/CodeViewer';
 import ConversationSidebar from './components/ConversationSidebar';
 import GitHubLink from './components/GitHubLink';
 import DeployLink from './components/DeployLink';
+import CityScene from './components/CityScene';
+import PipelineBar from './components/PipelineBar';
 // === Phase 4 Task 10: super-skill orchestrator UI ===
 import { SuggestActions } from './components/SuggestActions';
 import { AgentPane, DEFAULT_AGENT_TAB } from './components/AgentPane';
@@ -150,7 +152,12 @@ function AppInner() {
   // when the SDK ACTUALLY loads a skill for this turn), auto-cleared
   // after a short interval so the pill animates out.
   const [skillInUse, setSkillInUse] = useState<string | null>(null);
-  const [rightPanelMode, setRightPanelMode] = useState<'code' | 'debug'>('code');
+  /**
+   * Right-dock tab. The agent cockpit ('agents') is the default and always
+   * available — it shows the 6-agent standby view before any output arrives.
+   * 'debug' (SSE trace) and 'code' (architecture viewer) are manual tabs.
+   */
+  const [dockMode, setDockMode] = useState<'agents' | 'code' | 'debug'>('agents');
 
   // === Phase 4 Task 10: super-skill orchestrator state ===
   // suggest_actions: button group rendered under chat input after super-skill completes
@@ -161,8 +168,6 @@ function AppInner() {
   const [activeAgentTab, setActiveAgentTab] = useState<string>(DEFAULT_AGENT_TAB);
   // currently visible report (set when report_ready SSE fires from agent6.export_report)
   const [report, setReport] = useState<ReportReady | null>(null);
-  // whether the right-side AgentPane is expanded (toggled by suggest_actions or manually)
-  const [agentPaneOpen, setAgentPaneOpen] = useState<boolean>(false);
 
   // Conversation list state (left sidebar)
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
@@ -432,7 +437,7 @@ function AppInner() {
 
   const handleSend = useCallback(async (text: string) => {
     initDoneRef.current = true;
-    setRightPanelMode('debug');
+    setDockMode('agents');
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
@@ -542,14 +547,15 @@ function AppInner() {
       // === Phase 4 Task 10: super-skill orchestrator SSE callbacks ===
       onSuggestActions(actions) {
         setSuggestActions(actions);
-        // Auto-expand the agent pane if any view_agent suggestion is present
+        // Bring the cockpit into focus when the orchestrator offers follow-ups
         if (actions.some(a => a.id.startsWith('view_agent'))) {
-          setAgentPaneOpen(true);
+          setDockMode('agents');
         }
       },
 
       onAgentOutput(output) {
         setAgentOutputs(prev => ({ ...prev, [output.agent_id]: output }));
+        setDockMode('agents');
       },
 
       onReportReady(nextReport) {
@@ -606,7 +612,6 @@ function AppInner() {
         // hundreds of one-token rows.
         if (event.eventType === 'text_delta') {
           const delta = (event.data as { delta?: string } | null)?.delta ?? '';
-          setRightPanelMode('debug');
           setDebugEvents(prev => {
             const last = prev[prev.length - 1];
             if (last && last.eventType === 'text_delta') {
@@ -623,7 +628,6 @@ function AppInner() {
           });
           return;
         }
-        setRightPanelMode('debug');
         setDebugEvents(prev => [...prev, event]);
         // Only react to `skill_loaded` (singular). The plural
         // `skills_available` / `skills_loaded` events fire on every
@@ -710,7 +714,7 @@ function AppInner() {
     setActiveConversationId(newId);
     setMessages([]);
     setDebugEvents([]);
-    setRightPanelMode('code');
+    setDockMode('agents');
     initDoneRef.current = false;
   }, [refreshConversations]);
 
@@ -743,7 +747,7 @@ function AppInner() {
     localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, id);
     conversationIdRef.current = id;
     setActiveConversationId(id);
-    setRightPanelMode('code');
+    setDockMode('agents');
     void loadConversation(id);
   }, [loading, loadConversation]);
 
@@ -759,7 +763,7 @@ function AppInner() {
     setActiveConversationId(newId);
     setMessages([]);
     setDebugEvents([]);
-    setRightPanelMode('code');
+    setDockMode('agents');
     initDoneRef.current = false;
     setHistoryLoading(false);
   }, [loading]);
@@ -787,7 +791,7 @@ function AppInner() {
       // Strip "view_" prefix to get the agent_id (e.g. "agent1-固有对象")
       const agentId = action.id.replace(/^view_/, '');
       setActiveAgentTab(agentId);
-      setAgentPaneOpen(true);
+      setDockMode('agents');
       return;
     }
 
@@ -839,7 +843,7 @@ function AppInner() {
       setActiveConversationId(newId);
       setMessages([]);
       setDebugEvents([]);
-      setRightPanelMode('code');
+      setDockMode('agents');
       initDoneRef.current = false;
       setHistoryLoading(false);
     }
@@ -858,8 +862,7 @@ function AppInner() {
 
   return (
     <div className={styles.shell}>
-      <div className={styles.blob1} />
-      <div className={styles.blob2} />
+      <CityScene />
 
       <div className={styles.stage}>
         <ConversationSidebar
@@ -888,8 +891,20 @@ function AppInner() {
             {skillInUse && <span className={styles.skillsLoading}>using {skillInUse}</span>}
           </header>
 
+          <div className={styles.pipelineSlot}>
+            <PipelineBar
+              outputs={agentOutputs}
+              activeAgentId={activeAgentTab}
+              streaming={loading}
+              onSelect={(agentId) => {
+                setActiveAgentTab(agentId);
+                setDockMode('agents');
+              }}
+            />
+          </div>
+
           <div className={styles.chatWindowShell}>
-            <ChatWindow messages={messages} loading={loading} />
+            <ChatWindow messages={messages} loading={loading} onExampleSend={handleSend} />
             {historyLoading && messages.length === 0 && (
               <div className={styles.historyOverlay}>
                 <div className={styles.historySpinner} />
@@ -906,25 +921,51 @@ function AppInner() {
           )}
         </div>
 
-        <div className={styles.codePanel}>
-          {rightPanelMode === 'code' ? (
-            <CodeViewer />
-          ) : (
-            <DebugPanel events={debugEvents} onClear={() => setDebugEvents([])} />
-          )}
+        {/* === Right dock: agent cockpit (always-on) / SSE trace / code === */}
+        <div className={styles.dock}>
+          <div className={styles.dockTabs} role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={dockMode === 'agents'}
+              className={`${styles.dockTab} ${dockMode === 'agents' ? styles.dockTabActive : ''}`}
+              onClick={() => setDockMode('agents')}
+            >
+              智能体
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={dockMode === 'debug'}
+              className={`${styles.dockTab} ${dockMode === 'debug' ? styles.dockTabActive : ''}`}
+              onClick={() => setDockMode('debug')}
+            >
+              Trace
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={dockMode === 'code'}
+              className={`${styles.dockTab} ${dockMode === 'code' ? styles.dockTabActive : ''}`}
+              onClick={() => setDockMode('code')}
+            >
+              代码
+            </button>
+          </div>
+          <div className={styles.dockBody}>
+            {dockMode === 'agents' && (
+              <AgentPane
+                outputs={agentOutputs}
+                activeTab={activeAgentTab}
+                onTabChange={setActiveAgentTab}
+              />
+            )}
+            {dockMode === 'debug' && (
+              <DebugPanel events={debugEvents} onClear={() => setDebugEvents([])} />
+            )}
+            {dockMode === 'code' && <CodeViewer />}
+          </div>
         </div>
-
-        {/* === Phase 4 Task 10: super-skill agent outputs pane === */}
-        {/* Rendered as a fourth column when the orchestrator surfaces
-            suggest_actions containing a view_agent* entry, or whenever
-            agent_output events have produced at least one pane of content. */}
-        {agentPaneOpen && (
-          <AgentPane
-            outputs={agentOutputs}
-            activeTab={activeAgentTab}
-            onTabChange={setActiveAgentTab}
-          />
-        )}
       </div>
 
       {/* === Phase 4 Task 10: super-skill report modal === */}
