@@ -30,6 +30,7 @@ import {
   makeStorageKey,
 } from './lib/imageStore';
 import { saveSnapshot, loadSnapshot, deleteSnapshot } from './lib/chatUiStore';
+import { sliceAgentSections, detectCurrentAgent } from './lib/agentSections';
 import ToolIndicators from './components/ToolIndicators';
 import ChatWindow from './components/ChatWindow';
 import IntakeWizard from './components/IntakeWizard';
@@ -562,21 +563,41 @@ function AppInner() {
         assistantText += delta;
         updateBotMessage(content => content + delta);
 
-        // === Capture per-agent streaming text ===
-        // Append this delta into the currently-active agent's `summary`
-        // so the AgentPane shows real content for each tab (during the
-        // run AND after completion). The active agent is set by the
-        // most recent `agent_output` SSE event (section marker).
-        const agentId = currentAgentIdRef.current;
-        if (agentId) {
+        // === Capture per-agent streaming text by SECTION HEADER pattern ===
+        // The super-skill orchestrator runs agent1 + agent2 IN PARALLEL for
+        // Phase 1, so their `agent_output` SSE events fire back-to-back
+        // (ms apart). A subsequent text_delta then carries BOTH agents'
+        // results, separated by markdown headers like
+        // "## 🏠 Agent1 固有对象输出" and "## 📑 Agent2 政策应答输出".
+        //
+        // Tracking "current agent" by the most recent agent_output event
+        // would assign the entire combined blob to whichever sub-skill
+        // loaded last. Instead, we slice the FULL accumulated text by
+        // section header regex on every delta — this correctly attributes
+        // each segment regardless of SSE event timing.
+        const sections = sliceAgentSections(assistantText);
+        if (Object.keys(sections).length > 0) {
+          // Update currentAgentIdRef to the agent that owns the live tail
+          // (so any post-section orchestrator text is attributed correctly).
+          const liveAgent = detectCurrentAgent(assistantText);
+          if (liveAgent) currentAgentIdRef.current = liveAgent;
+
           setAgentOutputs(prev => {
-            const existing = prev[agentId];
-            if (!existing) return prev;
-            const nextSummary = (existing.summary ?? '') + delta;
-            return {
-              ...prev,
-              [agentId]: { ...existing, summary: nextSummary },
-            };
+            let changed = false;
+            const next = { ...prev };
+            for (const [agentId, sectionText] of Object.entries(sections)) {
+              const existing = next[agentId];
+              // Skip if section text hasn't changed (avoid useless renders)
+              if (existing?.summary === sectionText) continue;
+              changed = true;
+              next[agentId] = {
+                agent_id: agentId,
+                summary: sectionText,
+                output_json: existing?.output_json ?? {},
+                timestamp: existing?.timestamp,
+              };
+            }
+            return changed ? next : prev;
           });
         }
       },
@@ -618,24 +639,32 @@ function AppInner() {
       },
 
       onAgentOutput(output) {
-        // Backend sends `agent_output` as a SECTION MARKER (only agent_id,
-        // no payload). We treat it as "this agent is now producing text"
-        // — initialize the slot if missing, then point the text_delta
-        // accumulator at it. Subsequent text_delta events fill summary.
+        // Backend sends `agent_output` SSE as a section marker — only the
+        // agent_id, no payload. We initialize the slot if missing so the
+        // PipelineBar tint and tab "已完成" indicator light up immediately
+        // (visible feedback that the agent has been invoked).
+        //
+        // NOTE: we deliberately do NOT update `currentAgentIdRef` here.
+        // The orchestrator runs agent1 + agent2 in parallel and their
+        // agent_output events fire within milliseconds of each other;
+        // then a single text_delta delivers BOTH results prefixed by
+        // markdown section headers. Naively binding text_delta to the
+        // most recent agent_output would mis-assign the combined text.
+        // Instead, `onTextDelta` parses the full accumulated text by
+        // section header regex (`## 🏠 Agent1` / `## 📑 Agent2` ...) and
+        // distributes content correctly. See src/lib/agentSections.ts.
         const agentId = output.agent_id;
         setAgentOutputs(prev => {
           const existing = prev[agentId];
           if (existing) {
-            // Already has content (e.g. re-run) — keep summary, merge meta.
+            // Already populated (e.g. by text-delta section parser) —
+            // just refresh timestamp meta, keep content.
+            if (existing.timestamp && output.timestamp && existing.timestamp <= output.timestamp) {
+              return prev;
+            }
             return {
               ...prev,
-              [agentId]: {
-                ...existing,
-                ...output,
-                // Don't overwrite accumulated summary with empty backend value
-                summary: existing.summary ?? output.summary ?? '',
-                output_json: existing.output_json ?? output.output_json,
-              },
+              [agentId]: { ...existing, ...output, summary: existing.summary ?? output.summary ?? '' },
             };
           }
           return {
@@ -648,8 +677,6 @@ function AppInner() {
             },
           };
         });
-        // Route subsequent text_delta into this agent's summary.
-        currentAgentIdRef.current = agentId;
         setDockMode('agents');
       },
 
