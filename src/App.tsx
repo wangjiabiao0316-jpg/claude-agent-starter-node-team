@@ -176,6 +176,13 @@ function AppInner() {
   // currently visible report (set when report_ready SSE fires from agent6.export_report)
   const [report, setReport] = useState<ReportReady | null>(null);
 
+  // === Capture per-agent streaming text ===
+  // Backend emits `agent_output` SSE as a SECTION MARKER (only carries agent_id),
+  // not as a complete payload. To make each agent tab clickable with real content
+  // (during workflow AND after completion), we track which agent is currently
+  // producing text and append every text_delta into its `summary` field.
+  const currentAgentIdRef = useRef<string | null>(null);
+
   /**
    * Reset all super-skill orchestrator UI state. Must run on every
    * conversation switch / create / delete so the always-on cockpit and
@@ -186,6 +193,7 @@ function AppInner() {
     setSuggestActions([]);
     setActiveAgentTab(DEFAULT_AGENT_TAB);
     setReport(null);
+    currentAgentIdRef.current = null;
   }, []);
 
   // Conversation list state (left sidebar)
@@ -460,12 +468,19 @@ function AppInner() {
     // the assistant's reply. (loading=false && messages.length>0 → 'review'.)
     setUiStage('review');
     abortCtrlRef.current = null;
+    // Stop appending subsequent text_delta into any agent's summary —
+    // the section marker is now closed.
+    currentAgentIdRef.current = null;
   }, []);
 
   const handleSend = useCallback(async (text: string) => {
     initDoneRef.current = true;
     setDockMode('agents');
     setSuggestActions([]); // previous turn's follow-ups are stale the moment a new run starts
+    // Reset the per-agent text accumulator at the start of each turn —
+    // the next agent_output SSE event will re-bind text_delta to the
+    // appropriate agent.
+    currentAgentIdRef.current = null;
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
@@ -546,6 +561,24 @@ function AppInner() {
         // assistant text without having to read it back from state.
         assistantText += delta;
         updateBotMessage(content => content + delta);
+
+        // === Capture per-agent streaming text ===
+        // Append this delta into the currently-active agent's `summary`
+        // so the AgentPane shows real content for each tab (during the
+        // run AND after completion). The active agent is set by the
+        // most recent `agent_output` SSE event (section marker).
+        const agentId = currentAgentIdRef.current;
+        if (agentId) {
+          setAgentOutputs(prev => {
+            const existing = prev[agentId];
+            if (!existing) return prev;
+            const nextSummary = (existing.summary ?? '') + delta;
+            return {
+              ...prev,
+              [agentId]: { ...existing, summary: nextSummary },
+            };
+          });
+        }
       },
 
       onToolCalled(toolName) {
@@ -585,7 +618,38 @@ function AppInner() {
       },
 
       onAgentOutput(output) {
-        setAgentOutputs(prev => ({ ...prev, [output.agent_id]: output }));
+        // Backend sends `agent_output` as a SECTION MARKER (only agent_id,
+        // no payload). We treat it as "this agent is now producing text"
+        // — initialize the slot if missing, then point the text_delta
+        // accumulator at it. Subsequent text_delta events fill summary.
+        const agentId = output.agent_id;
+        setAgentOutputs(prev => {
+          const existing = prev[agentId];
+          if (existing) {
+            // Already has content (e.g. re-run) — keep summary, merge meta.
+            return {
+              ...prev,
+              [agentId]: {
+                ...existing,
+                ...output,
+                // Don't overwrite accumulated summary with empty backend value
+                summary: existing.summary ?? output.summary ?? '',
+                output_json: existing.output_json ?? output.output_json,
+              },
+            };
+          }
+          return {
+            ...prev,
+            [agentId]: {
+              agent_id: agentId,
+              summary: output.summary ?? '',
+              output_json: output.output_json ?? {},
+              timestamp: output.timestamp,
+            },
+          };
+        });
+        // Route subsequent text_delta into this agent's summary.
+        currentAgentIdRef.current = agentId;
         setDockMode('agents');
       },
 
@@ -735,6 +799,8 @@ function AppInner() {
     // User aborted the run — they're now reviewing the partial reply
     // (loading=false && messages.length>0 → 'review'.)
     setUiStage('review');
+    // Stop appending further text_delta into any agent's summary.
+    currentAgentIdRef.current = null;
 
     stopAgent(conversationIdRef.current).then(ok => {
       if (!ok) {

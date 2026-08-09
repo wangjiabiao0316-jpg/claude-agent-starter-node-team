@@ -106,11 +106,18 @@ export interface SuggestAction {
  * Output produced by an individual sub-agent (agent1 ~ agent6).
  * Backend emits via SSE event `agent_output` when tool name matches
  * `agent{1-6}-<中文名>`.
+ *
+ * NOTE: backend currently emits only `{ agent_id, timestamp }`. The
+ * `output_json` and `summary` fields are optional so the frontend can
+ * populate them incrementally (summary is filled by capturing the
+ * `text_delta` stream between two `agent_output` markers — see
+ * App.tsx `currentAgentIdRef`).
  */
 export interface AgentOutput {
-  agent_id: string;                          // e.g. "agent1-固有对象"
-  output_json: Record<string, unknown>;      // structured payload
-  summary: string;                           // human-readable summary
+  agent_id: string;                                  // e.g. "agent1-固有对象"
+  output_json?: Record<string, unknown>;             // structured payload (optional — backend may omit)
+  summary?: string;                                  // human-readable summary (optional — frontend fills from text_delta)
+  timestamp?: number;                                // backend timestamp
 }
 
 /**

@@ -30,8 +30,11 @@
   flex-direction: column;
   min-width: 0;
   position: relative;
-  background: var(--bg-surface);
-  backdrop-filter: blur(14px);
+  /* Lower transparency so the streaming text doesn't bleed into the
+     CityScene wireframe. Was var(--bg-surface) @ 62% + blur(14px). */
+  background: rgba(8, 8, 12, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-right: 1px solid var(--bg-border);
 }
 
@@ -158,8 +161,11 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: var(--bg-surface);
-  backdrop-filter: blur(14px);
+  /* Match .chatPanel opacity so per-agent captured text is readable
+     over the CityScene background. Was var(--bg-surface) @ 62% + blur(14px). */
+  background: rgba(8, 8, 12, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
 .dockTabs {

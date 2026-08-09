@@ -1,4 +1,6 @@
 import React from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { AgentOutput } from '../types';
 import { readLamp as readLampFromJson } from '../lib/pipeline';
 import styles from './AgentPane.module.css';
@@ -127,19 +129,25 @@ export const AgentPane: React.FC<Props> = ({ outputs, activeTab, onTabChange }) 
                   </span>
                 )}
               </div>
-              {current.summary && <p className={styles.summary}>{current.summary}</p>}
+              {current.summary && (
+                <div className={styles.summaryMd}>
+                  <Markdown remarkPlugins={[remarkGfm]}>{current.summary}</Markdown>
+                </div>
+              )}
             </div>
 
-            <div className={styles.fields}>
-              {Object.entries(current.output_json ?? {}).map(([k, v]) => (
-                <FieldRow key={k} k={k} v={v} />
-              ))}
-            </div>
+            {current.output_json && Object.keys(current.output_json).length > 0 && (
+              <div className={styles.fields}>
+                {Object.entries(current.output_json).map(([k, v]) => (
+                  <FieldRow key={k} k={k} v={v} />
+                ))}
+              </div>
+            )}
 
             <details className={styles.raw}>
               <summary className={styles.rawToggle}>原始 JSON</summary>
               <pre className={styles.rawJson}>
-                {JSON.stringify(current.output_json, null, 2)}
+                {JSON.stringify(current.output_json ?? {}, null, 2)}
               </pre>
             </details>
           </>
