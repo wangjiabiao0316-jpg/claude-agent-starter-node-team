@@ -1,0 +1,223 @@
+/* ── Agent cockpit (always-on) ──────────────────────────── */
+
+.pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--bg-border);
+  flex-shrink: 0;
+}
+
+.tab {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--bg-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast),
+              background var(--transition-fast);
+}
+.tab:hover {
+  color: var(--text-secondary);
+  border-color: var(--bg-border-strong);
+}
+.tabActive {
+  color: var(--text-primary);
+  background: var(--bg-chip);
+  border-color: var(--bg-border-strong);
+}
+
+.tabDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.6;
+}
+.tabDotDone {
+  background: var(--accent-silver);
+  opacity: 1;
+  box-shadow: 0 0 6px var(--accent-silver-glow);
+}
+.dotGreen { background: var(--lamp-green); box-shadow: 0 0 6px rgba(61, 220, 132, 0.6); }
+.dotYellow { background: var(--lamp-yellow); box-shadow: 0 0 6px rgba(245, 200, 66, 0.6); }
+.dotRed { background: var(--lamp-red); box-shadow: 0 0 6px rgba(255, 77, 79, 0.6); }
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+/* ── Output view ────────────────────────────────────────── */
+.headCard {
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-chip);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.headRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.headName {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+.summary {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.lampBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: .04em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.lamp_green { color: var(--lamp-green); border-color: rgba(61, 220, 132, 0.4); background: var(--lamp-green-dim); }
+.lamp_yellow { color: var(--lamp-yellow); border-color: rgba(245, 200, 66, 0.4); background: var(--lamp-yellow-dim); }
+.lamp_red { color: var(--lamp-red); border-color: rgba(255, 77, 79, 0.45); background: var(--lamp-red-dim); }
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fieldRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.025);
+}
+.fieldKey {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.fieldVal {
+  font-size: 12px;
+  color: var(--text-primary);
+  text-align: right;
+  word-break: break-all;
+}
+.fieldBlock {
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.025);
+}
+.fieldJson {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.raw {
+  margin-top: 12px;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-sm);
+}
+.rawToggle {
+  padding: 8px 10px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.rawToggle:hover { color: var(--text-secondary); }
+.rawJson {
+  padding: 10px;
+  border-top: 1px solid var(--bg-border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── Standby view ───────────────────────────────────────── */
+.standby {
+  height: 100%;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  border: 1px dashed var(--bg-border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+}
+.standbyEmoji {
+  font-size: 30px;
+  filter: grayscale(1) brightness(1.4);
+  opacity: 0.75;
+}
+.standbyName {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  color: var(--text-primary);
+}
+.standbyRole {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 240px;
+}
+.standbyHint {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  color: var(--text-muted);
+}
+.standbyBlink {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-silver);
+  animation: standbyPulse 1.6s ease-in-out infinite;
+}
+@keyframes standbyPulse {
+  0%, 100% { opacity: 0.25; box-shadow: none; }
+  50%      { opacity: 1; box-shadow: 0 0 8px var(--accent-silver-glow); }
+}

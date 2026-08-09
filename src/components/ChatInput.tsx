@@ -9,7 +9,7 @@ interface Props {
   disabled: boolean;
 }
 
-const PRESET_KEYS = ['preset.1', 'preset.screenshotEdgeOne', 'preset.skill.sandboxAlgorithms'] as const;
+const PRESET_KEYS = ['preset.project.full', 'preset.project.finance', 'preset.project.irr'] as const;
 
 export default function ChatInput({ onSend, onStop, onClear, disabled }: Props) {
   const { t } = useT();

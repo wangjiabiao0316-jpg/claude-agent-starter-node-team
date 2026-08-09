@@ -1,365 +1,353 @@
+/* ChatBubble - 黑白银炫酷科技风 */
+
 .row {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  animation: fadeUp .25s ease both;
-  max-width: 100%;
-  min-width: 0;
+  margin: 0 0 18px;
 }
-.botRow  { justify-content: flex-start; }
-.userRow { justify-content: flex-end; }
+
+.userRow {
+  justify-content: flex-end;
+}
+
+.botRow {
+  justify-content: flex-start;
+}
 
 .avatar {
   width: 30px;
   height: 30px;
-  border-radius: 50%;
-  background: var(--bg-elevated);
-  border: 1px solid var(--bg-border);
+  flex: 0 0 30px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: .8rem;
-  color: var(--accent-gold);
-  flex-shrink: 0;
   font-family: var(--font-display);
-  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent-silver);
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  text-shadow: 0 0 8px var(--accent-silver-glow);
+  user-select: none;
 }
+
 .userAvatar {
-  color: var(--text-secondary);
-  font-size: .65rem;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-shadow: none;
 }
 
 .bubble {
+  max-width: 78%;
+  padding: 10px 14px 8px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text-primary);
   position: relative;
-  max-width: 68%;
-  min-width: 0;
-  padding: 12px 16px 24px;
-  border-radius: var(--radius-md);
-  font-size: .82rem;
-  line-height: 1.65;
-  word-break: break-word;
-  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .botBubble {
+  border-radius: 14px 14px 14px 4px;
   background: var(--bot-bubble);
   border: 1px solid var(--bot-border);
-  color: var(--text-primary);
-  border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 4px;
-  padding-left: 20px;
 }
 
 .userBubble {
+  border-radius: 14px 14px 4px 14px;
   background: var(--user-bubble);
   border: 1px solid var(--user-border);
-  color: var(--text-primary);
-  border-radius: var(--radius-md) var(--radius-md) 4px var(--radius-md);
-  white-space: pre-wrap;
 }
 
-/* Markdown rendered content */
-.markdown {
-  overflow-x: auto;
+.bubble:hover {
+  border-color: var(--bg-border-strong);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 6px 24px rgba(255, 255, 255, 0.04);
 }
-.markdown p { margin: 0 0 .5em; }
-.markdown p:last-child { margin-bottom: 0; }
-.markdown h1, .markdown h2, .markdown h3,
-.markdown h4, .markdown h5, .markdown h6 {
-  margin: .8em 0 .4em;
-  font-weight: 700;
-  line-height: 1.3;
-}
-.markdown h1 { font-size: 1.15em; }
-.markdown h2 { font-size: 1.05em; }
-.markdown h3 { font-size: .95em; }
-.markdown ul, .markdown ol {
-  margin: .4em 0;
-  padding-left: 2em;
-  list-style-position: outside;
-}
-.markdown li {
-  margin: .15em 0;
-  padding-left: .15em;
-}
-.markdown code {
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 3px;
-  padding: .1em .35em;
-  font-family: var(--font-mono);
-  font-size: .88em;
-}
-.markdown pre {
-  background: rgba(0,0,0,.35);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 6px;
-  padding: .75em 1em;
-  margin: .5em 0;
-  overflow-x: auto;
-}
-.markdown pre code {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: .85em;
-  line-height: 1.5;
-}
-.markdown blockquote {
-  border-left: 3px solid var(--accent-gold);
-  margin: .5em 0;
-  padding: .3em 0 .3em .8em;
-  color: var(--text-secondary);
-}
-.markdown table {
-  border-collapse: collapse;
-  margin: .5em 0;
-  font-size: .85em;
-}
-.markdown th, .markdown td {
-  border: 1px solid rgba(255,255,255,.1);
-  padding: .35em .6em;
-}
-.markdown th {
-  background: rgba(255,255,255,.04);
-  font-weight: 600;
-}
-.markdown a {
-  color: var(--accent-gold);
-  text-decoration: none;
-}
-.markdown a:hover { text-decoration: underline; }
-.markdown hr {
-  border: none;
-  border-top: 1px solid rgba(255,255,255,.1);
-  margin: .8em 0;
-}
-.markdown strong { font-weight: 700; }
-.markdown em { font-style: italic; }
+
+/* --- Web 搜索活动 chip --- */
 
 .webSearchActivity {
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 28px;
-  max-width: 100%;
-  padding: 5px 10px;
-  overflow: hidden;
-  border-radius: 6px;
-  border: 1px solid rgba(245, 200, 66, .22);
-  background:
-    linear-gradient(90deg, rgba(245, 200, 66, .09), rgba(90, 74, 242, .08)),
-    rgba(255, 255, 255, .025);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: .72rem;
-  line-height: 1.2;
+  padding: 5px 12px;
   margin-bottom: 8px;
-  transition: opacity var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  border-radius: 999px;
+  border: 1px solid var(--bg-border);
+  background: var(--bg-chip);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
-.webSearchActivity::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  width: 36%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .12), transparent);
-  transform: translateX(-120%);
-  animation: searchSheen 1.45s ease-in-out infinite;
-}
-.webSearchDone {
-  opacity: .46;
-  border-color: rgba(255, 255, 255, .09);
-  background: rgba(255, 255, 255, .025);
-}
-.webSearchDone::before,
-.webSearchDone .searchDots span {
-  animation: none;
-}
-.webSearchDone .searchDots {
-  display: none;
-}
-.webSearchDone .searchGlyph {
-  border-color: var(--text-muted);
-  box-shadow: none;
-}
-.webSearchDone .searchGlyph::after {
-  background: var(--text-muted);
-}
-.webSearchActive {}
 
-/* Error state — WSA_API_KEY missing or other web_search failures.
-   Visually muted, mirroring the .webSearchDone "done" chip: drop the
-   amber/violet gradient base inherits, plain neutral background, no
-   sheen animation. Glyph reuses the same grey, plus a low-key Get-key
-   CTA. */
-.webSearchError {
-  border-color: rgba(255, 255, 255, .09);
-  background: rgba(255, 255, 255, .025);
-  color: var(--text-secondary);
-}
-.webSearchError::before {
-  animation: none;
-  display: none;
-}
-.webSearchError .searchGlyph {
-  border-color: var(--text-muted);
-  box-shadow: none;
-}
-.webSearchError .searchGlyph::after {
-  background: var(--text-muted);
-}
-/* Inline `WSA` link inside the wsa_missing label. Reads as plain text
-   by default (matches surrounding label colour) and turns blue on hover
-   so users discover it's clickable without it screaming for attention. */
-.searchLabelLink {
-  color: inherit;
-  text-decoration: none;
-  border-bottom: 1px dotted currentColor;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
-}
-.searchLabelLink:hover,
-.searchLabelLink:focus-visible {
-  color: #38bdf8;
-  border-bottom-color: currentColor;
-}
-.searchErrorMark {
-  font-size: .85rem;
-  line-height: 1;
-  margin-left: 2px;
-  user-select: none;
-}
-.searchErrorCta {
-  margin-left: 2px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--text-muted);
-  background: rgba(255, 255, 255, .04);
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-size: .68rem;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
-}
-.searchErrorCta:hover {
-  background: rgba(255, 255, 255, .08);
-  border-color: var(--text-secondary);
+.webSearchActive {
+  border-color: var(--bg-border-strong);
   color: var(--text-primary);
 }
+
+.webSearchDone {
+  opacity: 0.55;
+}
+
+.webSearchError {
+  border-color: var(--lamp-red);
+  color: var(--lamp-red);
+  background: var(--lamp-red-dim);
+}
+
 .searchGlyph {
-  position: relative;
   width: 10px;
   height: 10px;
-  border: 1.5px solid var(--accent-gold);
-  border-radius: 50%;
-  box-shadow: 0 0 10px var(--accent-gold-glow);
-  flex-shrink: 0;
+  flex: 0 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
-.searchGlyph::after {
-  content: "";
-  position: absolute;
-  right: -4px;
-  bottom: -3px;
-  width: 5px;
-  height: 1.5px;
-  border-radius: 999px;
-  background: var(--accent-gold);
-  transform: rotate(45deg);
+
+.searchGlyph::before {
+  content: '\2726';
+  font-size: 10px;
+  color: var(--accent-silver);
+  text-shadow: 0 0 6px var(--accent-silver-glow);
 }
+
+.webSearchError .searchGlyph::before {
+  color: var(--lamp-red);
+  text-shadow: 0 0 6px var(--lamp-red-dim);
+}
+
 .searchLabel {
-  position: relative;
   white-space: nowrap;
 }
+
+.searchLabelLink {
+  color: var(--accent-silver);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(255, 255, 255, 0.35);
+}
+
+.searchLabelLink:hover {
+  color: var(--text-primary);
+  text-decoration-color: var(--accent-silver);
+}
+
+.searchErrorMark {
+  font-size: 11px;
+}
+
+.searchErrorCta {
+  color: var(--lamp-red);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--lamp-red);
+}
+
+.searchErrorCta:hover {
+  opacity: 0.8;
+}
+
 .searchDots {
-  position: relative;
   display: inline-flex;
-  gap: 3px;
   align-items: center;
-  flex-shrink: 0;
+  gap: 3px;
 }
+
 .searchDots span {
-  width: 3px;
-  height: 3px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: var(--accent-gold);
-  opacity: .45;
-  animation: searchDot 1.1s ease-in-out infinite;
+  background: var(--accent-silver);
+  opacity: 0.35;
+  animation: searchDotBounce 1.2s infinite ease-in-out;
 }
-.searchDots span:nth-child(2) { animation-delay: .16s; }
-.searchDots span:nth-child(3) { animation-delay: .32s; }
 
-.time {
-  position: absolute;
-  bottom: 6px;
-  right: 12px;
-  font-size: .6rem;
+.searchDots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.searchDots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.webSearchDone .searchDots span {
+  animation: none;
+  opacity: 0.25;
+}
+
+@keyframes searchDotBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30% { transform: translateY(-3px); opacity: 1; box-shadow: 0 0 6px var(--accent-silver-glow); }
+}
+
+/* --- Markdown 正文 --- */
+
+.markdown {
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.markdown > :first-child { margin-top: 0; }
+.markdown > :last-child { margin-bottom: 0; }
+
+.markdown p {
+  margin: 0 0 10px;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  font-family: var(--font-display);
+  color: var(--accent-silver);
+  font-weight: 700;
+  margin: 16px 0 8px;
+  line-height: 1.4;
+}
+
+.markdown h1 { font-size: 17px; }
+.markdown h2 { font-size: 15.5px; }
+.markdown h3 { font-size: 14px; }
+.markdown h4 { font-size: 13px; }
+
+.markdown code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+.markdown pre {
+  background: #0a0a0d;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+
+.markdown pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.markdown a {
+  color: var(--accent-silver);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+  transition: color var(--transition-fast), text-decoration-color var(--transition-fast);
+}
+
+.markdown a:hover {
+  color: var(--text-primary);
+  text-decoration-color: var(--accent-silver);
+}
+
+.markdown table {
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 12.5px;
+}
+
+.markdown th,
+.markdown td {
+  border: 1px solid var(--bg-border);
+  padding: 6px 12px;
+  text-align: left;
+}
+
+.markdown th {
+  color: var(--text-primary);
+  background: var(--bg-chip);
+  font-weight: 600;
+}
+
+.markdown blockquote {
+  margin: 10px 0;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--accent-silver);
   color: var(--text-muted);
-  letter-spacing: .04em;
 }
 
-/* Images from tool results */
+.markdown ul,
+.markdown ol {
+  margin: 8px 0;
+  padding-left: 22px;
+}
+
+.markdown li {
+  margin: 4px 0;
+}
+
+.markdown hr {
+  border: none;
+  border-top: 1px solid var(--bg-border);
+  margin: 14px 0;
+}
+
+.markdown strong {
+  color: var(--text-primary);
+}
+
+/* 流式输出光标 */
+.markdownStreaming::after {
+  content: '\258D';
+  color: var(--accent-silver);
+  text-shadow: 0 0 8px var(--accent-silver-glow);
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* --- 图片 --- */
+
 .imageList {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 10px;
 }
+
 .image {
-  max-width: 100%;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  max-width: 280px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--bg-border);
   display: block;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes searchSheen {
-  0% { transform: translateX(-140%); opacity: 0; }
-  30% { opacity: 1; }
-  100% { transform: translateX(320%); opacity: 0; }
-}
-@keyframes searchDot {
-  0%, 80%, 100% { transform: translateY(0); opacity: .35; }
-  40% { transform: translateY(-3px); opacity: 1; }
+.image:hover {
+  border-color: var(--bg-border-strong);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.06);
 }
 
-/* Streaming caret — blinks at the end of the last line of streaming markdown.
- *
- * Implementation: rendered as an `::after` pseudo-element on the last child of
- * the markdown container, so it sits inline at the end of the final paragraph
- * (or list item, code block, etc.). A separate sibling <span> next to <Markdown>
- * doesn't work — react-markdown's last block (usually <p>) is `display: block`
- * and pushes any sibling onto its own line.
- *
- * Tuning notes:
- *   - 600ms total period — close to a typical IDE caret (~530ms).
- *   - ease-in-out (not steps()) — soft fade reads as "breathing" rather than
- *     a hard square wave, which felt like the caret was glitching.
- *   - opacity floor 0.18 — never fully black so the eye doesn't lose its
- *     position between blinks. */
-.markdownStreaming > *:last-child::after {
-  content: '';
-  display: inline-block;
-  width: 0.5em;
-  height: 1.05em;
-  margin-left: 3px;
-  vertical-align: -0.18em;
-  background: var(--accent-gold);
-  box-shadow: 0 0 8px var(--accent-gold-glow);
-  border-radius: 2px;
-  animation: streamingCaretBlink 0.6s ease-in-out infinite;
-}
-@keyframes streamingCaretBlink {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.18; }
-}
+/* --- 时间戳 --- */
 
-@media (prefers-reduced-motion: reduce) {
-  .webSearchActivity::before,
-  .searchDots span,
-  .markdownStreaming > *:last-child::after {
-    animation: none;
-  }
+.time {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-align: right;
+  letter-spacing: 0.04em;
 }
