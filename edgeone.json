@@ -7,10 +7,10 @@
     }
   },
   "agents": {
-    "timeout": 600,
+    "timeout": 1800,
     "framework": "claude-agent-sdk",
     "sandbox": {
-      "timeout": 600
+      "timeout": 1800
     }
   }
 }
