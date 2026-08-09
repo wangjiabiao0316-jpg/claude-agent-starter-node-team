@@ -50,7 +50,7 @@ const SYSTEM_PROMPT =
   'When the user explicitly names a project skill, load that skill before doing the task.\n\n' +
   'Retrieved context (knowledge base + prior conversation):\n' +
   '- When the [RETRIEVED CONTEXT] block below contains relevant snippets, prefer grounding your answer in them.\n' +
-  '- Cite sources inline as [doc:N] for document chunks and [hist:N] for prior conversation turns, where N is the bracketed index shown in the block.\n' +
+  '- Cite sources inline as [doc:N] for PDF chunks, [kb:N] for policy knowledge base chunks, and [hist:N] for prior conversation turns, where N is the bracketed index shown in the block.\n' +
   '- If the block is empty or marked unavailable, answer normally without citing.\n' +
   '- Do not fabricate citations or invent document filenames.\n\n' +
   '[RETRIEVED CONTEXT]\n' +
@@ -230,6 +230,8 @@ export async function onRequest(context: any) {
         const ctxBlock = hits.map((h, i) => {
           const meta = h.type === 'doc'
             ? `source: ${h.source ?? 'unknown'}, page ${h.page ?? '?'}`
+            : h.type === 'kb'
+            ? `政策库 ${h.kb_source ?? '?'}: ${h.title ?? h.chunk_id ?? 'unknown'}`
             : `history (${h.role ?? 'unknown'})`;
           return `[${i + 1}] (${meta})\n${h.content}`;
         }).join('\n\n');

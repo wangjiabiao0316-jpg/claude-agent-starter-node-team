@@ -1,23 +1,43 @@
 ---
 name: agent2-政策应答
-description: 'MUST follow agent2 政策应答规则. Use when user asks 政策 / 试点城市 / 专项债 / REITs / 税费减免 / 容积率奖励 / 政策应答 / 政策奖励 / 老旧厂房改造 / 存量商业提质 / 产业园区退出 / 文旅项目政策 / 城市专项资金 / 自审自发. F1 用 [RETRIEVED CONTEXT] 块的政策条款作候选 (passive injection, fallback references/典型问答场景.md). H1 5 维门槛校验 (城市/项目类型/规模/业主/业态) 全部通过才进入评分; 任一不符 → 门槛不符, MUST 附具体缺口 (如 "项目所在地非 15 试点城市"), MUST NOT 仅写 "不符". S1×0.5 + S2×0.5 综合分排序取 Top1-Top3 (公式显式, 不得心算偏差). references/15-试点城市.md 校验试点 (北京/上海/广州/深圳/杭州/成都/武汉/西安/重庆/南京/天津/长沙/青岛/郑州/厦门). 输出 4 字段 JSON 应答结论对象 (业务问题/可适用政策清单/未适用政策及原因/建议动作). MUST NOT 输出三色灯字段 (灯色/red/yellow/green/light/color 一律禁止, 这是 agent6 职责). MUST NOT 幻觉编造政策 (不在 [RETRIEVED CONTEXT] 也不在 references 中的政策一律不得输出). MUST NOT 跳过 H1 直接给 "可适用". maxTurns=30.'
+description: 'MUST follow agent2 政策应答规则. Use when user asks 政策 / 试点城市 / 专项债 / REITs / 税费减免 / 容积率奖励 / 政策应答 / 政策奖励 / 老旧厂房改造 / 存量商业提质 / 产业园区退出 / 文旅项目政策 / 城市专项资金 / 自审自发. V3 三层数据源: (1) [RETRIEVED CONTEXT] 块政策条款 (passive injection from chat retrieveContext 已接通 kb_chunks); (2) sandbox 直连 libSQL 主动查 kb_chunks_meta (query_kb_by_keyword) — 当 [RETRIEVED CONTEXT] 命中 <3 条时主动补充检索; (3) references/ 三份明文文档 fallback. H1 5 维门槛校验 (城市/项目类型/规模/业主/业态) 全部通过才进入评分; 任一不符 → 门槛不符, MUST 附具体缺口 (如 "项目所在地非 15 试点城市"), MUST NOT 仅写 "不符". S1×0.5 + S2×0.5 综合分排序取 Top1-Top3 (公式显式, 不得心算偏差). references/15-试点城市.md 校验试点 (北京/上海/广州/深圳/杭州/成都/武汉/西安/重庆/南京/天津/长沙/青岛/郑州/厦门). 输出 4 字段 JSON 应答结论对象. MUST NOT 输出三色灯字段. MUST NOT 幻觉编造政策 (不在 [RETRIEVED CONTEXT] 也不在 references 也不在 kb_chunks_meta 中的政策一律不得输出). MUST NOT 跳过 H1 直接给 "可适用". maxTurns=30.'
 ---
 
-# agent2 政策应答 Skill (V2)
+# agent2 政策应答 Skill (V3)
 
-> 本 skill 实现 super-skill architecture Task 7 Step 3-5 + agent2 V1 工作流（§F1 政策检索 + §H1 5 维门槛 + §S1/S2 排序）。
+> 本 skill 实现 super-skill architecture Task 7 Step 3-5 + agent2 V1/V2 工作流（§F1 政策检索 + §H1 5 维门槛 + §S1/S2 排序）。
 > 智能体类型：**规则查表型**｜结论：4 字段应答结论对象（业务问题/可适用政策清单/未适用政策及原因/建议动作）。
-> V2 关键升级：**P2 替代方案 - 明文附表 + 被动注入**（无 sandbox / 无 scripts / 无 libSQL 直连）。
-> 数据源：`[RETRIEVED CONTEXT]` 块（外部注入的政策条款候选）+ `references/` 三份明文文档（LLM 直接读 markdown 查表）。
-> 锚点：V1 工作流 §F1/H1/S1S2 + implementation-plan Task 7 Step 3-5。
-> 前一版：`SKILL-V1.md`（保留留底）。
+> V3 关键升级：**三层混合数据源** — (1) 被动消费 [RETRIEVED CONTEXT]（chat retrieveContext 已接通 kb_chunks 政策库）+ (2) 主动 sandbox 直连 libSQL 查 kb_chunks_meta（关键词补充检索）+ (3) references/ 明文文档兜底。
+> 锚点：V2 工作流（§F1/H1/S1S2）+ implementation-plan Task 7 Step 3-5。
+> 前一版：`references/SKILL-V2.md`（V2 P2 替代方案，无 sandbox / 无 libSQL 直连，纯被动注入）。
 
 ---
 
-## Step 0: references 文档加载（替代 V1 sandbox bootstrap）
+## Step 0: 三层数据源准备（V3 升级）
 
-> 目标：在主对话上下文中确认 references/ 三份文档已加载，再进入 Step 1。
-> **本 skill 不需要 sandbox bootstrap**（agent2 P2 替代方案：纯 LLM 推理 + references 查表）。
+> 目标：(1) 加载 references/ 三份文档 + (2) bootstrap sandbox 直连 libSQL（可选，libSQL 不可用时降级到 P2 模式）。
+
+### Step 0.0: sandbox bootstrap（V3 新增，可选）
+
+**目的**：让 agent2 能主动查 kb_chunks_meta（2120 行政策原文 chunk），不再依赖外部注入。
+
+**bootstrap 步骤**（仿 agent5 / agent3 的 sandbox bootstrap，但更简化）：
+
+1. **写 libsql_client.py 到 sandbox**：从 `.claude/skills/_shared/scripts/libsql_client.py` 读取（EdgeOne `_tools.ts prepareSandbox` 已自动注入到 `/tmp/finance/libsql_client.py`，agent2 直接 import 即可；若 prepareSandbox 未触发，则 agent2 通过 `mcp__edgeone__files_write` 手动写入）。
+
+2. **健康检查**（在 Step 1 主流程开始时执行）：
+
+```python
+# sandbox 内执行（mcp__edgeone__code_interpreter, language='python'）
+from libsql_client import query_kb_by_keyword
+test_result = query_kb_by_keyword("REITs", top_k=1)
+# 若返回非空且无异常 → sandbox+libSQL 可用，进入 V3 三层数据源模式
+# 若抛 RuntimeError 或返回空 → 降级到 V2 P2 模式（仅 [RETRIEVED CONTEXT] + references）
+```
+
+3. **若健康检查失败**：跳过 Step 1 的主动检索分支，仅用 [RETRIEVED CONTEXT] + references 关键词匹配（V2 P2 兼容路径）。
+
+### Step 0.1: 读 references/15-试点城市.md（H1 维度 1：城市校验）
 
 ### Step 0.1: 读 references/15-试点城市.md（H1 维度 1：城市校验）
 
@@ -63,42 +83,65 @@ references 加载完成（不需要 import 测试 / pip install，纯文档读�
 
 ---
 
-## Step 1: F1 政策检索（被动注入 [RETRIEVED CONTEXT]，无主动检索）
+## Step 1: F1 政策检索（V3 三层混合：被动注入 + 主动 sandbox 检索 + references 兜底）
 
-> **6 条 pushy 硬规则（agent2 P2 版本）**：
-> 1. **不得跳过** Step 0（references 三份文档必须加载到上下文）
+> **6 条 pushy 硬规则（agent2 V3 版本）**：
+> 1. **不得跳过** Step 0（references 三份文档 + sandbox bootstrap 都要走）
 > 2. **不得估算**（H1 5 维门槛 + S1/S2 评分必须按 references/政策门槛表.md 表格查表，不得心算）
-> 3. **不得 fallback 编造**（[RETRIEVED CONTEXT] 为空 + references 关键词也未命中 → 输出"未检索到适用政策"，禁止幻觉政策）
+> 3. **不得 fallback 编造**（三层检索都未命中 → 输出"未检索到适用政策"，禁止幻觉政策）
 > 4. **不得心算综合分**（必须显式给出 `S1 × 0.5 + S2 × 0.5` 公式与数值，保留 1 位小数）
-> 5. **必须 schema**（输出必须符合 §4 schema，4 字段缺一不可）
+> 5. **必须 schema**（输出必须符合 §6 schema，4 字段缺一不可）
 > 6. **必须查表**（H1 5 维校验必须查 references/15-试点城市.md + references/政策门槛表.md）
 
-### F1 主流程（被动消费 + fallback）
+### F1 主流程（三层混合检索）
 
 ```python
-# 输入：用户业务问题 + [RETRIEVED CONTEXT] 块（外部注入）
+# 输入：用户业务问题 + [RETRIEVED CONTEXT] 块（外部注入）+ sandbox 可用性标志
 candidates = []
 
-# 主：消费 [RETRIEVED CONTEXT] 块
+# === 层 1（被动消费）：[RETRIEVED CONTEXT] 块 ===
 if "[RETRIEVED CONTEXT]" in user_input:
     candidates = parse_retrieved_context(user_input["[RETRIEVED CONTEXT]"])
-    # 每条候选含：政策名称 + 条款原文 + 来源库标识
+    # 每条候选含：政策名称 + 条款原文 + 来源库标识（KB01-REITs / KB03-专项债 等）
 
-# fallback：[RETRIEVED CONTEXT] 为空 / 未注入时
+# === 层 2（主动检索）：sandbox 直连 kb_chunks_meta ===
+# 触发条件：层 1 命中 < 3 条 OR 用户问题包含明确政策关键词（"REITs" / "专项债" / "958 号文" / "1014 号文" 等）
+if SANDBOX_AVAILABLE and (len(candidates) < 3 or has_explicit_policy_keyword(user_input)):
+    keyword = extract_search_keyword(user_input["业务问题"])
+    # sandbox.runCode 调用
+    extra_chunks = sandbox.runCode(f'''
+        from libsql_client import query_kb_by_keyword
+        results = query_kb_by_keyword("{keyword}", top_k=5)
+        # 返回 list of dict: {chunk_id, kb_id, chunk_type, clause_label, content}
+    ''', language='python')
+    candidates.extend(extra_chunks)
+    # 去重（按 chunk_id 去重）
+
+# === 层 3（兜底）：references/典型问答场景.md 关键词匹配 ===
 if not candidates:
-    # 走 references/典型问答场景.md 4 类场景关键词匹配
     scene_match = match_scene_by_keywords(user_input["业务问题"])
     if scene_match:
         candidates = scene_match.fallback_candidates
-    else:
-        # F1 候选集为空 → 输出未命中
-        return {
-            "业务问题": user_input["业务问题"],
-            "可适用政策清单": [],
-            "未适用政策及原因": [{"政策名称": "—", "不适用原因": "检索未命中 - [RETRIEVED CONTEXT] 为空且 references 关键词未命中"}],
-            "建议动作": "建议人工复核政策专员或地方发改委窗口"
-        }
+
+# 三层都未命中 → 输出未命中
+if not candidates:
+    return {
+        "业务问题": user_input["业务问题"],
+        "可适用政策清单": [],
+        "未适用政策及原因": [{"政策名称": "—", "不适用原因": "检索未命中 - 三层检索均未命中（[RETRIEVED CONTEXT] 空 + sandbox 不可用或 0 命中 + references 关键词未命中）"}],
+        "建议动作": "建议人工复核政策专员或地方发改委窗口"
+    }
 ```
+
+### 关键词提取（V3 新增）
+
+`extract_search_keyword` 优先级：
+1. 用户问题中明确提到的政策编号（如 "958 号文" / "1014 号文" / "52 号文" / "国办发〔2024〕52 号"）→ 直接用作关键词
+2. 政策类别关键词（专项债 / REITs / 城市更新 / 保障性租赁住房 / 自审自发 / 容积率奖励 / 税费减免）
+3. 项目特征关键词（文旅 / 产业园区 / 商业提质 / 老旧厂房 / 仓储物流）
+4. 兜底：用户问题的核心名词短语
+
+`has_explicit_policy_keyword` 判断：用户问题包含上述 1-3 类关键词之一即 True。
 
 ---
 
@@ -275,6 +318,7 @@ if not candidates:
 | **F5** | 业态方向不在政策支持目录（如数据中心 / 元宇宙） | 列入"未适用政策及原因"，缺口 = "业态方向 X 不在专项债/政策支持目录" |
 | **F6** | 综合分计算偏差（>1 分误差） | 重算，综合分公式必须显式 `S1 × 0.5 + S2 × 0.5` |
 | **F7** | 用户问"全部政策 / 所有政策"（无明确维度） | 提示用户细化维度（专项债 / REITs / 税费减免 / 容积率奖励），按细化后的维度逐条匹配 |
+| **F8** | sandbox 不可用 / libSQL 连接失败 / query_kb_by_keyword 抛错（V3 新增） | 降级到 V2 P2 模式：仅用 [RETRIEVED CONTEXT] + references 关键词匹配，**MUST** 在应答结论对象的"建议动作"中标注"sandbox/libSQL 暂不可用，主动检索未执行"，不阻断应答输出 |
 
 ---
 
@@ -316,7 +360,8 @@ if not candidates:
 每次输出前 MUST 自检：
 
 - [ ] 是否加载了 references/ 三份文档？（15-试点城市.md / 政策门槛表.md / 典型问答场景.md）
-- [ ] F1 是否优先消费 [RETRIEVED CONTEXT]？[RETRIEVED CONTEXT] 为空时是否 fallback 到 references 关键词匹配？
+- [ ] V3 sandbox bootstrap（Step 0.0）是否尝试过？失败时是否标记 SANDBOX_AVAILABLE=False 进入降级路径？
+- [ ] F1 三层检索是否走完？（层 1 [RETRIEVED CONTEXT] → 层 2 sandbox query_kb_by_keyword → 层 3 references 关键词）
 - [ ] H1 5 维门槛是否逐条校验？（城市/项目类型/规模/业主/业态）任一不符 → 门槛不符
 - [ ] H1 不符时是否附具体缺口？（不得仅写"不符"或"不适用"）
 - [ ] 综合分公式是否显式 `S1 × 0.5 + S2 × 0.5`？（不得心算偏差）
@@ -360,9 +405,9 @@ skills/agent2-政策应答/references/
 
 ---
 
-**版本**：V2（2026-08-08）
-**锚点**：V1 工作流（§F1/H1/S1S2）+ implementation-plan Task 7 Step 3-5
-**前一版**：`SKILL-V1.md`（保留留底）
-**P2 替代方案**：明文附表 + 被动注入（无 sandbox / 无 scripts / 无 libSQL 直连）
-**行数**：约 320 行（< 500 行上限）
+**版本**：V3（2026-08-09）
+**锚点**：V2 工作流（§F1/H1/S1S2）+ implementation-plan Task 7 Step 3-5 + 三层混合数据源
+**前一版**：`references/SKILL-V2.md`（V2 P2 替代方案，无 sandbox / 无 libSQL 直连，纯被动注入）
+**V3 关键升级**：sandbox 直连 libSQL（query_kb_by_keyword 主动检索 kb_chunks_meta 2120 行政策原文 chunk）
+**行数**：约 360 行（< 500 行上限）
 **校准状态**：S1/S2 权重各 0.5【待校准】

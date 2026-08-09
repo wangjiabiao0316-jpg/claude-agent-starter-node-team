@@ -37,8 +37,12 @@ const EMBED_MODEL = 'embedding-3';
 const EMBED_DIMENSIONS = 1024;
 
 const DEFAULT_K = 5;
-const DOC_WEIGHT = 0.7;
-const HIST_WEIGHT = 0.3;
+// Three-channel RRF weights (docs PDF + kb policy chunks + conversation history).
+// Docs and KB both carry reference material and are weighted equally; history is
+// auxiliary context with the lowest weight. Weights are relative (need not sum to 1).
+const DOC_WEIGHT = 0.40;
+const KB_WEIGHT = 0.40;
+const HIST_WEIGHT = 0.20;
 const RRF_K = 60; // standard reciprocal-rank-fusion smoothing constant
 
 export interface LibSqlEnv {
@@ -54,12 +58,19 @@ export interface EmbedEnv {
 export interface SearchHit {
   id: number;
   content: string;
-  type: 'doc' | 'history';
+  type: 'doc' | 'kb' | 'history';
   /** cosine distance from query vector (lower = more similar). May be 0 if unknown. */
   distance: number;
   // doc-only fields
   source?: string;
   page?: number;
+  // kb-only fields (kb_chunks JOIN kb_chunks_meta JOIN kb_records)
+  chunk_id?: string;
+  kb_id?: string;
+  kb_source?: string;
+  category?: string;
+  title?: string;
+  chunk_type?: string;
   // history-only fields
   role?: string;
 }
@@ -209,17 +220,25 @@ function rowCell(row: PipelineRow[], index: number): string | number | null {
 }
 
 /**
- * Pure fusion helper — Reciprocal Rank Fusion with per-source weights.
+ * Pure fusion helper — Reciprocal Rank Fusion with per-source weights, three channels.
  *
  * Inputs MUST be pre-sorted by the caller (e.g. by `distance` ascending from
- * SQL ORDER BY). Rank 0 = most relevant. RRF score = weight * (1 / (RRF_K + rank)).
+ * SQL ORDER BY distance). Rank 0 = most relevant. RRF score = weight * (1 / (RRF_K + rank)).
+ *
+ * Channels:
+ *   - docs: documents-table PDF chunks (DOC_WEIGHT)
+ *   - kb:   kb_chunks JOIN kb_chunks_meta policy chunks (KB_WEIGHT)
+ *   - hist: conversations-table prior turns (HIST_WEIGHT)
  *
  * This function is deterministic and makes no I/O calls — fully unit-tested.
  */
-export function fuseHits(docs: SearchHit[], hist: SearchHit[]): SearchHit[] {
+export function fuseHits(docs: SearchHit[], kb: SearchHit[], hist: SearchHit[]): SearchHit[] {
   const scored: Array<{ hit: SearchHit; score: number }> = [];
   docs.forEach((d, rank) => {
     scored.push({ hit: d, score: DOC_WEIGHT * (1 / (RRF_K + rank)) });
+  });
+  kb.forEach((k, rank) => {
+    scored.push({ hit: k, score: KB_WEIGHT * (1 / (RRF_K + rank)) });
   });
   hist.forEach((h, rank) => {
     scored.push({ hit: h, score: HIST_WEIGHT * (1 / (RRF_K + rank)) });
@@ -229,8 +248,17 @@ export function fuseHits(docs: SearchHit[], hist: SearchHit[]): SearchHit[] {
 }
 
 /**
- * Run parallel vector search against documents + conversations tables,
- * fuse results, return top-`k` hits (default 5).
+ * Run parallel vector search against three channels — documents (PDF chunks),
+ * kb_chunks (policy chunks from the curated kb_chunks_meta + kb_records tables),
+ * and conversations (prior turns) — then RRF-fuse results, returning top-`k` hits.
+ *
+ * Channel schema assumptions (PoC-verified 2026-08-09 on sqld 0.24.32):
+ *   - documents.embedding F32_BLOB(1024)  → vector_distance_cos compatible
+ *   - kb_chunks (vec0 virtual table)       → vector_distance_cos ALSO compatible
+ *     (libsql's scalar distance fn works on vec0 embedding columns; PoC returned
+ *     distance 0.93 against arbitrary query vector, 1.2s for 2120-row scan)
+ *   - kb_chunks.rowid ALIGNs with kb_chunks_meta.rowid (AUTOINCREMENT, identical)
+ *     so a direct JOIN by rowid is correct.
  *
  * `opts.conversationId` and `opts.userId` are used to scope the history
  * lookup: we want *other* conversations for the same user (to recall prior
@@ -243,21 +271,34 @@ export async function retrieveContext(
 ): Promise<SearchHit[]> {
   const qv = await embedQuery(query, env);
   // libSQL accepts the vector as a JSON-encoded number[] when binding against
-  // an F32_BLOB column.
+  // an F32_BLOB column. The same JSON form also works against vec0 virtual
+  // table embedding columns.
   const qvStr = JSON.stringify(qv);
 
   const userId = opts.userId ?? '';
   const excludeConversationId = opts.conversationId ?? '';
 
-  // Use vector_distance_cos() scalar function for both projection and ordering.
-  // This works without relying on the `<->` operator (whose placeholder binding
-  // behavior differs across @libsql/client versions).
-  const [docRows, histRows] = await Promise.all([
+  // Use vector_distance_cos() scalar function for projection and ordering
+  // across all three channels. Works for F32_BLOB columns (documents,
+  // conversations) AND for vec0 virtual-table embedding columns (kb_chunks).
+  const [docRows, kbRows, histRows] = await Promise.all([
     libsqlPipeline(
       `SELECT id, source, page, chunk_index, content,
               vector_distance_cos(embedding, ?) AS distance
        FROM documents
        ORDER BY vector_distance_cos(embedding, ?) ASC
+       LIMIT ?`,
+      [qvStr, qvStr, DEFAULT_K],
+      env,
+    ),
+    libsqlPipeline(
+      `SELECT m.chunk_id, m.kb_id, m.chunk_type, m.content,
+              r.title, r.kb_source, r.category,
+              vector_distance_cos(c.embedding, ?) AS distance
+       FROM kb_chunks c
+       JOIN kb_chunks_meta m ON c.rowid = m.rowid
+       JOIN kb_records r ON m.kb_id = r.kb_id
+       ORDER BY vector_distance_cos(c.embedding, ?) ASC
        LIMIT ?`,
       [qvStr, qvStr, DEFAULT_K],
       env,
@@ -283,6 +324,22 @@ export async function retrieveContext(
     page: rowCell(r, 2) !== null ? Number(rowCell(r, 2)) : undefined,
   }));
 
+  // KB channel column order matches the SELECT clause above:
+  //   0 chunk_id | 1 kb_id | 2 chunk_type | 3 content | 4 title
+  //   5 kb_source | 6 category | 7 distance
+  const kbHits: SearchHit[] = kbRows.map((r, idx) => ({
+    id: idx, // kb chunks are identified by chunk_id, not numeric id; use idx for SearchHit.id
+    content: String(rowCell(r, 3) ?? ''),
+    type: 'kb',
+    distance: Number(rowCell(r, 7) ?? 0),
+    chunk_id: rowCell(r, 0) !== null ? String(rowCell(r, 0)) : undefined,
+    kb_id: rowCell(r, 1) !== null ? String(rowCell(r, 1)) : undefined,
+    chunk_type: rowCell(r, 2) !== null ? String(rowCell(r, 2)) : undefined,
+    title: rowCell(r, 4) !== null ? String(rowCell(r, 4)) : undefined,
+    kb_source: rowCell(r, 5) !== null ? String(rowCell(r, 5)) : undefined,
+    category: rowCell(r, 6) !== null ? String(rowCell(r, 6)) : undefined,
+  }));
+
   const histHits: SearchHit[] = histRows.map(r => ({
     id: Number(rowCell(r, 0) ?? 0),
     content: String(rowCell(r, 1) ?? ''),
@@ -291,7 +348,7 @@ export async function retrieveContext(
     role: rowCell(r, 2) !== null ? String(rowCell(r, 2)) : undefined,
   }));
 
-  const fused = fuseHits(docHits, histHits);
+  const fused = fuseHits(docHits, kbHits, histHits);
   return fused.slice(0, opts.k ?? DEFAULT_K);
 }
 

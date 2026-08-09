@@ -15,6 +15,8 @@ import urllib.request
 SQL_TABLE_WHITELIST = {
     "finance_products", "mortgage_thresholds", "negative_list",
     "pilot_cities", "case_library", "industry_thresholds",
+    # Policy knowledge base (kb_chunks_meta + kb_records)
+    "kb_chunks_meta", "kb_records",
 }
 
 SQL_KEYWORD_BLOCKLIST = ("insert", "update", "delete", "drop", "create",
@@ -79,11 +81,33 @@ def _build_select_sql(table, columns=None, where=None, limit=1000):
 
 
 def _parse_libsql_response(data):
-    """解析 libSQL /v2/pipeline 响应为 dict 列表。"""
+    """解析 libSQL /v2/pipeline 响应为 dict 列表。
+
+    支持两种响应形态：
+    1. 真实 sqld（生产）：results[0].response.result.{cols,rows}
+    2. 历史简化 mock：results[0].results.{cols,rows}（旧测试 fixture）
+    """
     results = data.get("results", [])
     if not results:
         return []
-    rows_response = results[0].get("results", {})
+    first = results[0] or {}
+
+    # 错误响应：results[0] = {"type": "error", "error": {...}}
+    if first.get("type") == "error":
+        err = first.get("error", {})
+        raise RuntimeError(f"libSQL error: {err.get('message', '?')} (code={err.get('code', '?')})")
+
+    # 真实 sqld 响应：results[0].response.result.{cols,rows}
+    rows_response = {}
+    response = first.get("response")
+    if isinstance(response, dict) and response.get("type") == "execute":
+        result_obj = response.get("result", {})
+        if isinstance(result_obj, dict):
+            rows_response = result_obj
+    # 兼容旧 mock 格式：results[0].results.{cols,rows}
+    if not rows_response and isinstance(first.get("results"), dict):
+        rows_response = first["results"]
+
     cols_list = [c.get("name") for c in rows_response.get("cols", [])]
     rows = rows_response.get("rows", [])
     parsed = []
@@ -97,15 +121,33 @@ def _parse_libsql_response(data):
     return parsed
 
 
-def execute_sql(table, columns=None, where=None, limit=1000):
-    """
-    封装 libSQL HTTP /v2/pipeline SELECT 调用。
-    table 必须在白名单内；limit 上限 1000。
-    """
-    sql, args = _build_select_sql(table, columns, where, limit)
+def _tag_arg(v):
+    """sqld /v2/pipeline expects each arg as {type, value}; integers are sent
+    as their string representation (per libSQL binary protocol)."""
+    if v is None:
+        return {"type": "null"}
+    if isinstance(v, bool):
+        return {"type": "integer", "value": "1" if v else "0"}
+    if isinstance(v, int):
+        return {"type": "integer", "value": str(v)}
+    if isinstance(v, float):
+        return {"type": "float", "value": str(v)}
+    return {"type": "text", "value": str(v)}
 
+
+def _execute_pipeline(sql, args):
+    """Send a single SQL statement to libSQL /v2/pipeline and return parsed rows.
+
+    Formats the request body per sqld v0.24.x contract:
+      {"requests": [{"type": "execute", "stmt": {"sql": "...", "args": [tagged,...]}}, {"type": "close"}]}
+    Each positional arg MUST be tagged as {type, value} (see _tag_arg).
+    """
+    tagged_args = [_tag_arg(a) for a in (args or [])]
     body = json.dumps({
-        "requests": [{"statement": sql, "args": args}],
+        "requests": [
+            {"type": "execute", "stmt": {"sql": sql, "args": tagged_args}},
+            {"type": "close"},
+        ],
     }).encode("utf-8")
 
     req = urllib.request.Request(
@@ -115,6 +157,15 @@ def execute_sql(table, columns=None, where=None, limit=1000):
         data = json.loads(resp.read().decode("utf-8"))
 
     return _parse_libsql_response(data)
+
+
+def execute_sql(table, columns=None, where=None, limit=1000):
+    """
+    封装 libSQL HTTP /v2/pipeline SELECT 调用。
+    table 必须在白名单内；limit 上限 1000。
+    """
+    sql, args = _build_select_sql(table, columns, where, limit)
+    return _execute_pipeline(sql, args)
 
 
 def query_cases(features, top_k=3):
@@ -128,3 +179,55 @@ def query_cases(features, top_k=3):
         limit=200,
     )
     return candidates[:top_k]
+
+
+# ============================================================
+# Policy knowledge base helpers (kb_chunks_meta + kb_records)
+# ============================================================
+
+def query_kb_by_keyword(keyword, top_k=10):
+    """按关键词检索 kb_chunks_meta（content LIKE）。
+
+    Args:
+        keyword: 搜索关键词（如 "REITs" / "专项债自审自发" / "958 号文"）
+        top_k: 最多返回行数（默认 10，硬上限 200）
+
+    Returns:
+        list of dict, 每条含 {chunk_id, kb_id, chunk_type, clause_label, content}.
+        命中数为 0 时返回空列表；libSQL 不可用时抛 RuntimeError。
+    """
+    safe_k = max(1, min(int(top_k), 200))
+    sql = (
+        "SELECT chunk_id, kb_id, chunk_type, clause_label, content "
+        "FROM kb_chunks_meta "
+        "WHERE content LIKE ? COLLATE NOCASE "
+        "LIMIT ?"
+    )
+    args = [f"%{keyword}%", safe_k]
+    return _execute_pipeline(sql, args)
+
+
+def query_kb_by_source(kb_source, top_k=50):
+    """按 kb_source 桶过滤 kb_records（KB01-REITs / KB03-专项债 等）。
+
+    Args:
+        kb_source: 桶标识（如 "KB01", "KB03"）
+        top_k: 最多返回行数（默认 50）
+
+    Returns:
+        list of dict, 每条含 {kb_id, title, category, source_url, source_date, ...}.
+    """
+    return execute_sql(
+        "kb_records",
+        where={"kb_source": kb_source},
+        limit=top_k,
+    )
+
+
+def query_kb_by_category(category, top_k=50):
+    """按 category 字段过滤 kb_records（如 "政策法规库 / REITs 政策"）."""
+    return execute_sql(
+        "kb_records",
+        where={"category": category},
+        limit=top_k,
+    )
