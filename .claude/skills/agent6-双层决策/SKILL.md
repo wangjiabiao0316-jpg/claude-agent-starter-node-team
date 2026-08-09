@@ -12,40 +12,61 @@ description: 'MUST follow agent6 双层决策红绿灯聚合规则。 Use when s
 
 ---
 
-## Step 0: Sandbox 资产（自动预写，LLM 不需 Read/Write）
+## Step 0: Sandbox Bootstrap（5 步，参考 agent4 V2 模板）
 
-> 目标：在 sandbox 内 `decision_aggregator.py` + `decision_rules.json` 已就绪，LLM 直接调用 `decide()` 即可，无需 bootstrap。
+> 目标：在 sandbox 内写入 `decision_aggregator.py` + `decision_rules.json`，验证模块可装载，再进入 Step 1。
 
-### Step 0.1: 自动预写资产清单
+### Step 0.1: probe sandbox（重试 3 次）
 
-`agents/chat/_tools.ts prepareSandbox` 在 sandbox 启动时已自动预写以下文件到 sandbox，LLM 直接使用即可：
+```python
+# 用 sandbox.commands.run('ls /tmp') 探测 sandbox 是否 ready
+# 参考 agent4 V2 + EdgeOne Makers agents skill 推荐 cold start retry 模式
+for attempt in range(3):
+    try:
+        result = sandbox.commands.run("ls /tmp", {timeout: 10})
+        break
+    except Exception:
+        await sleep(2000)  # 2s 退避
+else:
+    # F1 降级：sandbox 不可用
+    return _fallback_sandbox_unavailable()
+```
 
-| sandbox 路径 | 用途 |
-|------------|------|
-| `/tmp/finance/decision_aggregator.py` | 决策聚合器（`decide()` 函数） |
-| `/tmp/finance/references/decision_rules.json` | 决策规则（顶层灯、四维子灯、权重、`agent4_engine_mapping`） |
+### Step 0.2: 写入 2 个文件到 `/tmp/finance/`
 
-LLM 在 sandbox 内直接：
+```python
+sandbox.commands.run("mkdir -p /tmp/finance", {timeout: 5})
 
-- `from decision_aggregator import decide`（或 `import decision_aggregator`）
-- `import json; rules = json.load(open('/tmp/finance/references/decision_rules.json'))`
+# 文件 1: decision_aggregator.py（主算法）
+# 来源：本 skill 的 scripts/decision_aggregator.py
+sandbox.files.write("/tmp/finance/decision_aggregator.py", decision_aggregator_py_content)
 
-### Step 0.2: 跳过 pip install（agent6 纯标准库）
+# 文件 2: decision_rules.json（机器可读决策表）
+# 来源：本 skill 的 references/decision_rules.json
+sandbox.files.write("/tmp/finance/decision_rules.json", decision_rules_json_content)
+```
 
-> agent6 不依赖 numpy / numpy-financial（纯 if/else + 查表），无需 pip install。
+> 注：agent6 不需要 libsql_client.py（agent6 不查 libSQL，仅读 references/decision_rules.json）。
 
-### Step 0.3: 进入 Step 1
+### Step 0.3: 验证模块装载（import 测试）
 
-sandbox 资产已就绪，进入 Step 1 主算法调用。
+```python
+verify_result = sandbox.commands.run(
+    "cd /tmp/finance && python3 -c 'from decision_aggregator import decide; print(\"OK\")'",
+    {timeout: 10}
+)
+# 期望输出：OK
+# 失败 → F2 降级（脚本语法错误 / decision_rules.json 解析失败）
+```
 
-### Step 0.4: 禁止行为（硬约束）
+### Step 0.4: 跳过 pip install（agent6 纯标准库）
 
-**禁止**：
+> agent6 不依赖 numpy / numpy-financial（纯 if/else + 查表），无需 Step 0.4 pip install。
+> 跳到 Step 0.5。
 
-- 调用 `Read({file_path: "/Users/..."})` — 沙箱无法访问本机路径
-- 调用 `sandbox.files.write(...)` 写文件 — 文件已预写
-- 估算 / 心算 / fallback — 必须用 sandbox 聚合器
-- 跳过 `decision_aggregator.py` 的 `decide()` 调用
+### Step 0.5: 进入 Step 1
+
+sandbox bootstrap 完成，进入 Step 1 主算法调用。
 
 ---
 

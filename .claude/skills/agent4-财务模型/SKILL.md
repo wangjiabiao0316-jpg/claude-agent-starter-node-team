@@ -44,39 +44,98 @@ LLM 校验必填字段：
 
 任一缺失或非法 → F6/F12 降级（输出降级清单，**禁止进入 S1-S4**）。
 
-### Step 0: Sandbox 资产（自动预写，LLM 不需 Read/Write）
+### Step 0: Bootstrap sandbox（每次会话首次调用前必须执行，不得跳过）
 
-`agents/chat/_tools.ts` 的 `prepareSandbox` 已在 sandbox 启动时自动预写以下文件到 `/tmp/finance/`，LLM 直接使用即可：
+> **强制指令**：LLM 必须按以下步骤执行，**不得跳过、不得估算、不得 fallback、不得心算**。沙箱（EdgeOne code_interpreter）是独立环境，**无法直接访问本机 `/Users/...` 路径**，必须通过 `Read` + `mcp__edgeone__files_write` 把 4 个文件中转写入 `/tmp/finance/`。**未完成 Step 0 不得进入 S1-S4。**
 
-| sandbox 路径 | 用途 |
-|------------|------|
-| `/tmp/finance/finance.py` | 主财务计算模块（analyze 函数） |
-| `/tmp/finance/cashflow.py` | 现金流生成 |
-| `/tmp/finance/industry_thresholds.py` | 业态门槛基准 |
-| `/tmp/finance/references/thresholds.json` | 业态门槛数据（商业 8-12% / 办公 6-9% / 文旅 7-10%） |
+#### 0.1 读取 4 个源文件（用 Read 工具，路径绝对路径）
 
-LLM 直接：
-- `from finance import analyze` 或 `import finance`
-- `import json; thresholds = json.load(open('/tmp/finance/references/thresholds.json'))`
-
-**禁止**：
-- 调用 `Read({ file_path: "/Users/..." })` —— 沙箱无法访问本机路径（线上 sandbox 是隔离 Linux 容器）
-- 调用 `mcp__edgeone__files_write(...)` —— 文件已预写，不需要重复
-- 估算 / 心算 / fallback —— 必须用 sandbox 计算
-
-### Step 0.5: 安装依赖（首次调用前必须执行）
-
-LLM 调用 `sandbox.commands.run`（或 `mcp__edgeone__commands`）跑：
+LLM 必须依次调用 `Read` 工具读取以下 4 个文件（**不得使用 mcp__edgeone__files_list / mcp__edgeone__files_read，因为沙箱无法访问本机路径**）：
 
 ```
-pip install --quiet "numpy-financial>=0.9,<2.0"
+Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent4-财务模型/scripts/finance.py" })
+Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent4-财务模型/scripts/cashflow.py" })
+Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent4-财务模型/scripts/industry_thresholds.py" })
+Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent4-财务模型/references/thresholds.json" })
 ```
 
-（sandbox 冷启动可能耗时 30-60 秒）。执行后必须确认 `exitCode=0` 且 stderr 不含 `error`。失败立即重试 1 次，仍失败则进入 F1 降级。
+读取后必须将每个文件的**完整源码内容**保存在 LLM 上下文里，准备传给 files_write。
 
-### Step 1: 立即执行 analyze() 主入口（Step 0 + 0.5 完成后必须立即调用，不得思考、不得确认、不得 fallback）
+#### 0.2 写入沙箱（用 mcp__edgeone__files_write 工具）
 
-完成 Step 0（资产已预写）+ Step 0.5（依赖已装）后，**立即**调用 `mcp__edgeone__code_interpreter` 工具，language="python"，code=下面模板（替换 `[]` 占位为用户输入实际数值）。**不得在 Step 0/0.5 与 Step 1 之间插入任何额外 thinking / 确认 / 总结 / 探索。**
+LLM 必须依次调用 `mcp__edgeone__files_write` 工具把 4 个文件内容写到沙箱 `/tmp/finance/`：
+
+```
+mcp__edgeone__files_write({
+  path: "/tmp/finance/finance.py",
+  content: "<Step 0.1 Read 读到的 finance.py 完整源码>"
+})
+
+mcp__edgeone__files_write({
+  path: "/tmp/finance/cashflow.py",
+  content: "<Step 0.1 Read 读到的 cashflow.py 完整源码>"
+})
+
+mcp__edgeone__files_write({
+  path: "/tmp/finance/industry_thresholds.py",
+  content: "<Step 0.1 Read 读到的 industry_thresholds.py 完整源码>"
+})
+
+mcp__edgeone__files_write({
+  path: "/tmp/finance/references/thresholds.json",
+  content: "<Step 0.1 Read 读到的 thresholds.json 完整内容>"
+})
+```
+
+**注意**：
+- `thresholds.json` 必须写到 `/tmp/finance/references/thresholds.json`（子目录），industry_thresholds.py 通过相对路径 `references/thresholds.json` 加载
+- 每个 files_write 调用必须独立确认成功（exitCode=0 / 无 error），失败立即重试 1 次，仍失败则进入 F1 降级
+- **禁止只写部分文件**（4 个文件必须全部写入）
+
+#### 0.3 安装依赖（用 mcp__edgeone__commands 工具）
+
+LLM 必须调用 `mcp__edgeone__commands` 安装 numpy-financial：
+
+```
+mcp__edgeone__commands({
+  cmd: "pip install --quiet \"numpy-financial>=0.9,<2.0\"",
+  timeout: 60
+})
+```
+
+执行后必须确认 `exitCode=0` 且 stderr 不含 `error`。失败立即重试 1 次，仍失败则进入 F1 降级。
+
+#### 0.4 验证 bootstrap 完成（用 mcp__edgeone__commands 工具）
+
+LLM 必须调用 `mcp__edgeone__commands` 验证 4 个文件全部就位：
+
+```
+mcp__edgeone__commands({
+  cmd: "ls -la /tmp/finance/ && ls -la /tmp/finance/references/ && python3 -c \"import sys; sys.path.insert(0,'/tmp/finance'); import finance, cashflow, industry_thresholds; print('OK modules loaded')\"",
+  timeout: 15
+})
+```
+
+必须看到：
+- `/tmp/finance/finance.py`、`/tmp/finance/cashflow.py`、`/tmp/finance/industry_thresholds.py` 三个文件
+- `/tmp/finance/references/thresholds.json` 文件
+- stdout 含 `OK modules loaded`
+
+**全部 4 个验证通过后才能进入 S1-S4。任一不通过立即进入 F1 降级。**
+
+#### 0.5 ⛔ 常见卡点警示
+
+| 错误行为 | 正确行为 |
+|---|---|
+| 用 `mcp__edgeone__files_list` 读 `/Users/...` | 沙箱隔离，必须用 `Read` |
+| 直接 `runCode` 不 bootstrap | finance.py 不存在会 ImportError |
+| 只写 finance.py 不写 thresholds.json | industry_thresholds.py 加载失败 |
+| 跳过 pip install | finance.py import numpy_financial 失败 |
+| bootstrap 没完成就计算 IRR | 输出降级对象，禁止心算 |
+
+### Step 1: 立即执行 analyze() 主入口（Step 0 完成后必须立即调用，不得思考、不得确认、不得 fallback）
+
+完成 Step 0（0.1-0.5 全部验证通过）后，**立即**调用 `mcp__edgeone__code_interpreter` 工具，language="python"，code=下面模板（替换 `[]` 占位为用户输入实际数值）。**不得在 Step 0 与 Step 1 之间插入任何额外 thinking / 确认 / 总结 / 探索。**
 
 ```python
 import sys
@@ -146,10 +205,9 @@ print(json.dumps(result, ensure_ascii=False))
 ```
 
 执行前确保 sandbox 已就绪：
-1. `sandbox.commands.run('ls /tmp/finance/', {timeout: 10})` 至少成功 1 次（最多 3 次重试，确认 prepareSandbox 已预写资产到位）
-2. `sandbox.commands.run('pip install --quiet "numpy-financial>=0.9,<2.0"', {timeout: 60})` （首次冷启动，详见 Step 0.5）
-
-> **注意**：4 个资产文件（finance.py / cashflow.py / industry_thresholds.py / references/thresholds.json）已由 `_tools.ts prepareSandbox` 自动预写，**禁止** LLM 重复 `sandbox.files.write(...)`。
+1. `sandbox.commands.run('ls /tmp', {timeout: 10})` 至少成功 1 次（最多 3 次重试）
+2. `sandbox.files.write('/tmp/finance/finance.py', ...)` 写入 4 个文件：finance.py / cashflow.py / industry_thresholds.py / references/thresholds.json
+3. `sandbox.commands.run('pip install --quiet "numpy-financial>=0.9,<2.0"', {timeout: 60})` （首次冷启动）
 
 执行：`sandbox.runCode(code_string, {language: 'python', timeout: 30})`
 
