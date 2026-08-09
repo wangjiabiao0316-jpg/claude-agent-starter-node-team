@@ -121,3 +121,27 @@ export interface ReportReady {
   report_type: '投资人版' | '政府版' | '业主版' | '内部决策版';
   html_content: string;
 }
+
+// === uiStage 状态机(改造引入)===
+/**
+ * Top-level UI state machine. Replaces ad-hoc checks like
+ * `messages.length === 0` and `loading` for driving layout decisions.
+ *
+ * - 'intake':  user is filling IntakeWizard (first visit or "new project")
+ * - 'running': SSE stream active, agent pipeline running
+ * - 'review':  report_ready received, ReportModal shown, SuggestActions visible
+ */
+export type UiStage = 'intake' | 'running' | 'review';
+
+/**
+ * Soft-warning modal payload shown when user attempts to skip a P0 field.
+ * (city field is hard-blocked, never uses this modal.)
+ */
+export interface IntakeWarning {
+  fieldKey: string;                         // e.g. "capital_ratio"
+  fieldName: string;                        // i18n-resolved label, filled at runtime
+  severity: 'blocker' | 'degraded';         // blocker=降级路径,degraded=默认值兜底
+  consequence: string;                      // 业务后果文案
+  technicalRef: string;                     // e.g. "agent3 H1"
+  suggestion: string;                       // 建议文案
+}

@@ -1,44 +1,132 @@
 import { describe, expect, it } from 'vitest';
-import { composeProjectPrompt, type IntakeValues } from '../intake';
+import {
+  composeProjectPrompt,
+  intakeValuesToPrompt,
+  INTAKE_WARNINGS,
+  PILOT_CITIES_15,
+  DUAL_LIST_CITIES,
+  type IntakeValues,
+} from '../intake';
 
-const base: IntakeValues = {
-  city: '深圳 · 南山区',
-  current: '90 年代老旧厂房，产权清晰',
-  scale: '占地约 5 万㎡，总投资约 3 亿元',
-  direction: '保障性租赁住房',
-  goal: 'full',
+const FULL_VALUES: IntakeValues = {
+  city: '深圳', location: '南山科技园',
+  owner_type: '国企', property_cert: '粤(2024)0000XXX 号',
+  heritage_level: '无文保', current_status: '老旧厂房',
+  building_area: 50000, structure_type: '框架', height_m: 4.5,
+  industry: '商业', renovation_mode: '保留微更新',
+  investment: 30000, capital_ratio: 30,
+  mortgage_type: '土地使用权', mortgage_value: 25000,
+  monthly_rent: 120, leasable_area: 35000,
+  holding_years: 15, exit_strategy: 'REITs',
+  occupancy: 85, exit_cap_rate: 4.5, discount_rate: 8,
 };
 
 describe('composeProjectPrompt', () => {
-  it('composes a full zh prompt with the decision goal', () => {
-    const out = composeProjectPrompt(base, 'zh');
-    expect(out).toBe(
-      '我在深圳 · 南山区有一个城市更新项目：现状为90 年代老旧厂房，产权清晰，占地约 5 万㎡，总投资约 3 亿元，拟改造为保障性租赁住房。请做完整的上会测算与双层决策。',
-    );
+  it('returns null when city is missing', () => {
+    const result = composeProjectPrompt({
+      values: { ...FULL_VALUES, city: '' },
+      skippedFields: new Set(),
+      defaultFields: {},
+      lang: 'zh',
+    });
+    expect(result).toBeNull();
   });
 
-  it('maps every goal to its prompt suffix', () => {
-    expect(composeProjectPrompt({ ...base, goal: 'finance' }, 'zh')).toContain('请设计多元融资方案。');
-    expect(composeProjectPrompt({ ...base, goal: 'model' }, 'zh')).toContain('IRR');
-    expect(composeProjectPrompt({ ...base, goal: 'risk' }, 'zh')).toContain('Top3');
+  it('produces 三段输出 with all fields filled', () => {
+    const result = composeProjectPrompt({
+      values: FULL_VALUES,
+      skippedFields: new Set(),
+      defaultFields: {},
+      lang: 'zh',
+    });
+    expect(result).not.toBeNull();
+    expect(result).toContain('【已填信息】');
+    expect(result).toContain('- 城市:深圳');
+    expect(result).toContain('请按 super-skill 完整上会测算');
   });
 
-  it('returns null when any required field is blank', () => {
-    expect(composeProjectPrompt({ ...base, city: '   ' }, 'zh')).toBeNull();
-    expect(composeProjectPrompt({ ...base, current: '' }, 'zh')).toBeNull();
-    expect(composeProjectPrompt({ ...base, scale: '' }, 'zh')).toBeNull();
-    expect(composeProjectPrompt({ ...base, direction: '' }, 'zh')).toBeNull();
+  it('includes 【用户主动跳过的字段】 section when fields are skipped', () => {
+    const result = composeProjectPrompt({
+      values: FULL_VALUES,
+      skippedFields: new Set(['capital_ratio', 'monthly_rent']),
+      defaultFields: {},
+      lang: 'zh',
+    });
+    expect(result).toContain('【用户主动跳过的字段');
+    expect(result).toContain('自有资金比例(%):用户未提供');
+    expect(result).toContain('月租金(元/㎡/月):用户未提供');
   });
 
-  it('strips trailing punctuation to avoid doubled sentence marks', () => {
-    const out = composeProjectPrompt({ ...base, city: '深圳市。', scale: '占地 5 万㎡。' }, 'zh');
-    expect(out).not.toContain('。。');
-    expect(out).toContain('我在深圳市有一个城市更新项目');
+  it('includes 【用默认值的字段】 section for P1 defaults', () => {
+    const result = composeProjectPrompt({
+      values: FULL_VALUES,
+      skippedFields: new Set(),
+      defaultFields: { occupancy: '85%', exit_cap_rate: '4.5%', discount_rate: '8%' },
+      lang: 'zh',
+    });
+    expect(result).toContain('【用默认值的字段】');
+    expect(result).toContain('出租率(%):85%');
   });
 
-  it('composes an en prompt', () => {
-    const out = composeProjectPrompt(base, 'en');
-    expect(out).toContain('Urban renewal project in 深圳 · 南山区');
-    expect(out).toContain('two-layer decision');
+  it('English lang produces English section headers', () => {
+    const result = composeProjectPrompt({
+      values: FULL_VALUES,
+      skippedFields: new Set(['capital_ratio']),
+      defaultFields: {},
+      lang: 'en',
+    });
+    expect(result).toContain('【Filled】');
+    expect(result).toContain('【Skipped by user');
+  });
+});
+
+describe('intakeValuesToPrompt', () => {
+  it('converts percentage fields to decimal in output', () => {
+    const lines = intakeValuesToPrompt(FULL_VALUES);
+    const capitalLine = lines.find(l => l.includes('自有资金比例'));
+    expect(capitalLine).toBeDefined();
+    expect(capitalLine).toContain('0.30');  // 30 / 100
+    expect(capitalLine).toContain('30%');
+  });
+
+  it('skips null fields', () => {
+    const values = { ...FULL_VALUES, building_area: null };
+    const lines = intakeValuesToPrompt(values);
+    expect(lines.find(l => l.includes('建筑面积'))).toBeUndefined();
+  });
+});
+
+describe('INTAKE_WARNINGS', () => {
+  it('covers all 22 IntakeValues keys', () => {
+    const expectedKeys: Array<keyof IntakeValues> = [
+      'city', 'location', 'owner_type', 'property_cert', 'heritage_level', 'current_status',
+      'building_area', 'structure_type', 'height_m',
+      'industry', 'renovation_mode',
+      'investment', 'capital_ratio', 'mortgage_type', 'mortgage_value',
+      'monthly_rent', 'leasable_area', 'holding_years', 'exit_strategy',
+      'occupancy', 'exit_cap_rate', 'discount_rate',
+    ];
+    expectedKeys.forEach(k => {
+      expect(INTAKE_WARNINGS[k]).toBeDefined();
+      expect(INTAKE_WARNINGS[k].fieldKey).toBe(k);
+      expect(INTAKE_WARNINGS[k].consequence.length).toBeGreaterThan(10);
+    });
+  });
+});
+
+describe('PILOT_CITIES_15', () => {
+  it('contains exactly 15 cities', () => {
+    expect(PILOT_CITIES_15.length).toBe(15);
+  });
+  it('includes 北京 上海 广州 深圳', () => {
+    expect(PILOT_CITIES_15).toContain('北京');
+    expect(PILOT_CITIES_15).toContain('上海');
+    expect(PILOT_CITIES_15).toContain('广州');
+    expect(PILOT_CITIES_15).toContain('深圳');
+  });
+  it('DUAL_LIST_CITIES is subset of PILOT_CITIES_15', () => {
+    DUAL_LIST_CITIES.forEach(c => {
+      expect(PILOT_CITIES_15).toContain(c);
+    });
   });
 });

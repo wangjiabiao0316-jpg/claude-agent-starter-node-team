@@ -1,17 +1,14 @@
 import { useEffect, useRef } from 'react';
 import type { Message } from '../types';
 import ChatBubble from './ChatBubble';
-import WelcomeScreen from './WelcomeScreen';
 import styles from './ChatWindow.module.css';
 
 interface Props {
   messages: Message[];
   loading: boolean;
-  /** Fired when the user clicks an example card on the welcome screen. */
-  onExampleSend?: (text: string) => void;
 }
 
-export default function ChatWindow({ messages, loading, onExampleSend }: Props) {
+export default function ChatWindow({ messages, loading }: Props) {
   const windowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,10 +34,6 @@ export default function ChatWindow({ messages, loading, onExampleSend }: Props) 
 
   return (
     <div ref={windowRef} className={styles.window}>
-      {messages.length === 0 && (
-        <WelcomeScreen onSend={text => onExampleSend?.(text)} disabled={loading} />
-      )}
-
       {messages.map(msg => (
         <ChatBubble key={msg.id} message={msg} />
       ))}

@@ -1,0 +1,23 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 99, 99, 0.12);
+  color: #ff6363;
+  border: 1px solid rgba(255, 99, 99, 0.32);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+.btn:hover {
+  background: rgba(255, 99, 99, 0.22);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.label {
+  line-height: 1;
+}

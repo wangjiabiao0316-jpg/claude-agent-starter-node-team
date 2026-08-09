@@ -8,6 +8,7 @@ import type {
   SuggestAction,
   AgentOutput,
   ReportReady,
+  UiStage,
 } from './types';
 import {
   deleteConversation,
@@ -31,7 +32,8 @@ import {
 import { saveSnapshot, loadSnapshot, deleteSnapshot } from './lib/chatUiStore';
 import ToolIndicators from './components/ToolIndicators';
 import ChatWindow from './components/ChatWindow';
-import ChatInput from './components/ChatInput';
+import IntakeWizard from './components/IntakeWizard';
+import StopButton from './components/StopButton';
 import DebugPanel from './components/DebugPanel';
 import CodeViewer from './components/CodeViewer';
 import ConversationSidebar from './components/ConversationSidebar';
@@ -146,6 +148,11 @@ function AppInner() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [lamps, setLamps]       = useState<ToolLampState[]>(buildLamps);
   const [loading, setLoading]   = useState(false);
+  // === uiStage 状态机(改造引入)===
+  // Top-level UI state machine. Drives conditional rendering in later tasks
+  // (Task 3, 4, 12 ...) — replaces ad-hoc `messages.length === 0` / `loading`
+  // checks. Initial value is 'intake' (first visit / new project).
+  const [uiStage, setUiStage] = useState<UiStage>('intake');
   const [historyLoading, setHistoryLoading] = useState(true);
   // Name of the skill currently being loaded by the SDK. null when no skill
   // is in flight. Set by the `skill_loaded` SSE event (singular — fires
@@ -342,6 +349,9 @@ function AppInner() {
     loadConversation(conversationIdRef.current).finally(() => {
       _historyFetchInFlight = false;
     });
+    // === Bugfix: 刷新页面恢复旧会话时,uiStage 必须切到 review,
+    // 否则 IntakeWizard 会盖住 ChatWindow,用户看不到历史消息。 ===
+    setUiStage('review');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -445,6 +455,10 @@ function AppInner() {
 
   const finishStream = useCallback(() => {
     setLoading(false);
+    // === uiStage 状态机(改造引入)===
+    // SSE done/error fired — agent pipeline finished, user is now reviewing
+    // the assistant's reply. (loading=false && messages.length>0 → 'review'.)
+    setUiStage('review');
     abortCtrlRef.current = null;
   }, []);
 
@@ -472,6 +486,9 @@ function AppInner() {
 
     setMessages(prev => [...prev, userMsg, botMsg]);
     setLoading(true);
+    // === uiStage 状态机(改造引入)===
+    // User just sent a message — agent pipeline is now running.
+    setUiStage('running');
 
     /**
      * Optimistic sidebar update — fires as soon as the backend emits its first
@@ -694,44 +711,12 @@ function AppInner() {
     abortCtrlRef.current = ctrl;
   }, [updateBotMessage, setBotActivity, finishBotActivity, handleImageEvent, finishStream, refreshConversations, t]);
 
-  const handleClearHistory = useCallback(() => {
-    const oldConvId = conversationIdRef.current;
-    resetAgentState();
-
-    // The trash button in ChatInput is the same affordance as the trash
-    // icon on a sidebar item: it should DELETE the conversation entirely,
-    // not just clear its messages. Using `clearConversationHistory` here
-    // would leave the old conversation in the sidebar with an empty body
-    // and a fallback "New chat" title — confusing for users who clicked
-    // trash expecting "make this thread go away".
-    //
-    // Optimistically drop from the sidebar so the user sees the row
-    // disappear immediately; the network call is fire-and-forget.
-    setConversations(prev => prev.filter(c => c.id !== oldConvId));
-
-    deleteConversation(oldConvId, eoUuidRef.current).then(ok => {
-      if (!ok) {
-        console.warn('[delete-conversation] backend request failed');
-      }
-    }).finally(() => {
-      // Reconcile with backend in case state diverged.
-      void refreshConversations('replace');
-    });
-
-    // Cleanup IndexedDB images and UI snapshot for old conversation
-    revokeAllObjectUrls();
-    deleteConversationImages(oldConvId).catch(() => {});
-    deleteSnapshot(oldConvId).catch(() => {});
-
-    const newId = crypto.randomUUID();
-    localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, newId);
-    conversationIdRef.current = newId;
-    setActiveConversationId(newId);
-    setMessages([]);
-    setDebugEvents([]);
-    setDockMode('agents');
-    initDoneRef.current = false;
-  }, [refreshConversations, resetAgentState]);
+  // NOTE: `handleClearHistory` (formerly wired to ChatInput's trash button)
+  // was removed in Task 3 along with the ChatInput component. Clearing the
+  // current conversation is now functionally equivalent to deleting it via
+  // the sidebar trash (see `handleDeleteConversation`). If a dedicated
+  // "clear" affordance is reintroduced later (e.g. sidebar context menu),
+  // resurrect this callback from git history at that time.
 
   const handleStop = useCallback(() => {
     if (abortCtrlRef.current) {
@@ -746,6 +731,10 @@ function AppInner() {
     clearBotStreaming();
     updateBotMessage(content => content ? content + '\n\n' + t("status.stopped") : t("status.stopped"));
     setLoading(false);
+    // === uiStage 状态机(改造引入)===
+    // User aborted the run — they're now reviewing the partial reply
+    // (loading=false && messages.length>0 → 'review'.)
+    setUiStage('review');
 
     stopAgent(conversationIdRef.current).then(ok => {
       if (!ok) {
@@ -763,6 +752,8 @@ function AppInner() {
     conversationIdRef.current = id;
     setActiveConversationId(id);
     setDockMode('agents');
+    // === Bugfix: 切到旧会话必须切到 review 阶段,IntakeWizard 才会卸载、ChatWindow 才会显示历史消息 ===
+    setUiStage('review');
     void loadConversation(id);
   }, [loading, loadConversation, resetAgentState]);
 
@@ -782,6 +773,8 @@ function AppInner() {
     setDockMode('agents');
     initDoneRef.current = false;
     setHistoryLoading(false);
+    // === Bugfix: 新建会话必须切回 intake 阶段,IntakeWizard 才会重新挂载 ===
+    setUiStage('intake');
   }, [loading, resetAgentState]);
 
   const handleLoadMoreConversations = useCallback(() => {
@@ -904,8 +897,11 @@ function AppInner() {
                 <p className={styles.subtitle}>{t("app.subtitle")}</p>
               </div>
             </div>
-            <ToolIndicators lamps={lamps} />
-            {skillInUse && <span className={styles.skillsLoading}>using {skillInUse}</span>}
+            <div className={styles.headerActions}>
+              <ToolIndicators lamps={lamps} />
+              {skillInUse && <span className={styles.skillsLoading}>using {skillInUse}</span>}
+              <StopButton visible={loading} onStop={handleStop} />
+            </div>
           </header>
 
           <div className={styles.pipelineSlot}>
@@ -921,14 +917,19 @@ function AppInner() {
           </div>
 
           <div className={styles.chatWindowShell}>
-            <ChatWindow messages={messages} loading={loading} onExampleSend={handleSend} />
+            {uiStage === 'intake' ? (
+              <div className={styles.intakeSlot}>
+                <IntakeWizard onSend={handleSend} disabled={false} />
+              </div>
+            ) : (
+              <ChatWindow messages={messages} loading={loading} />
+            )}
             {historyLoading && messages.length === 0 && (
               <div className={styles.historyOverlay}>
                 <div className={styles.historySpinner} />
               </div>
             )}
           </div>
-          <ChatInput onSend={handleSend} onStop={handleStop} onClear={handleClearHistory} disabled={loading} />
           {/* === Phase 4 Task 10: super-skill suggest_actions button group === */}
           {suggestActions.length > 0 && (
             <SuggestActions

@@ -43,6 +43,17 @@
   flex-direction: column;
 }
 
+/* === Task 4: IntakeWizard slot — replaces old WelcomeScreen ===
+ * Fills the chatPanel middle area during the 'intake' uiStage.
+ * When user submits (uiStage → 'running'), IntakeWizard unmounts
+ * and ChatWindow takes over the shell.
+ */
+.intakeSlot {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
 /* ── History loading overlay ───────────────────────────── */
 .historyOverlay {
   position: absolute;
@@ -83,6 +94,13 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
+}
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .logo {
   font-size: 1.7rem;
@@ -188,6 +206,12 @@
   .dock { flex-basis: 340px; }
 }
 @media (max-width: 900px) {
+  /* Bugfix: 之前是 display:none,导致用户点 PipelineBar 节点切 tab 后看不到 AgentPane。
+     现在改为更窄的 flex-basis,在 641-900px 区间保持可见。 */
+  .dock { flex-basis: 300px; }
+  .chatPanel { border-right: none; }
+}
+@media (max-width: 640px) {
   .dock { display: none; }
   .chatPanel { border-right: none; }
 }

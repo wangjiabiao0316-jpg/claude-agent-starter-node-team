@@ -16,9 +16,6 @@ const zh = {
 
   // Intake wizard (step-by-step guided input)
   "wizard.step": "步骤",
-  "wizard.previewStep": "确认并发送",
-  "wizard.qCity": "你的项目在哪个城市 / 区位？",
-  "wizard.qCityPh": "如：深圳 · 南山区",
   "wizard.qCurrent": "项目现状与产权情况如何？",
   "wizard.qCurrentPh": "如：90 年代老旧厂房，产权清晰，无文保限制",
   "wizard.qScale": "规模指标（面积 / 投资 / 自有资金）？",
@@ -31,15 +28,6 @@ const zh = {
   "wizard.dir5": "产业园区",
   "wizard.dirOther": "其他方向",
   "wizard.dirCustomPh": "请输入你的改造方向，如：社区养老中心",
-  "wizard.qGoal": "这次想让智能体算什么？",
-  "wizard.goalFull": "🚦 完整上会测算",
-  "wizard.goalFullDesc": "六智能体全流程：政策、融资、财务、风险到双层决策",
-  "wizard.goalFinance": "💰 多元融资方案",
-  "wizard.goalFinanceDesc": "资本金与贷款结构的组合设计",
-  "wizard.goalModel": "📊 财务模型测算",
-  "wizard.goalModelDesc": "IRR、NPV、现金流等核心指标",
-  "wizard.goalRisk": "⚠️ 失败案例匹配",
-  "wizard.goalRiskDesc": "Top3 相似失败案例与风险提示",
   "wizard.back": "上一步",
   "wizard.next": "下一步",
   "wizard.generate": "生成项目描述",
@@ -56,19 +44,12 @@ const zh = {
   "welcome.ex4Text": "广州城中村改造项目，请帮我匹配 Top3 相似失败案例，并提示主要风险点与规避建议。",
   "welcome.foot": "SIX AGENTS · ONE DECISION · POWERED BY EDGEONE MAKERS",
 
-  // Chat input
-  "chat.placeholder": "描述你的城市更新项目：城市/区位 · 现状与产权 · 规模 · 拟改造方向…  ⏎ 发送 · Shift+⏎ 换行",
-  "chat.hint": "六智能体协同 · 政策 / 融资 / 财务 / 风险 / 双层决策 · EdgeOne Makers 驱动",
-
   // Preset questions
   "preset.1": "使用终端命令检查当前系统时间和操作系统版本。",
   "preset.2": "创建 /tmp/fib.py，写入计算斐波那契数列前 10 项的 Python 代码并执行，将结果打印出来。",
   "preset.4": "访问 https://edgeone.ai 并总结页面内容。",
   "preset.screenshotEdgeOne": "截取 edgeone.ai 的网页图片。",
   "preset.skill.sandboxAlgorithms": "计算斐波那契数列前 20 个，并给出执行结果。",
-  "preset.project.full": "帮我做一个城市更新项目的完整上会测算：上海杨浦区老旧厂房改造为保障房，占地 4 万㎡。",
-  "preset.project.finance": "总投资 2.5 亿、自有资金 35% 的存量改造项目，帮我设计多元融资方案。",
-  "preset.project.irr": "改造投入 1.5 亿、年租金 2200 万、运营成本 800 万，帮我测算 IRR 与 NPV。",
 
   // Skill indicators
   "skill.sandboxAlgorithms": "沙箱算法执行",
@@ -111,13 +92,86 @@ const zh = {
   "sidebar.deleteConfirm": "确定要永久删除这个会话吗？此操作不可恢复。",
 
   // Aria labels (button hover/screen-reader)
-  "aria.send": "发送",
-  "aria.clearHistory": "清除历史",
   "aria.stopGeneration": "停止生成",
 
   // ─── Floating bottom-right action badges ─────────────────────────────
   "floatingLink.deploy": "一键部署",
   "floatingLink.github": "GitHub",
+
+  // === 改造引入:IntakeWizard 22 字段 + 软警告 + 15 城 ===
+  "wizard.previewStep": "预览并提交",
+  "wizard.previewAndSubmit": "预览并提交",
+  "wizard.continueSubmit": "继续测算",
+  "wizard.returnToFill": "返回填写",
+  "wizard.previewShowPrompt": "查看发送给智能体的完整 prompt",
+  "wizard.previewMissing": "⚠️ {n} 个关键字段未填,继续将触发降级",
+  "wizard.sectionRequired": "必填项",
+  "wizard.sectionAdvanced": "高级参数(可选,缺省将用行业默认值)",
+
+  "wizard.qCity": "📍 你的项目所在城市(必须从 15 试点城市中选择)",
+  "wizard.qCityPilotHint": "非试点城市无法启动 super-skill 测算流程",
+  "wizard.qLocation": "🗺️ 区位(行政区 / 园区 / 地块名)",
+  "wizard.qLocationPh": "如:南山科技园",
+
+  "wizard.field.location.label": "区位",
+  "wizard.field.location.placeholder": "如:南山科技园",
+
+  "wizard.field.owner_type.label": "业主资质",
+  "wizard.field.property_cert.label": "不动产证号",
+  "wizard.field.property_cert.placeholder": "如:粤(2024)深圳不动产权第 0000XXX 号",
+  "wizard.field.heritage_level.label": "文保等级",
+  "wizard.field.current_status.label": "项目现状描述",
+  "wizard.field.current_status.placeholder": "如:90 年代老旧厂房,产权清晰,空置率 30%",
+
+  "wizard.field.building_area.label": "建筑面积(㎡)",
+  "wizard.field.building_area.placeholder": "如:50000",
+  "wizard.field.structure_type.label": "结构类型",
+  "wizard.field.height_m.label": "层高(m)",
+  "wizard.field.height_m.placeholder": "如:4.5",
+  "wizard.field.height_m.hint": "(可选)缺失将由 LLM 估算",
+
+  "wizard.field.industry.label": "拟改造业态方向(与 6 业态严格对齐)",
+  "wizard.field.industry.f8Hint": "⚠️ 此业态在 agent4 财务模型中无专属门槛表,会触发 F8 兜底(宽松阈值),IRR 测算精度会下降。",
+  "wizard.field.renovation_mode.label": "改造模式",
+
+  "wizard.field.investment.label": "总投资(万元)",
+  "wizard.field.investment.placeholder": "如:30000",
+  "wizard.field.capital_ratio.label": "自有资金比例(%)",
+  "wizard.field.capital_ratio.hint": "H1 硬约束:25-30% 为绿色安全区,其他区间 agent3 会判 yellow 或 red",
+  "wizard.field.capital_ratio.safe": "✓ 当前在 H1 安全区(25-30%)",
+  "wizard.field.mortgage_type.label": "抵押物类型",
+  "wizard.field.mortgage_value.label": "抵押物估值(万元)",
+  "wizard.field.mortgage_value.placeholder": "如:25000",
+
+  "wizard.field.monthly_rent.label": "月租金(元/㎡)",
+  "wizard.field.monthly_rent.placeholder": "如:120",
+  "wizard.field.leasable_area.label": "可租赁面积(㎡)",
+  "wizard.field.leasable_area.placeholder": "如:35000",
+  "wizard.field.holding_years.label": "持有年限(年,1-50)",
+  "wizard.field.holding_years.placeholder": "如:15",
+  "wizard.field.exit_strategy.label": "退出策略",
+
+  "wizard.field.occupancy.label": "出租率(%) — 默认 85",
+  "wizard.field.exit_cap_rate.label": "退出 cap rate(%) — 默认 4.5",
+  "wizard.field.exit_cap_rate.placeholder": "如:4.5",
+  "wizard.field.discount_rate.label": "折现率(%) — 默认 8",
+  "wizard.field.discount_rate.placeholder": "如:8",
+
+  // 软警告弹窗
+  "wizard.warningTitle": "准确度会下降",
+  "wizard.warningSeverityBlocker": "降级",
+  "wizard.warningSeverityDegraded": "默认值",
+  "wizard.warningConsequence": "后果",
+  "wizard.warningTechRef": "技术参照",
+  "wizard.warningSuggestion": "建议",
+  "wizard.warningReturn": "返回填写",
+  "wizard.warningConfirmSkip": "继续跳过",
+
+  // 试点城市迁移
+  "wizard.cityNotInList": "我的城市不在列表...",
+  "wizard.cityMigrationTitle": "非试点城市",
+  "wizard.cityMigrationBody": "你之前填的城市 {city} 不在 agent2 H1 维度1 的 15 个试点城市名单。请从 15 城中重新选择,或选择最近的试点城市作为代算(结果仅供参考)。",
+  "wizard.cityMigrationAck": "我知道了",
 } as const;
 
 export default zh;

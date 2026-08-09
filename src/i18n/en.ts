@@ -16,9 +16,6 @@ const en = {
 
   // Intake wizard (step-by-step guided input)
   "wizard.step": "Step",
-  "wizard.previewStep": "Review & send",
-  "wizard.qCity": "Where is your project (city / district)?",
-  "wizard.qCityPh": "e.g. Shenzhen · Nanshan",
   "wizard.qCurrent": "What is the current condition and ownership status?",
   "wizard.qCurrentPh": "e.g. 1990s factory buildings, clear ownership, no heritage limits",
   "wizard.qScale": "Scale metrics (area / investment / equity)?",
@@ -31,15 +28,6 @@ const en = {
   "wizard.dir5": "Industrial park",
   "wizard.dirOther": "Other",
   "wizard.dirCustomPh": "Type your direction, e.g. community elderly-care centre",
-  "wizard.qGoal": "What should the agents calculate this time?",
-  "wizard.goalFull": "🚦 Full Decision Review",
-  "wizard.goalFullDesc": "All six agents: policy, financing, finance, risk to the two-layer decision",
-  "wizard.goalFinance": "💰 Financing Mix",
-  "wizard.goalFinanceDesc": "Equity and loan structure combination design",
-  "wizard.goalModel": "📊 Financial Model",
-  "wizard.goalModelDesc": "IRR, NPV, cash flow and other core metrics",
-  "wizard.goalRisk": "⚠️ Failure Case Match",
-  "wizard.goalRiskDesc": "Top-3 similar failure cases and risk warnings",
   "wizard.back": "Back",
   "wizard.next": "Next",
   "wizard.generate": "Compose description",
@@ -56,19 +44,12 @@ const en = {
   "welcome.ex4Text": "For an urban-village renewal project in Guangzhou, match the top-3 similar failure cases and highlight key risks and mitigations.",
   "welcome.foot": "SIX AGENTS · ONE DECISION · POWERED BY EDGEONE MAKERS",
 
-  // Chat input
-  "chat.placeholder": "Describe your urban renewal project: city/location · condition & ownership · scale · direction…  ⏎ Send · Shift+⏎ Newline",
-  "chat.hint": "Six-agent orchestration · Policy / Financing / Finance / Risk / Decision · Powered by EdgeOne Makers",
-
   // Preset questions
   "preset.1": "Use terminal commands to check the current system time and OS version.",
   "preset.2": "Create /tmp/fib.py, write Python code to calculate the first 10 Fibonacci numbers, execute it, and print the result.",
   "preset.4": "Visit https://edgeone.ai and summarize the page content.",
   "preset.screenshotEdgeOne": "Take a screenshot of edgeone.ai.",
   "preset.skill.sandboxAlgorithms": "Calculate the first 20 Fibonacci numbers and provide the execution result.",
-  "preset.project.full": "Run a full decision review for an urban renewal project: a 40,000 sqm factory-to-housing conversion in Yangpu, Shanghai.",
-  "preset.project.finance": "Design a diversified financing plan for a stock-renewal project with 250M CNY total investment and 35% equity.",
-  "preset.project.irr": "Calculate IRR and NPV: 150M capex, 22M annual rent, 8M annual opex.",
 
   // Skill indicators
   "skill.sandboxAlgorithms": "Sandbox Algorithms",
@@ -111,13 +92,86 @@ const en = {
   "sidebar.deleteConfirm": "Permanently delete this conversation? This cannot be undone.",
 
   // Aria labels (button hover/screen-reader)
-  "aria.send": "Send",
-  "aria.clearHistory": "Clear history",
   "aria.stopGeneration": "Stop generation",
 
   // ─── Floating bottom-right action badges ─────────────────────────────
   "floatingLink.deploy": "Deploy",
   "floatingLink.github": "GitHub",
+
+  // === Added for: IntakeWizard 22 fields + soft warnings + 15 pilot cities ===
+  "wizard.previewStep": "Preview & submit",
+  "wizard.previewAndSubmit": "Preview & submit",
+  "wizard.continueSubmit": "Continue calculation",
+  "wizard.returnToFill": "Return to fill",
+  "wizard.previewShowPrompt": "View the full prompt sent to the agents",
+  "wizard.previewMissing": "⚠️ {n} key fields are empty — continuing will trigger degradation",
+  "wizard.sectionRequired": "Required",
+  "wizard.sectionAdvanced": "Advanced parameters (optional; industry defaults will be used if omitted)",
+
+  "wizard.qCity": "📍 Project city (must be one of the 15 pilot cities)",
+  "wizard.qCityPilotHint": "Non-pilot cities cannot start the super-skill calculation flow",
+  "wizard.qLocation": "🗺️ Location (administrative district / park / plot name)",
+  "wizard.qLocationPh": "e.g., Nanshan Tech Park",
+
+  "wizard.field.location.label": "Location",
+  "wizard.field.location.placeholder": "e.g., Nanshan Tech Park",
+
+  "wizard.field.owner_type.label": "Owner Type",
+  "wizard.field.property_cert.label": "Property Certificate Number",
+  "wizard.field.property_cert.placeholder": "e.g., Yue (2024) Shenzhen Real Estate No. 0000XXX",
+  "wizard.field.heritage_level.label": "Heritage Status",
+  "wizard.field.current_status.label": "Current Condition Description",
+  "wizard.field.current_status.placeholder": "e.g., 1990s old factory, clear title, 30% vacancy",
+
+  "wizard.field.building_area.label": "Building Area (sqm)",
+  "wizard.field.building_area.placeholder": "e.g., 50000",
+  "wizard.field.structure_type.label": "Structure Type",
+  "wizard.field.height_m.label": "Floor Height (m)",
+  "wizard.field.height_m.placeholder": "e.g., 4.5",
+  "wizard.field.height_m.hint": "(Optional) If missing, LLM will estimate",
+
+  "wizard.field.industry.label": "Target Industry (must match one of the 6 industries)",
+  "wizard.field.industry.f8Hint": "⚠️ This industry has no dedicated threshold table in the agent4 financial model — F8 fallback (lenient thresholds) will be triggered, reducing IRR accuracy.",
+  "wizard.field.renovation_mode.label": "Renovation Mode",
+
+  "wizard.field.investment.label": "Total Investment (10k CNY)",
+  "wizard.field.investment.placeholder": "e.g., 30000",
+  "wizard.field.capital_ratio.label": "Self-owned Capital Ratio (%)",
+  "wizard.field.capital_ratio.hint": "H1 hard constraint: 25–30% is the green safe zone; other ranges will be flagged yellow or red by agent3",
+  "wizard.field.capital_ratio.safe": "✓ Currently in the H1 safe zone (25–30%)",
+  "wizard.field.mortgage_type.label": "Collateral Type",
+  "wizard.field.mortgage_value.label": "Collateral Valuation (10k CNY)",
+  "wizard.field.mortgage_value.placeholder": "e.g., 25000",
+
+  "wizard.field.monthly_rent.label": "Monthly Rent (CNY/sqm)",
+  "wizard.field.monthly_rent.placeholder": "e.g., 120",
+  "wizard.field.leasable_area.label": "Leasable Area (sqm)",
+  "wizard.field.leasable_area.placeholder": "e.g., 35000",
+  "wizard.field.holding_years.label": "Holding Period (years, 1–50)",
+  "wizard.field.holding_years.placeholder": "e.g., 15",
+  "wizard.field.exit_strategy.label": "Exit Strategy",
+
+  "wizard.field.occupancy.label": "Occupancy Rate (%) — default 85",
+  "wizard.field.exit_cap_rate.label": "Exit Cap Rate (%) — default 4.5",
+  "wizard.field.exit_cap_rate.placeholder": "e.g., 4.5",
+  "wizard.field.discount_rate.label": "Discount Rate (%) — default 8",
+  "wizard.field.discount_rate.placeholder": "e.g., 8",
+
+  // Soft warning modal
+  "wizard.warningTitle": "Accuracy Will Degrade",
+  "wizard.warningSeverityBlocker": "Blocker",
+  "wizard.warningSeverityDegraded": "Default value",
+  "wizard.warningConsequence": "Consequence",
+  "wizard.warningTechRef": "Technical reference",
+  "wizard.warningSuggestion": "Suggestion",
+  "wizard.warningReturn": "Return to fill",
+  "wizard.warningConfirmSkip": "Skip anyway",
+
+  // Pilot city migration
+  "wizard.cityNotInList": "My city is not in the list...",
+  "wizard.cityMigrationTitle": "Non-pilot city",
+  "wizard.cityMigrationBody": "Your previously entered city {city} is not in the 15 pilot cities list (agent2 H1 dimension 1). Please choose from the 15 cities, or pick the nearest pilot city as a proxy (results for reference only).",
+  "wizard.cityMigrationAck": "Got it",
 } as const;
 
 export default en;

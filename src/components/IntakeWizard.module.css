@@ -208,6 +208,328 @@
   cursor: not-allowed;
 }
 
+/* ── Task 12 additions: 6-step skeleton + Step 1-3 ───────────────────────── */
+
+/* multi-line textarea (Step 2 current_status, future proof for Step 4-6) */
+.textarea {
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-chip);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.55;
+  padding: 11px 14px;
+  outline: none;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.textarea::placeholder { color: var(--text-muted); }
+.textarea:focus {
+  border-color: var(--bg-border-strong);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.07);
+}
+
+/* card row — Step 2 owner_type / heritage_level, Step 3 structure_type, future steps */
+.cardRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.card {
+  appearance: none;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--bg-border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.card:hover {
+  border-color: var(--bg-border-strong);
+  color: var(--text-primary);
+}
+.cardOn {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: var(--bg-chip);
+  color: var(--text-primary);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.08);
+}
+
+/* hint text under inputs (Step 3 height_m, future P1 hints) */
+.hint {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .03em;
+  color: var(--text-muted);
+}
+
+/* ── Task 13 additions: Step 4-6 slider + section title ───────────────── */
+
+/* slider wrapper — Step 5 capital_ratio, Step 6 occupancy */
+.sliderWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+/* Task 16: 滑块可视化轨道 — 包裹 input 让 overlay (.safeZone) 能定位 */
+.sliderTrack {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  background: var(--bg-border);
+  border-radius: 2px;
+  margin: 8px 0;
+}
+.slider {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-border);
+  border-radius: 2px;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  cursor: pointer;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-silver);
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--accent-silver-glow);
+}
+.slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-silver);
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--accent-silver-glow);
+}
+.sliderValue {
+  min-width: 48px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* ── Task 16 additions: capital_ratio H 安全区可视化 ───────────────── */
+
+/* capital_ratio 滑块本身 — 覆盖在 .sliderTrack 之上,叠在 .safeZone 上 */
+.sliderCapital {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: transparent; /* 轨道由 .sliderTrack 提供,这里透明避免双层底色 */
+}
+
+/* H1 安全区 25-30% 区间绿色高亮 — 30-25=5%,从右减 70% */
+.safeZone {
+  position: absolute;
+  left: 25%;
+  right: 70%;
+  height: 100%;
+  background: var(--lamp-green-dim);
+  /* 浏览器支持 color-mix 时叠加更鲜的绿;不支持则降级为 dim 透明度 */
+  background: color-mix(in srgb, var(--lamp-green) 32%, transparent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* section divider title — Step 6 必填/高级分隔 */
+.sectionTitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 16px 0 4px;
+  border-top: 1px dashed var(--bg-border);
+  padding-top: 12px;
+}
+.sectionTitle:first-child {
+  /* 当 sectionTitle 出现在 step 顶部时不显示上分隔线 */
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+}
+
+/* ── Task 14 additions: Step 7 preview ───────────────── */
+
+/* missing-P0 warning banner — amber-ish accent, distinct from primary surface */
+.banner {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--bg-border-strong);
+  border-left: 3px solid var(--accent-silver);
+  border-radius: var(--radius-md);
+  background: var(--bg-chip);
+}
+.bannerTitle {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  color: var(--text-primary);
+}
+.bannerList {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* filled-fields preview grid (one line per non-empty field) */
+.previewGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-chip);
+}
+.previewLine {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* expandable composed prompt <details> — full prompt text preview */
+.promptDetails {
+  margin: 0 0 12px;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  background: rgba(10, 10, 13, 0.4);
+}
+.promptDetails > summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  color: var(--text-muted);
+  list-style: none;
+  user-select: none;
+  outline: none;
+  transition: color var(--transition-fast);
+}
+.promptDetails > summary::-webkit-details-marker { display: none; }
+.promptDetails > summary:hover { color: var(--text-primary); }
+.promptDetails[open] > summary {
+  border-bottom: 1px solid var(--bg-border);
+}
+.promptPre {
+  margin: 0;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
 @media (max-width: 640px) {
   .goalGrid { grid-template-columns: 1fr; }
+  .cardRow { flex-direction: column; align-items: stretch; }
+}
+
+/* ── Task 15 additions: 15 城卡片网格 + 迁移链接 ───────────────── */
+
+.cityGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.cityCard {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  transition: border-color var(--transition-fast),
+              background var(--transition-fast),
+              color var(--transition-fast),
+              transform var(--transition-fast);
+}
+.cityCard:hover {
+  border-color: var(--bg-border-strong);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+.cityCardOn {
+  background: var(--bg-chip);
+  border-color: var(--accent-silver);
+  color: var(--text-primary);
+  box-shadow: 0 0 14px var(--accent-silver-glow);
+}
+.cityCardDual::after {
+  content: '✓ 双名单';
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--lamp-green);
+  margin-left: 4px;
+}
+.cityName {
+  font-size: 13px;
+  font-weight: 500;
+}
+.cityDual {
+  font-size: 11px;
+  color: var(--lamp-green);
+}
+.notInList {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 8px;
+  padding: 4px 0;
+  transition: color var(--transition-fast);
+}
+.notInList:hover {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .cityGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
