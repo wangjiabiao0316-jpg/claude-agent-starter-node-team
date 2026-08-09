@@ -52,11 +52,11 @@ description: MUST follow agent5 失败案例校验规则；H1 5 类高危模式�
 LLM 必须依次调用 `Read` 工具读取以下 5 个文件（**不得使用 mcp__edgeone__files_list / mcp__edgeone__files_read**）：
 
 ```
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent5-失败案例/scripts/case_matcher.py" })
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/_shared/scripts/libsql_client.py" })
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent5-失败案例/references/failure_modes.md" })
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent5-失败案例/references/similarity_weights.md" })
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent5-失败案例/references/case_library.json" })
+Read({ file_path: ".claude/skills/agent5-失败案例/scripts/case_matcher.py" })
+Read({ file_path: ".claude/skills/_shared/scripts/libsql_client.py" })
+Read({ file_path: ".claude/skills/agent5-失败案例/references/failure_modes.md" })
+Read({ file_path: ".claude/skills/agent5-失败案例/references/similarity_weights.md" })
+Read({ file_path: ".claude/skills/agent5-失败案例/references/case_library.json" })
 ```
 
 读取后必须将每个文件的**完整源码内容**保存在 LLM 上下文里，准备传给 files_write。

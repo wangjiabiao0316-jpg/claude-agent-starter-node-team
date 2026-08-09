@@ -53,10 +53,10 @@ LLM 校验必填字段：
 LLM 必须依次调用 `Read` 工具读取以下 4 个文件（**不得使用 mcp__edgeone__files_list / mcp__edgeone__files_read，因为沙箱无法访问本机路径**）：
 
 ```
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent4-财务模型/scripts/finance.py" })
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent4-财务模型/scripts/cashflow.py" })
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent4-财务模型/scripts/industry_thresholds.py" })
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent4-财务模型/references/thresholds.json" })
+Read({ file_path: ".claude/skills/agent4-财务模型/scripts/finance.py" })
+Read({ file_path: ".claude/skills/agent4-财务模型/scripts/cashflow.py" })
+Read({ file_path: ".claude/skills/agent4-财务模型/scripts/industry_thresholds.py" })
+Read({ file_path: ".claude/skills/agent4-财务模型/references/thresholds.json" })
 ```
 
 读取后必须将每个文件的**完整源码内容**保存在 LLM 上下文里，准备传给 files_write。
