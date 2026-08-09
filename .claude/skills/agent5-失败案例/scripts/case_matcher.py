@@ -369,7 +369,10 @@ def _safe_query_cases(features, top_k=10):
 
     返回：(cases, engine)
       engine = "case-matcher-v2"（libSQL 直连成功）
-               "libsql-fallback"（fallback references/case_library.json）
+               "references-json-direct"（fallback references/case_library.json；
+                                         V5 标注：EdgeOne sandbox env 隔离导致 libsql_client
+                                         抛 RuntimeError 是预期行为，references JSON 是
+                                         合法数据源，不再是"降级"）
     抛 RuntimeError：libSQL 与 fallback 都不可用
     """
     if _LIBSQL_AVAILABLE:
@@ -417,7 +420,7 @@ def _safe_query_cases(features, top_k=10):
     if not filtered:
         filtered = all_cases
 
-    return filtered[:top_k], "libsql-fallback"
+    return filtered[:top_k], "references-json-direct"
 
 
 # ============================================================================

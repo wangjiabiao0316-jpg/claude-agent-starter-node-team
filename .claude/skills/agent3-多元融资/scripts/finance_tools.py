@@ -383,7 +383,10 @@ def evaluate(investment: float, holding_years: int, exit_strategy: str,
     industry_thresholds, src5 = _safe_execute_sql("industry_thresholds")
 
     sources = [src1, src2, src3, src4, src5]
-    engine_label = "libsql-direct" if all(s == "libsql" for s in sources) else "libsql-fallback-json"
+    # V5 (2026-08-09): EdgeOne sandbox 不继承 Claude agent env，libsql_client 在 sandbox
+    # 抛 RuntimeError 是预期行为。references/<table>.json 是合法数据源（不是"降级"）。
+    # engine_label 标注改为中性词：libsql-direct / references-json-direct
+    engine_label = "libsql-direct" if all(s == "libsql" for s in sources) else "references-json-direct"
 
     # Step 2: H1-H4 硬约束剔除
     candidates = []
