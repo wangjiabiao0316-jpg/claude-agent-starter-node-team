@@ -9,7 +9,12 @@
  *  2. Write the shared Python module libsql_client.py to /tmp/finance/ so
  *     downstream Python skills (agent3/agent5 in the super-skill pipeline)
  *     can `import libsql_client` directly.
- *  3. Inject LIBSQL_URL + LIBSQL_RO_TOKEN into the sandbox via .env file
+ *  3. Pre-write all sandbox assets that downstream skills (agent3/4/5/6)
+ *     need to execute. This avoids the LLM having to `Read` local
+ *     `/Users/...` paths (which fails on EdgeOne Makers production where
+ *     the sandbox is an isolated Linux container with no access to the
+ *     developer's macOS filesystem).
+ *  4. Inject LIBSQL_URL + LIBSQL_RO_TOKEN into the sandbox via .env file
  *     AND `export` command (dual-channel to survive shell-session resets).
  *
  * Failures are reported but never thrown — the chat path must not break
@@ -19,7 +24,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const SHARED_SCRIPTS_DIR = join(process.cwd(), '.claude/skills/_shared/scripts');
+const PROJECT_ROOT = process.cwd();
+const SHARED_SCRIPTS_DIR = join(PROJECT_ROOT, '.claude/skills/_shared/scripts');
 const SANDBOX_FINANCE_DIR = '/tmp/finance';
 const LIBSQL_CLIENT_FILENAME = 'libsql_client.py';
 
@@ -32,9 +38,55 @@ const PROBE_TIMEOUT_S = 10;
 const MKDIR_TIMEOUT_S = 5;
 const EXPORT_TIMEOUT_S = 5;
 
+/**
+ * Files to pre-write into the sandbox so downstream agent skills don't
+ * need to `Read` local /Users/... paths (which fails on EdgeOne Makers
+ * production). Each entry is { src: project-relative path, dst: sandbox path }.
+ *
+ * Coverage:
+ *  - agent3: finance_tools.py + 5 references JSON
+ *  - agent4: finance.py + cashflow.py + industry_thresholds.py + thresholds.json
+ *  - agent5: case_matcher.py + case_library.json + failure_modes.md + similarity_weights.md
+ *  - agent6: decision_aggregator.py + decision_rules.json
+ */
+interface Prewrite {
+  src: string;  // project-relative source path
+  dst: string;  // sandbox destination path
+}
+
+const SANDBOX_PREWRITES: Prewrite[] = [
+  // ─── agent3-多元融资 ───────────────────────────────────────────────
+  { src: '.claude/skills/agent3-多元融资/scripts/finance_tools.py',           dst: '/tmp/finance/finance_tools.py' },
+  { src: '.claude/skills/agent3-多元融资/references/finance_products.json',   dst: '/tmp/finance/references/finance_products.json' },
+  { src: '.claude/skills/agent3-多元融资/references/mortgage_thresholds.json', dst: '/tmp/finance/references/mortgage_thresholds.json' },
+  { src: '.claude/skills/agent3-多元融资/references/negative_list.json',      dst: '/tmp/finance/references/negative_list.json' },
+  { src: '.claude/skills/agent3-多元融资/references/pilot_cities.json',       dst: '/tmp/finance/references/pilot_cities.json' },
+  { src: '.claude/skills/agent3-多元融资/references/industry_thresholds.json', dst: '/tmp/finance/references/industry_thresholds.json' },
+
+  // ─── agent4-财务模型 ───────────────────────────────────────────────
+  { src: '.claude/skills/agent4-财务模型/scripts/finance.py',                 dst: '/tmp/finance/finance.py' },
+  { src: '.claude/skills/agent4-财务模型/scripts/cashflow.py',                dst: '/tmp/finance/cashflow.py' },
+  { src: '.claude/skills/agent4-财务模型/scripts/industry_thresholds.py',     dst: '/tmp/finance/industry_thresholds.py' },
+  { src: '.claude/skills/agent4-财务模型/references/thresholds.json',         dst: '/tmp/finance/references/thresholds.json' },
+
+  // ─── agent5-失败案例 ───────────────────────────────────────────────
+  { src: '.claude/skills/agent5-失败案例/scripts/case_matcher.py',            dst: '/tmp/finance/case_matcher.py' },
+  { src: '.claude/skills/agent5-失败案例/references/case_library.json',       dst: '/tmp/finance/references/case_library.json' },
+  { src: '.claude/skills/agent5-失败案例/references/failure_modes.md',        dst: '/tmp/finance/references/failure_modes.md' },
+  { src: '.claude/skills/agent5-失败案例/references/similarity_weights.md',   dst: '/tmp/finance/references/similarity_weights.md' },
+
+  // ─── agent6-双层决策 ───────────────────────────────────────────────
+  { src: '.claude/skills/agent6-双层决策/scripts/decision_aggregator.py',     dst: '/tmp/finance/decision_aggregator.py' },
+  { src: '.claude/skills/agent6-双层决策/references/decision_rules.json',     dst: '/tmp/finance/references/decision_rules.json' },
+];
+
 export interface SandboxPrepareResult {
   ready: boolean;
   libsqlClientReady: boolean;
+  /** Number of agent asset files successfully pre-written to /tmp/finance/. */
+  agentAssetsReady: number;
+  /** Total number of agent asset files attempted (for diagnostics). */
+  agentAssetsTotal: number;
 }
 
 export interface SandboxLike {
@@ -76,6 +128,7 @@ async function probeSandbox(sandbox: SandboxLike): Promise<boolean> {
  * Prepare a fresh sandbox for the chat agent:
  *   - probe cold start
  *   - inject shared libsql_client.py
+ *   - pre-write all agent asset files (so skills don't Read /Users/... paths)
  *   - inject LIBSQL env (dual channel: .env + export)
  *
  * Returns a structured result describing what succeeded. Never throws.
@@ -88,13 +141,13 @@ export async function prepareSandbox(
   // 1. Probe sandbox cold start.
   const probeOk = await probeSandbox(sandbox);
   if (!probeOk) {
-    return { ready: false, libsqlClientReady: false };
+    return { ready: false, libsqlClientReady: false, agentAssetsReady: 0, agentAssetsTotal: SANDBOX_PREWRITES.length };
   }
 
   // 2. Write shared libsql_client.py into /tmp/finance/.
   let libsqlClientReady = false;
   try {
-    await sandbox.commands.run(`mkdir -p ${SANDBOX_FINANCE_DIR}`, {
+    await sandbox.commands.run(`mkdir -p ${SANDBOX_FINANCE_DIR} ${SANDBOX_FINANCE_DIR}/references`, {
       timeout: MKDIR_TIMEOUT_S,
     });
     const libsqlClientContent = readFileSync(
@@ -110,10 +163,27 @@ export async function prepareSandbox(
     // File write failed: sandbox itself is ready, but the Python helper is
     // unavailable. Downstream skills will surface a clear error if they
     // actually need it.
-    return { ready: true, libsqlClientReady: false };
+    return { ready: true, libsqlClientReady: false, agentAssetsReady: 0, agentAssetsTotal: SANDBOX_PREWRITES.length };
   }
 
-  // 3. Inject LIBSQL env via dual channel (.env file + export command).
+  // 3. Pre-write all agent asset files (agent3/4/5/6 scripts + references).
+  //    Best-effort: count successes but never abort the whole prepareSandbox
+  //    on a single file failure — the LLM may still complete skills whose
+  //    files did land.
+  let agentAssetsReady = 0;
+  for (const { src, dst } of SANDBOX_PREWRITES) {
+    try {
+      const content = readFileSync(join(PROJECT_ROOT, src), 'utf-8');
+      await sandbox.files.write(dst, content);
+      agentAssetsReady++;
+    } catch {
+      // Individual file failure is non-fatal. Sandbox assets that fail to
+      // land will surface as ImportError / FileNotFoundError when the
+      // downstream skill tries to use them, with clear remediation.
+    }
+  }
+
+  // 4. Inject LIBSQL env via dual channel (.env file + export command).
   //    conversationId is currently unused for env scoping but is part of the
   //    signature so future per-conversation sandbox state can be wired in
   //    without a breaking change.
@@ -138,5 +208,5 @@ export async function prepareSandbox(
     }
   }
 
-  return { ready: true, libsqlClientReady };
+  return { ready: true, libsqlClientReady, agentAssetsReady, agentAssetsTotal: SANDBOX_PREWRITES.length };
 }

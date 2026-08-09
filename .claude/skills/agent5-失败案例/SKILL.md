@@ -43,101 +43,32 @@ description: MUST follow agent5 失败案例校验规则；H1 5 类高危模式�
   - 业态误判高危：IRR < 业态门槛基准下限（如商业 < 8% / 办公 < 6% / 文旅 < 7%）
   - 施工引发周边协调失败高危：文保周边 / 密集区施工扰动评估为高风险
 
-### Step 0: Bootstrap sandbox（每次会话首次调用前必须执行，不得跳过）
+### Step 0: Sandbox 资产（自动预写，LLM 不需 Read/Write）
 
-> **强制指令**：LLM 必须按以下步骤执行，**不得跳过、不得估算、不得 fallback、不得心算**。沙箱（EdgeOne code_interpreter）是独立环境，**无法直接访问本机 `/Users/...` 路径**，必须通过 `Read` + `mcp__edgeone__files_write` 把 5 个文件中转写入 `/tmp/finance/`。**未完成 Step 0 不得进入 H1/S1/S2 主流程。**
+`agents/chat/_tools.ts` 的 `prepareSandbox` 已自动预写以下文件到 sandbox，LLM 直接使用即可：
 
-#### 0.1 读取 5 个源文件（用 Read 工具，路径绝对路径）
+| sandbox 路径 | 用途 |
+|------------|------|
+| `/tmp/finance/case_matcher.py` | 案例匹配主模块（match 函数） |
+| `/tmp/finance/references/case_library.json` | 失败案例库 |
+| `/tmp/finance/references/failure_modes.md` | 5 类失败模式定义 |
+| `/tmp/finance/references/similarity_weights.md` | 相似度权重 |
+| `/tmp/finance/libsql_client.py` | libSQL HTTP 客户端（shared） |
 
-LLM 必须依次调用 `Read` 工具读取以下 5 个文件（**不得使用 mcp__edgeone__files_list / mcp__edgeone__files_read**）：
+LLM 直接：
+- `from case_matcher import match` 或 `import case_matcher`
+- `import json; cases = json.load(open('/tmp/finance/references/case_library.json'))`
+- `from libsql_client import libsql_client`
 
-```
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent5-失败案例/scripts/case_matcher.py" })
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/_shared/scripts/libsql_client.py" })
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent5-失败案例/references/failure_modes.md" })
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent5-失败案例/references/similarity_weights.md" })
-Read({ file_path: "/Users/huangzetao/Documents/GitHub/claude-agent-starter-node-team/.claude/skills/agent5-失败案例/references/case_library.json" })
-```
+LIBSQL_URL / LIBSQL_RO_TOKEN 由 `prepareSandbox` 自动 export 到 sandbox env，无需手动注入。
 
-读取后必须将每个文件的**完整源码内容**保存在 LLM 上下文里，准备传给 files_write。
+**禁止**：
+- 调用 `Read({file_path: "/Users/..."})` —— 沙箱无法访问本机路径
+- 调用 `mcp__edgeone__files_write(...)` —— 文件已预写
+- 估算 / 心算 / fallback —— 必须用 sandbox 数据
+- 跳过 sandbox 直接 `print("相似度 ≈ ...")` —— 触发降级
 
-#### 0.2 写入沙箱（用 mcp__edgeone__files_write 工具）
-
-LLM 必须依次调用 `mcp__edgeone__files_write` 工具把 5 个文件内容写到沙箱 `/tmp/finance/`：
-
-```
-mcp__edgeone__files_write({
-  path: "/tmp/finance/case_matcher.py",
-  content: "<Step 0.1 Read 读到的 case_matcher.py 完整源码>"
-})
-
-mcp__edgeone__files_write({
-  path: "/tmp/finance/libsql_client.py",
-  content: "<Step 0.1 Read 读到的 libsql_client.py 完整源码（来自 _shared/scripts/）>"
-})
-
-mcp__edgeone__files_write({
-  path: "/tmp/finance/references/failure_modes.md",
-  content: "<Step 0.1 Read 读到的 failure_modes.md 完整内容>"
-})
-
-mcp__edgeone__files_write({
-  path: "/tmp/finance/references/similarity_weights.md",
-  content: "<Step 0.1 Read 读到的 similarity_weights.md 完整内容>"
-})
-
-mcp__edgeone__files_write({
-  path: "/tmp/finance/references/case_library.json",
-  content: "<Step 0.1 Read 读到的 case_library.json 完整内容>"
-})
-```
-
-**注意**：
-- `case_library.json`、`failure_modes.md`、`similarity_weights.md` 必须写到 `/tmp/finance/references/`（子目录），`case_matcher.py` 通过相对路径 `references/case_library.json` 加载 fallback
-- `libsql_client.py` 写到 `/tmp/finance/`（与 case_matcher.py 同级，确保 `from libsql_client import query_cases` 能 import）
-- 每个 files_write 调用必须独立确认成功（exitCode=0 / 无 error），失败立即重试 1 次，仍失败则进入 F1 降级
-- **禁止只写部分文件**（5 个文件必须全部写入）
-
-#### 0.3 注入 LIBSQL env（由 EdgeOne `prepareSandbox` 自动注入）
-
-> 通常 EdgeOne 部署的 `agents/chat/_tools.ts` 中 `prepareSandbox` 已自动写入 `/tmp/finance/.env` 并 export 环境变量。如发现沙箱内 `os.environ.get("LIBSQL_URL")` 为空，需手动 export：
-
-```
-mcp__edgeone__commands({
-  cmd: "export LIBSQL_URL=\"<LIBSQL_URL>\" LIBSQL_RO_TOKEN=\"<LIBSQL_RO_TOKEN>\"",
-  timeout: 5
-})
-```
-
-LIBSQL_URL / LIBSQL_RO_TOKEN 由 context.env 透传（EdgeOne 部署环境变量）。
-
-#### 0.4 验证 bootstrap 完成（用 mcp__edgeone__commands 工具）
-
-LLM 必须调用 `mcp__edgeone__commands` 验证 5 个文件全部就位 + libsql_client 可 import：
-
-```
-mcp__edgeone__commands({
-  cmd: "ls -la /tmp/finance/ && ls -la /tmp/finance/references/ && python3 -c \"import sys; sys.path.insert(0,'/tmp/finance'); import case_matcher, libsql_client; print('OK modules loaded')\"",
-  timeout: 15
-})
-```
-
-必须看到：
-- `/tmp/finance/case_matcher.py`、`/tmp/finance/libsql_client.py` 两个文件
-- `/tmp/finance/references/failure_modes.md`、`/tmp/finance/references/similarity_weights.md`、`/tmp/finance/references/case_library.json` 三个文件
-- stdout 含 `OK modules loaded`
-
-**全部 5 个验证通过后才能进入 H1/S1/S2 主流程。任一不通过立即进入 F1 降级。**
-
-#### 0.5 ⛔ 常见卡点警示
-
-| 错误行为 | 正确行为 |
-|---|---|
-| 用 `mcp__edgeone__files_list` 读 `/Users/...` | 沙箱隔离，必须用 `Read` |
-| 直接 `runCode` 不 bootstrap | case_matcher.py 不存在会 ImportError |
-| 只写 case_matcher.py 不写 case_library.json | libSQL 查询失败时无法 fallback |
-| 跳过 LIBSQL env 注入 | libsql_client.query_cases 抛 RuntimeError |
-| bootstrap 没完成就计算相似度 | 输出降级对象，禁止心算 |
+> 如 sandbox 启动异常（`ls /tmp/finance/` 三次失败），直接进入 F1 降级路径，输出 `_calc.engine="unavailable"`。
 
 ### Step 1: 立即执行 match() 主入口（Step 0 完成后必须立即调用，不得思考、不得确认、不得 fallback）
 

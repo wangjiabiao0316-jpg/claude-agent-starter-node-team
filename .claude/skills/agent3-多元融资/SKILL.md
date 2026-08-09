@@ -8,76 +8,43 @@ description: 'MUST follow agent3 多元融资硬约束剔除 + 四维评分规�
 > 本 skill 实现 V1 §3（L111-198）「多元融资判别逻辑」+ super-skill architecture Task 5。
 > 智能体类型：**计算型 + 规则查表（最复杂混合型）**｜结论：融资可行性灯 + 推荐资金组合 + 关键审批风险点。
 > V2 关键升级：**sandbox 脚本执行**（不再依赖 LLM 心算综合分 / DSCR / 覆盖率）+ **libSQL 直连**（数据治理在数据库）+ **fallback references/*.json**。
+> V2.1：sandbox 资产（`finance_tools.py` + `references/*.json` × 5 + `libsql_client.py`）改由 `agents/chat/_tools.ts prepareSandbox` 在 sandbox 启动时**自动注入** `/tmp/finance/`，LLM 不再 Read `/Users/...` 或 `sandbox.files.write`。
 > 锚点：V1 §3（L111-198）；implementation-plan Task 5；工作流文档：`skill集群/plan/2026-08-03-agent3-多元融资-skill工作流.md` §1。
 
 ---
 
-## Step 0: Sandbox Bootstrap（5 步，参考 agent4 V2 模板）
+## Step 0: Sandbox 资产（自动预写，LLM 不需 Read/Write）
 
-> 目标：在 sandbox 内写入 `finance_tools.py` + 5 个 `references/*.json` + 共享 `libsql_client.py`，验证模块可装载，再进入 Step 1。
+`_tools.ts prepareSandbox` 已自动预写以下文件到 sandbox，LLM 直接使用即可：
 
-### Step 0.1: probe sandbox（重试 3 次）
+| sandbox 路径 | 用途 |
+|------------|------|
+| `/tmp/finance/finance_tools.py` | 财务工具函数 |
+| `/tmp/finance/references/finance_products.json` | 融资产品库 |
+| `/tmp/finance/references/mortgage_thresholds.json` | 抵押率阈值 |
+| `/tmp/finance/references/negative_list.json` | 政策性资金负面清单 |
+| `/tmp/finance/references/pilot_cities.json` | 试点城市名单 |
+| `/tmp/finance/references/industry_thresholds.json` | 业态门槛基准 |
+| `/tmp/finance/libsql_client.py` | libSQL HTTP 客户端（共享） |
 
-```python
-for attempt in range(3):
-    try:
-        result = sandbox.commands.run("ls /tmp", {timeout: 10})
-        break
-    except Exception:
-        await sleep(2000)  # 2s 退避
-else:
-    # F1 降级：sandbox 不可用
-    return _fallback_sandbox_unavailable()
-```
+LLM 直接：
+- `from finance_tools import evaluate` 或 `import finance_tools`
+- `import json; data = json.load(open('/tmp/finance/references/finance_products.json'))`
+- `from libsql_client import libsql_client`
 
-### Step 0.2: 写入 7 个文件到 `/tmp/finance/`
+> agent3 纯 Python 标准库（无 numpy / numpy-financial），无需 pip install。
 
-```python
-sandbox.commands.run("mkdir -p /tmp/finance/references", {timeout: 5})
-
-# 文件 1: 主算法 finance_tools.py
-sandbox.files.write("/tmp/finance/finance_tools.py", finance_tools_py_content)
-
-# 文件 2-6: 5 个 fallback JSON（防止 libSQL 不可用）
-sandbox.files.write("/tmp/finance/references/finance_products.json", finance_products_json)
-sandbox.files.write("/tmp/finance/references/mortgage_thresholds.json", mortgage_thresholds_json)
-sandbox.files.write("/tmp/finance/references/negative_list.json", negative_list_json)
-sandbox.files.write("/tmp/finance/references/pilot_cities.json", pilot_cities_json)
-sandbox.files.write("/tmp/finance/references/industry_thresholds.json", industry_thresholds_json)
-
-# 文件 7: 共享 libsql_client.py（由 _tools.ts prepareSandbox 自动写入；若手动 bootstrap 也写入）
-# 来源：.claude/skills/_shared/scripts/libsql_client.py
-sandbox.files.write("/tmp/finance/libsql_client.py", libsql_client_py_content)
-```
-
-> 重要：libsql_client.py 由 EdgeOne `_tools.ts prepareSandbox` 在 sandbox 启动时**自动注入**，并设置 `LIBSQL_URL` + `LIBSQL_RO_TOKEN` 环境变量。本 skill 的 Step 0.2 中第 7 个文件作为兜底（防止 _tools.ts 未触发的边缘场景）。
-
-### Step 0.3: 验证模块装载（import 测试）
-
-```python
-verify_result = sandbox.commands.run(
-    "cd /tmp/finance && python3 -c 'from finance_tools import evaluate; print(\"OK\")'",
-    {timeout: 10}
-)
-# 期望输出：OK
-# 失败 → F2 降级（脚本语法错误）
-```
-
-### Step 0.4: 跳过 pip install（agent3 纯标准库）
-
-> agent3 不依赖 numpy / numpy-financial（纯 Python 加权 + JSON 查表 + urllib），无需 Step 0.4 pip install。
-> 跳到 Step 0.5。
-
-### Step 0.5: 进入 Step 1
-
-sandbox bootstrap 完成，进入 Step 1 主算法调用。
+**禁止**：
+- 调用 `Read({file_path: "/Users/..."})` — 沙箱无法访问本机路径
+- 调用 `sandbox.files.write(...)` 写文件 — 文件已预写，不需要重复
+- 估算 / 心算 / fallback — 必须用 sandbox 数据
 
 ---
 
 ## Step 1: 立即调用 runCode（不得跳过、不得估算、不得 fallback、不得心算）
 
 > **6 条 pushy 硬规则（同 agent4 / agent6 V2）**：
-> 1. 不得跳过 Step 0（sandbox bootstrap 必须执行）
+> 1. 必须使用 sandbox 预写资产（`/tmp/finance/*` 已由 `_tools.ts prepareSandbox` 注入，禁止 LLM Read `/Users/...` 或 `sandbox.files.write` 重复写入）
 > 2. 不得估算（综合分 / DSCR / 覆盖率必须由 sandbox 脚本算）
 > 3. 不得 fallback（即使 libSQL 失败，也由脚本自动 fallback references/*.json）
 > 4. 不得心算（LLM 心算 S1×0.3 + S2×0.3 + S3×0.2 + S4×0.2 极易在覆盖率边界、DSCR 阈值上出错）
@@ -278,8 +245,8 @@ H1 → H2 → H3 → H4 顺序逐项校验，任一不通过即剔除；剩余�
 
 | 编号 | 场景 | 处理 |
 |---|---|---|
-| **F1** | sandbox 不可用（probe 失败 3 次） | 输出降级对象 `{"agent": "agent3-多元融资", "_calc": {"engine": "fallback-v1-llm"}, "灯色": null, "降级原因": "sandbox 不可用，禁止 LLM 心算"}`。**禁止 LLM 心算替代 sandbox**。 |
-| **F2** | sandbox 启动成功但 import 失败 | 重试 1 次（重写文件 + 验证）；仍失败 → F1 降级 |
+| **F1** | sandbox 不可用（`_tools.ts prepareSandbox` 未注入或 sandbox 启动失败） | 输出降级对象 `{"agent": "agent3-多元融资", "_calc": {"engine": "fallback-v1-llm"}, "灯色": null, "降级原因": "sandbox 不可用，禁止 LLM 心算"}`。**禁止 LLM 心算替代 sandbox**。 |
+| **F2** | sandbox 启动成功但 `import finance_tools` 失败（资产未注入或路径错误） | 不重写文件（`_tools.ts` 已预写，LLM 不应 `sandbox.files.write`）；直接 → F1 降级 |
 | **F3** | libSQL 不可用（HTTP 5xx / 网络超时） | sandbox 自动 fallback `references/*.json`，`_calc.engine = "libsql-fallback-json"`，标 WARN 不阻断 |
 | **F4** | 用户输入字段缺失（如 `capital_ratio` 未提供） | 输出降级清单 `{"状态": "降级人工填报", "缺失字段": [...]}`，禁止猜测 |
 | **F5** | 抵押物类型不在 5 类 | 该工具 H2 不通过，剔除 + 风险点 |
@@ -337,9 +304,9 @@ skills/agent3-多元融资/references/
 
 ---
 
-**版本**：V2（2026-08-08）
+**版本**：V2.1（2026-08-09，清理 sandbox bootstrap 逻辑，改由 `_tools.ts prepareSandbox` 自动注入）
 **锚点**：V1 §3（L111-198）+ implementation-plan Task 5
-**前一版**：`SKILL-V1.md`（保留留底）
-**行数**：约 290 行（< 500 行上限）
+**前一版**：`SKILL-V2.md`（保留留底）
+**行数**：约 270 行（< 500 行上限）
 **校准状态**：S1-S4 权重 0.3/0.3/0.2/0.2【待校准】；覆盖率阈值 0.7【待校准】
-**sandbox 资产**：`scripts/finance_tools.py`（V2 新增）+ `references/*.json` × 5（V2 新增 fallback）
+**sandbox 资产**：由 `agents/chat/_tools.ts prepareSandbox` 自动注入到 `/tmp/finance/`（`finance_tools.py` + `references/*.json` × 5 + 共享 `libsql_client.py`）
