@@ -39,7 +39,7 @@ V1 intent.md §1.1-1.7 的核心任务定义、5 类失败模式分段（招商�
 ### 1.3 V2 新增文件清单（与 V1 共存）
 
 - `scripts/case_matcher.py`（主入口 `match()`）
-- `scripts/libsql_client.py`（共享模块，由 EdgeOne `prepareSandbox` 注入到 `/tmp/finance/`，agent3 / agent5 共用）
+- `scripts/libsql_client.py`（共享模块，agent3/agent5 自己 Step 0 bootstrap 注入到 `/tmp/finance/`，不再依赖 prepareSandbox）
 - `references/failure_modes.md`（5 类失败模式定义 × 高危触发条件，静态规则文档）
 - `references/similarity_weights.md`（6 维权重 + 硬匹配维度配置，静态规则文档）
 - `references/case_library.json`（libSQL 查询失败时的 fallback 案例库，覆盖 5 类失败模式 × 不同 region/industry，建议 15-30 条样本）

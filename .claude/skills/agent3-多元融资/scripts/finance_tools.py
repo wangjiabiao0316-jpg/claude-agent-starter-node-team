@@ -13,7 +13,8 @@ V2 关键设计：
 import os
 import json
 
-# sandbox 内由 _tools.ts prepareSandbox 写入 /tmp/finance/libsql_client.py
+# sandbox 内由 agent3 自己 Step 0 bootstrap 写入 /tmp/finance/libsql_client.py
+# （不再依赖 prepareSandbox，那是已删除的死代码）
 # 本地开发或 fallback 模式下也尝试 import
 try:
     from libsql_client import execute_sql

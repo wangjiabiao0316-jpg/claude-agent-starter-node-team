@@ -98,18 +98,18 @@ mcp__edgeone__files_write({
 - 每个 files_write 调用必须独立确认成功（exitCode=0 / 无 error），失败立即重试 1 次，仍失败则进入 F1 降级
 - **禁止只写部分文件**（5 个文件必须全部写入）
 
-#### 0.3 注入 LIBSQL env（由 EdgeOne `prepareSandbox` 自动注入）
+#### 0.3 注入 LIBSQL env（agent5 自己 export，**不再依赖 prepareSandbox**）
 
-> 通常 EdgeOne 部署的 `agents/chat/_tools.ts` 中 `prepareSandbox` 已自动写入 `/tmp/finance/.env` 并 export 环境变量。如发现沙箱内 `os.environ.get("LIBSQL_URL")` 为空，需手动 export：
+> ⚠️ V2 修订（2026-08-09）：原注释假设 `agents/chat/_tools.ts::prepareSandbox` 会自动写入 `/tmp/finance/.env` + export 环境变量，**但该函数从未被 chat/index.ts 调用（架构死代码，已删除）**。agent5 必须自己 export：
 
 ```
 mcp__edgeone__commands({
-  cmd: "export LIBSQL_URL=\"<LIBSQL_URL>\" LIBSQL_RO_TOKEN=\"<LIBSQL_RO_TOKEN>\"",
+  cmd: "export LIBSQL_URL=\"$LIBSQL_URL\" LIBSQL_RO_TOKEN=\"$LIBSQL_RO_TOKEN\" && echo ENV_OK",
   timeout: 5
 })
 ```
 
-LIBSQL_URL / LIBSQL_RO_TOKEN 由 context.env 透传（EdgeOne 部署环境变量）。
+LIBSQL_URL / LIBSQL_RO_TOKEN 由 EdgeOne Console 配置后通过 context.env 透传到 Claude agent 进程，agent5 在 sandbox shell 里用 `$LIBSQL_URL` 引用（不要硬编码具体值，避免密钥进 prompt）。stdout 含 `ENV_OK` 即成功。
 
 #### 0.4 验证 bootstrap 完成（用 mcp__edgeone__commands 工具）
 

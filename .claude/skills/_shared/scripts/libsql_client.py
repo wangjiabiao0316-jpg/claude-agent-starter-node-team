@@ -1,12 +1,20 @@
 """
 libsql_client.py - sandbox 内 Python 直连 libSQL HTTP API
 
-由 agents/chat/_tools.ts 在 prepareSandbox 阶段写入 /tmp/finance/libsql_client.py。
-环境变量 LIBSQL_URL / LIBSQL_RO_TOKEN 由 _tools.ts 从 context.env 透传。
+注入方式：每个 agent (agent2/agent3/agent5) 通过自己的 Step 0 bootstrap：
+  1. 用 Read 工具读 .claude/skills/_shared/scripts/libsql_client.py 源码
+  2. 用 mcp__edgeone__files_write 写到 /tmp/finance/libsql_client.py
+  3. 用 mcp__edgeone__commands export LIBSQL_URL LIBSQL_RO_TOKEN
+  4. 用 mcp__edgeone__commands 跑 import 验证
 
-Whitelist:
-  finance_products, mortgage_thresholds, negative_list,
-  pilot_cities, case_library, industry_thresholds
+⚠️ 历史说明（2026-08-09 修订）：原假设 agents/chat/_tools.ts::prepareSandbox
+会自动注入此文件，但该函数从未被 chat/index.ts 调用（架构死代码，已删除）。
+各 agent 必须自己 bootstrap，不能再依赖 prepareSandbox。
+
+Whitelist (8 张表):
+  业务参数表 6 张: finance_products, mortgage_thresholds, negative_list,
+                   pilot_cities, case_library, industry_thresholds
+  政策知识库 2 张: kb_chunks_meta, kb_records
 """
 import os
 import json

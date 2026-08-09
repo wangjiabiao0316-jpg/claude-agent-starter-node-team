@@ -45,12 +45,12 @@ sandbox.files.write("/tmp/finance/references/negative_list.json", negative_list_
 sandbox.files.write("/tmp/finance/references/pilot_cities.json", pilot_cities_json)
 sandbox.files.write("/tmp/finance/references/industry_thresholds.json", industry_thresholds_json)
 
-# 文件 7: 共享 libsql_client.py（由 _tools.ts prepareSandbox 自动写入；若手动 bootstrap 也写入）
+# 文件 7: 共享 libsql_client.py（agent3 自己 bootstrap 写入，不再依赖 prepareSandbox）
 # 来源：.claude/skills/_shared/scripts/libsql_client.py
 sandbox.files.write("/tmp/finance/libsql_client.py", libsql_client_py_content)
 ```
 
-> 重要：libsql_client.py 由 EdgeOne `_tools.ts prepareSandbox` 在 sandbox 启动时**自动注入**，并设置 `LIBSQL_URL` + `LIBSQL_RO_TOKEN` 环境变量。本 skill 的 Step 0.2 中第 7 个文件作为兜底（防止 _tools.ts 未触发的边缘场景）。
+> ⚠️ V2 修订（2026-08-09）：原注释假设 `agents/chat/_tools.ts::prepareSandbox` 会自动注入 libsql_client.py + LIBSQL env，**但该函数是死代码从未被调用（已删除）**。agent3 必须自己写文件 + export env（本 Step 0.2 第 7 个文件就是必做步骤，不是兜底）。
 
 ### Step 0.3: 验证模块装载（import 测试）
 

@@ -3,7 +3,7 @@ name: agent2-政策应答
 description: 'MUST follow agent2 政策应答规则. Use when user asks 政策 / 试点城市 / 专项债 / REITs / 税费减免 / 容积率奖励 / 政策应答 / 政策奖励 / 老旧厂房改造 / 存量商业提质 / 产业园区退出 / 文旅项目政策 / 城市专项资金 / 自审自发. V3 三层数据源: (1) [RETRIEVED CONTEXT] 块政策条款 (passive injection from chat retrieveContext 已接通 kb_chunks); (2) sandbox 直连 libSQL 主动查 kb_chunks_meta (query_kb_by_keyword) — 当 [RETRIEVED CONTEXT] 命中 <3 条时主动补充检索; (3) references/ 三份明文文档 fallback. H1 5 维门槛校验 (城市/项目类型/规模/业主/业态) 全部通过才进入评分; 任一不符 → 门槛不符, MUST 附具体缺口 (如 "项目所在地非 15 试点城市"), MUST NOT 仅写 "不符". S1×0.5 + S2×0.5 综合分排序取 Top1-Top3 (公式显式, 不得心算偏差). references/15-试点城市.md 校验试点 (北京/上海/广州/深圳/杭州/成都/武汉/西安/重庆/南京/天津/长沙/青岛/郑州/厦门). 输出 4 字段 JSON 应答结论对象. MUST NOT 输出三色灯字段. MUST NOT 幻觉编造政策 (不在 [RETRIEVED CONTEXT] 也不在 references 也不在 kb_chunks_meta 中的政策一律不得输出). MUST NOT 跳过 H1 直接给 "可适用". maxTurns=30.'
 ---
 
-# agent2 政策应答 Skill (V3)
+# agent2 政策应答 Skill (V4)
 
 > 本 skill 实现 super-skill architecture Task 7 Step 3-5 + agent2 V1/V2 工作流（§F1 政策检索 + §H1 5 维门槛 + §S1/S2 排序）。
 > 智能体类型：**规则查表型**｜结论：4 字段应答结论对象（业务问题/可适用政策清单/未适用政策及原因/建议动作）。
@@ -13,31 +13,83 @@ description: 'MUST follow agent2 政策应答规则. Use when user asks 政策 /
 
 ---
 
-## Step 0: 三层数据源准备（V3 升级）
+## Step 0: 三层数据源准备（V4 升级，强制 bootstrap）
 
-> 目标：(1) 加载 references/ 三份文档 + (2) bootstrap sandbox 直连 libSQL（可选，libSQL 不可用时降级到 P2 模式）。
+> 目标：(1) 加载 references/ 三份文档 + (2) bootstrap sandbox 直连 libSQL（强制执行，不再可选）。
+>
+> **V3→V4 关键修订**：V3 假设 `agents/chat/_tools.ts::prepareSandbox` 会自动注入 libsql_client.py + LIBSQL env 到 sandbox，**但该函数从未被 chat/index.ts 调用（架构死代码）**。V4 改为 agent2 自己强制 bootstrap。
 
-### Step 0.0: sandbox bootstrap（V3 新增，可选）
+### Step 0.0: sandbox bootstrap（V4，强制执行，不得跳过）
 
-**目的**：让 agent2 能主动查 kb_chunks_meta（2120 行政策原文 chunk），不再依赖外部注入。
+> **强制指令**：LLM 必须按以下 0.0.1-0.0.4 步骤执行，**不得跳过、不得估算、不得 fallback 到 [RETRIEVED CONTEXT] 之外的任何路径**。沙箱（EdgeOne mcp__edgeone__code_interpreter）是独立环境，无法直接访问本机 `/Users/...` 路径，必须通过 `Read` + `mcp__edgeone__files_write` 中转。
 
-**bootstrap 步骤**（仿 agent5 / agent3 的 sandbox bootstrap，但更简化）：
+#### 0.0.1 读取 libsql_client.py 源码（用 Read 工具）
 
-1. **写 libsql_client.py 到 sandbox**：从 `.claude/skills/_shared/scripts/libsql_client.py` 读取（EdgeOne `_tools.ts prepareSandbox` 已自动注入到 `/tmp/finance/libsql_client.py`，agent2 直接 import 即可；若 prepareSandbox 未触发，则 agent2 通过 `mcp__edgeone__files_write` 手动写入）。
+LLM 必须调用 `Read` 工具读取共享客户端模块：
 
-2. **健康检查**（在 Step 1 主流程开始时执行）：
-
-```python
-# sandbox 内执行（mcp__edgeone__code_interpreter, language='python'）
-from libsql_client import query_kb_by_keyword
-test_result = query_kb_by_keyword("REITs", top_k=1)
-# 若返回非空且无异常 → sandbox+libSQL 可用，进入 V3 三层数据源模式
-# 若抛 RuntimeError 或返回空 → 降级到 V2 P2 模式（仅 [RETRIEVED CONTEXT] + references）
+```
+Read({ file_path: ".claude/skills/_shared/scripts/libsql_client.py" })
 ```
 
-3. **若健康检查失败**：跳过 Step 1 的主动检索分支，仅用 [RETRIEVED CONTEXT] + references 关键词匹配（V2 P2 兼容路径）。
+读到的完整源码（约 250 行）保存在 LLM 上下文，准备传给 files_write。**不得使用 mcp__edgeone__files_read**（沙箱隔离，访问不到源码仓库）。
 
-### Step 0.1: 读 references/15-试点城市.md（H1 维度 1：城市校验）
+#### 0.0.2 写入 sandbox（用 mcp__edgeone__files_write 工具）
+
+LLM 必须调用 `mcp__edgeone__files_write` 把 libsql_client.py 写到沙箱：
+
+```
+mcp__edgeone__files_write({
+  path: "/tmp/finance/libsql_client.py",
+  content: "<Step 0.0.1 Read 读到的 libsql_client.py 完整源码>"
+})
+```
+
+文件必须写到 `/tmp/finance/`（与 case_matcher 等其他 agent 共用同级目录）。失败立即重试 1 次，仍失败 → 进入 F8 降级路径（§7）。
+
+#### 0.0.3 注入 LIBSQL env（用 mcp__edgeone__commands 工具）
+
+> EdgeOne Console 配置的 `LIBSQL_URL` / `LIBSQL_RO_TOKEN` 通过 `context.env` 透传到 Claude agent 进程，但 **不会自动透传到 mcp__edgeone__ sandbox**。必须在 sandbox 里手动 export。
+
+LLM 必须调用 `mcp__edgeone__commands` export 环境变量（值从 context.env.LIBSQL_URL / context.env.LIBSQL_RO_TOKEN 取，不要硬编码）：
+
+```
+mcp__edgeone__commands({
+  cmd: "export LIBSQL_URL=\"$LIBSQL_URL\" LIBSQL_RO_TOKEN=\"$LIBSQL_RO_TOKEN\" && echo ENV_OK",
+  timeout: 5
+})
+```
+
+注意：sandbox shell 默认会继承 Claude agent 进程的 env（包括 EdgeOne Console 配的 LIBSQL_URL/LIBSQL_RO_TOKEN），所以 `$LIBSQL_URL` 引用即可（不要写成具体值，避免 LLM 看到密钥）。stdout 含 `ENV_OK` 即成功。
+
+若 stdout 不含 ENV_OK → 进入了 claude session 的 env 不可见状态，需在 SKILL 里 fallback：用 `os.environ.get('LIBSQL_URL')` 在 Python 内拿（libsql_client.py 已支持）。
+
+#### 0.0.4 验证 bootstrap 完成（用 mcp__edgeone__commands 工具）
+
+LLM 必须调用 `mcp__edgeone__commands` 验证 libsql_client.py 可 import + LIBSQL env 可见 + query_kb_by_keyword 可调用：
+
+```
+mcp__edgeone__commands({
+  cmd: "cd /tmp/finance && python3 -c \"import sys; sys.path.insert(0,'/tmp/finance'); from libsql_client import query_kb_by_keyword; import os; u=os.environ.get('LIBSQL_URL',''); t=os.environ.get('LIBSQL_RO_TOKEN',''); print(f'OK module loaded, LIBSQL_URL set={bool(u)}, LIBSQL_RO_TOKEN set={bool(t)}')\"",
+  timeout: 15
+})
+```
+
+必须看到 stdout 含：
+- `OK module loaded` ← libsql_client.py 可 import
+- `LIBSQL_URL set=True` ← env 注入成功
+- `LIBSQL_RO_TOKEN set=True` ← env 注入成功
+
+**全部 3 个 True 才能进入 Step 1 层 2（主动检索）。任一为 False → 立即进入 F8 降级路径**（[RETRIEVED CONTEXT] + references 关键词，不阻断应答输出）。
+
+#### 0.0.5 ⛔ 常见卡点警示
+
+| 错误行为 | 正确行为 |
+|---|---|
+| 用 `mcp__edgeone__files_read` 读 `/Users/...` 源码 | 沙箱隔离，必须用 `Read` 工具读项目源码 |
+| 跳过 0.0.3 env 注入 | query_kb_by_keyword 抛 `RuntimeError: LIBSQL_URL` |
+| 把 LIBSQL_RO_TOKEN 硬编码进 cmd | 必须用 `$LIBSQL_RO_TOKEN` 引用（避免密钥进 prompt） |
+| bootstrap 没完成就走 Step 1 层 2 | query_kb_by_keyword ImportError / RuntimeError |
+| 看到 [RETRIEVED CONTEXT] 已注入就跳过 bootstrap | 错误：[RETRIEVED CONTEXT] 是 chat 上游注入的，不是 agent2 主动检索的，必须自己 bootstrap |
 
 ### Step 0.1: 读 references/15-试点城市.md（H1 维度 1：城市校验）
 
@@ -405,9 +457,9 @@ skills/agent2-政策应答/references/
 
 ---
 
-**版本**：V3（2026-08-09）
-**锚点**：V2 工作流（§F1/H1/S1S2）+ implementation-plan Task 7 Step 3-5 + 三层混合数据源
-**前一版**：`references/SKILL-V2.md`（V2 P2 替代方案，无 sandbox / 无 libSQL 直连，纯被动注入）
-**V3 关键升级**：sandbox 直连 libSQL（query_kb_by_keyword 主动检索 kb_chunks_meta 2120 行政策原文 chunk）
-**行数**：约 360 行（< 500 行上限）
+**版本**：V4（2026-08-09）
+**锚点**：V3 工作流（§F1 三层检索 / H1 / S1S2）+ 强制 sandbox bootstrap
+**前一版**：`references/SKILL-V3.md`（V3 假设 prepareSandbox 自动注入，但 prepareSandbox 是死代码从未被调用）
+**V4 关键修订**：删除对 prepareSandbox 的依赖假设；agent2 自己强制执行 Step 0.0.1-0.0.5 bootstrap（Read + files_write + commands export + 验证）；新增 0.0.5 卡点警示表
+**行数**：约 410 行（< 500 行上限）
 **校准状态**：S1/S2 权重各 0.5【待校准】
