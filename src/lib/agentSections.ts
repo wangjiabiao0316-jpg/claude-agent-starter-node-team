@@ -26,34 +26,34 @@
  * agent's `summary` field in the right AgentPane slot.
  */
 
-// Match section headers in the streamed text. Observed formats:
+// Match section headers in the streamed text. Observed formats across
+// different LLMs / runs:
 //
-//   glm-5.2:        `## 🏠 agent1 固有对象判定`            (H2, lowercase)
-//   Claude/GPT:     `### 🔴🟡🟢 Agent1 固有对象 — 三色灯闸门判定`  (H3, capital, em-dash)
-//   Mixed:          `## 🏠 Agent1 固有对象输出（三色灯判定）`     (H2, capital)
+//   glm-5.2 style:   `## 🏠 agent1 固有对象判定`
+//   Claude style:    `### 🔴🟡🟢 Agent1 固有对象 — 三色灯闸门判定`
+//   Capital style:   `## 🟡 Agent1 — 固有对象识别（闸门型）`
+//   Process style:   `## 🔍 Agent1 处理执行（Step 1-6 逐项查表）`
+//   Output style:    `## 📦 Agent1 输出`
+//   Summary section: `## 📦 Agent6 输出（最终聚合）`
 //
-// To survive this variability we:
-//   - accept both H2 (##) and H3 (###)
-//   - allow any emoji/symbol prefix (🔴🟡🟢, 🏠, 📋, etc.)
-//   - match agent token case-insensitively (Agent1 / agent1 / Agent 1)
-//   - require the Chinese role name (固有对象 / 政策应答 / 多元融资 /
-//     财务模型 / 失败案例 / 双层决策) as the strong anchor — this is the
-//     one stable signal across models
-//   - allow any separator (space, em-dash, colon) between agent token
-//     and role name
+// The role-name (固有对象/政策应答/多元融资/...) is NOT stable across
+// runs — some LLM outputs use it, others don't. The only stable signal
+// is `## ` (or `### `) + (optional emoji/symbol prefix) + `Agent{N}`
+// token. We match on that, and rely on the prefix-symbol check to reject
+// transition headers like `## 🚀 Phase 2 — Agent3 多元融资` (Phase starts
+// with a letter, fails the [^\sa-zA-Z]+ symbol-only match).
 //
-// We DO NOT match transition headers like `## 🚀 Phase 1(并行)— agent1 + agent2`
-// because Phase appears between ## and the agent token (Phase starts with
-// a letter, breaks our `[^\sa-zA-Z]+` symbol-only match for the prefix).
+// Risk: a header like `## 关于 Agent1 的补充` would also match. That's
+// acceptable — if the LLM writes such a header, the content is about
+// agent1 anyway.
 const SECTION_PATTERNS: ReadonlyArray<{ regex: RegExp; agentId: string }> = [
-  // Pattern: 2-3 # + space + (optional non-letter prefix) + agent{N} + (sep) + role name
-  // Sep allows: space, em-dash (—), en-dash (–), hyphen (-), colon (:)
-  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*1[\s—\-:–]*固有对象/g, agentId: 'agent1-固有对象' },
-  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*2[\s—\-:–]*政策应答/g, agentId: 'agent2-政策应答' },
-  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*3[\s—\-:–]*多元融资/g, agentId: 'agent3-多元融资' },
-  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*4[\s—\-:–]*财务模型/g, agentId: 'agent4-财务模型' },
-  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*5[\s—\-:–]*失败案例/g, agentId: 'agent5-失败案例' },
-  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*6[\s—\-:–]*双层决策/g, agentId: 'agent6-双层决策' },
+  // ## {optional non-letter symbol + space} Agent{N} (word boundary, no immediately-following letter)
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*1(?![a-zA-Z])/g, agentId: 'agent1-固有对象' },
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*2(?![a-zA-Z])/g, agentId: 'agent2-政策应答' },
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*3(?![a-zA-Z])/g, agentId: 'agent3-多元融资' },
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*4(?![a-zA-Z])/g, agentId: 'agent4-财务模型' },
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*5(?![a-zA-Z])/g, agentId: 'agent5-失败案例' },
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*6(?![a-zA-Z])/g, agentId: 'agent6-双层决策' },
 ];
 
 interface SectionMarker {
@@ -153,10 +153,13 @@ export function detectCurrentAgent(text: string): string | null {
 // row as the summary fallback — at least the user sees SOMETHING.
 
 const SUMMARY_TABLE_HEADER_PATTERNS = [
-  /六\s*agent\s*灯色一览/,
-  /六\s*agent\s*总览/,
-  /agent\s*灯色一览/,
-  /agent\s*汇总表/,
+  /六\s*[Aa]gent\s*灯色一览/,
+  /六\s*[Aa]gent\s*总览/,
+  /六\s*[Aa]gent\s*输出摘要/,
+  /六\s*[Aa]gent\s*汇总/,
+  /[Aa]gent\s*灯色一览/,
+  /[Aa]gent\s*汇总表/,
+  /[Aa]gent\s*输出摘要/,
 ];
 
 interface SummaryRow {

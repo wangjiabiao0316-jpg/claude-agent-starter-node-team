@@ -167,11 +167,52 @@ describe('sliceAgentSections', () => {
     expect(result['agent1-固有对象']).not.toContain('old content');
   });
 
-  it('survives partial header in flight (only matches complete header)', () => {
+  it('survives partial header in flight (only matches complete Agent{N} token)', () => {
+    // New regex matches `## + emoji + Agent{N}` without requiring role name,
+    // so these now MATCH:
+    expect(Object.keys(sliceAgentSections('## 🏠 agent1'))).toContain('agent1-固有对象');
+    expect(Object.keys(sliceAgentSections('## 🏠 agent1 固有'))).toContain('agent1-固有对象');
+    // But truncated agent token (no digit) still doesn't match:
     expect(sliceAgentSections('## 🏠 a')).toEqual({});
     expect(sliceAgentSections('## 🏠 agent')).toEqual({});
-    expect(sliceAgentSections('## 🏠 agent1')).toEqual({}); // missing role name
-    expect(sliceAgentSections('## 🏠 agent1 固有')).toEqual({}); // partial role name
+  });
+
+  it('USER-REPORTED FORMAT — matches "## 🔍 Agent1 处理执行" (no role name in header)', () => {
+    // Captured from zhisuanchip.cn production on 2026-08-10:
+    // LLM used different format where header has Agent{N} but not the
+    // role name (固有对象). The role name only appears in transition
+    // Phase headers (which we still correctly reject).
+    const text = [
+      '## 🚀 Phase 1 启动 — agent1 固有对象识别',
+      '',
+      '## 🔍 Agent1 处理执行（Step 1-6 逐项查表）',
+      '',
+      'agent1 详细内容：H1 产权... H2 文保...',
+      '',
+      '## 📦 Agent1 输出',
+      '',
+      '```json',
+      '{ "灯色": "yellow" }',
+      '```',
+      '',
+      '## 🚀 Phase 1 继续 — Agent2 政策应答',
+      '',
+      '## 🔍 Agent2 处理执行',
+      '',
+      'agent2 详细内容',
+    ].join('\n');
+
+    const result = sliceAgentSections(text);
+    // agent1 detected — last occurrence wins (## 📦 Agent1 输出 overwrites
+    // earlier ## 🔍 Agent1 处理执行). Both are valid agent1 sections; the
+    // "later wins" rule is intentional for re-run support.
+    expect(result['agent1-固有对象']).toBeDefined();
+    expect(result['agent1-固有对象']).toContain('灯色'); // from the 输出 block
+    // agent2 detected
+    expect(result['agent2-政策应答']).toBeDefined();
+    expect(result['agent2-政策应答']).toContain('agent2 详细内容');
+    // Phase transition lines must NOT be matched as their own sections
+    expect(result['agent3-多元融资']).toBeUndefined();
   });
 
   it('works with mixed casing (Agent1 / agent1 / AGENT1)', () => {
