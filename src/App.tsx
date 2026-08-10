@@ -301,6 +301,37 @@ function AppInner() {
       }
 
       setMessages(merged);
+
+      // === Restore agent outputs from history ===
+      // agent_outputs state is ephemeral by default — it only fills from
+      // live SSE during a workflow. After page reload / conversation
+      // switch, agentOutputs is empty (resetAgentState above), so all
+      // agent tabs show "待命" — even though the assistant message text
+      // contains the full workflow output.
+      //
+      // Reconstruction: concatenate all assistant message text from this
+      // conversation, run parseAgentOutputs on it, populate agentOutputs.
+      // This makes the agent tabs clickable post-load.
+      const assistantText = merged
+        .filter(m => m.role === 'assistant' && m.content)
+        .map(m => m.content)
+        .join('\n\n');
+      if (assistantText) {
+        const restoredSections = parseAgentOutputs(assistantText);
+        if (Object.keys(restoredSections).length > 0) {
+          const now = Date.now();
+          const restoredOutputs: Record<string, AgentOutput> = {};
+          for (const [agentId, summary] of Object.entries(restoredSections)) {
+            restoredOutputs[agentId] = {
+              agent_id: agentId,
+              summary,
+              output_json: {},
+              timestamp: now,
+            };
+          }
+          setAgentOutputs(prev => ({ ...prev, ...restoredOutputs }));
+        }
+      }
     } finally {
       setHistoryLoading(false);
     }
