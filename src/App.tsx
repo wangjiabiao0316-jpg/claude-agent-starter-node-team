@@ -30,7 +30,7 @@ import {
   makeStorageKey,
 } from './lib/imageStore';
 import { saveSnapshot, loadSnapshot, deleteSnapshot } from './lib/chatUiStore';
-import { sliceAgentSections, detectCurrentAgent } from './lib/agentSections';
+import { sliceAgentSections, detectCurrentAgent, parseAgentOutputs } from './lib/agentSections';
 import ToolIndicators from './components/ToolIndicators';
 import ChatWindow from './components/ChatWindow';
 import IntakeWizard from './components/IntakeWizard';
@@ -575,7 +575,11 @@ function AppInner() {
         // loaded last. Instead, we slice the FULL accumulated text by
         // section header regex on every delta — this correctly attributes
         // each segment regardless of SSE event timing.
-        const sections = sliceAgentSections(assistantText);
+        // Use parseAgentOutputs (with summary-table fallback) instead of
+        // sliceAgentSections alone — handles the case where LLM keeps
+        // agent1/2/3 outputs internal and only emits the agent6 summary
+        // table at the end.
+        const sections = parseAgentOutputs(assistantText);
         if (Object.keys(sections).length > 0) {
           // Update currentAgentIdRef to the agent that owns the live tail
           // (so any post-section orchestrator text is attributed correctly).

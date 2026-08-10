@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sliceAgentSections, detectCurrentAgent } from '../agentSections';
+import { sliceAgentSections, detectCurrentAgent, parseAgentOutputs } from '../agentSections';
 
 /**
  * Tests for the section-header-based parser.
@@ -219,5 +219,90 @@ describe('detectCurrentAgent', () => {
   it('returns null when only transition header exists', () => {
     const text = '收到完整项目上会请求。\n\n## 🔄 Phase 1 启动:agent1 + agent2 并行';
     expect(detectCurrentAgent(text)).toBeNull();
+  });
+});
+
+describe('parseAgentOutputs (with summary table fallback)', () => {
+  it('returns empty for empty input', () => {
+    expect(parseAgentOutputs('')).toEqual({});
+  });
+
+  it('uses individual sections when present', () => {
+    const text = [
+      '## 🏠 agent1 固有对象判定',
+      'agent1 详细内容',
+      '## 📋 agent2 政策应答',
+      'agent2 详细内容',
+    ].join('\n\n');
+    const result = parseAgentOutputs(text);
+    expect(result['agent1-固有对象']).toContain('agent1 详细内容');
+    expect(result['agent2-政策应答']).toContain('agent2 详细内容');
+  });
+
+  it('PRODUCTION FALLBACK — synthesizes from agent6 summary table when individual sections absent', () => {
+    // Captured real production scenario: LLM only streamed agent4-6 sections,
+    // agent1/2/3 outputs were kept internal as tool_result. But agent6 always
+    // finishes with a "六 agent 灯色一览" summary table containing all 6 rows.
+    const text = [
+      '## 📊 Agent4 — 财务模型',
+      'agent4 详细内容',
+      '## 🚦 Agent6 — 双层决策',
+      'agent6 详细内容',
+      '',
+      '## 六 agent 灯色一览',
+      '',
+      '| Agent | 类型 | 灯色 | 核心结论 |',
+      '|---|---|---|---|',
+      '| **agent1** 固有对象 | 闸门型 | 🟡 YELLOW | H1.yellow.A（证号待补） |',
+      '| **agent2** 政策应答 | 规则查表 | 📋 3条 | 专项债(83.5) |',
+      '| **agent3** 多元融资 | 计算型 | 🟢 GREEN | 5/6工具可用 |',
+      '| **agent4** 财务模型 | 计算型 | 🟢 GREEN | IRR=54.83% |',
+      '| **agent5** 失败案例 | 检索型 | 🟢 GREEN | 五类全未触发 |',
+      '| **agent6** 双层决策 | 聚合型 | 🟡 YELLOW | 顶层=yellow |',
+    ].join('\n');
+
+    const result = parseAgentOutputs(text);
+
+    // agent4 has its own section — should be the full version
+    expect(result['agent4-财务模型']).toContain('agent4 详细内容');
+    // agent6 has its own section — full version
+    expect(result['agent6-双层决策']).toContain('agent6 详细内容');
+
+    // agent1/2/3/5 don't have individual sections — should be synthesized from table
+    expect(result['agent1-固有对象']).toBeDefined();
+    expect(result['agent1-固有对象']).toContain('H1.yellow.A');
+    expect(result['agent1-固有对象']).toContain('汇总');
+
+    expect(result['agent2-政策应答']).toBeDefined();
+    expect(result['agent2-政策应答']).toContain('专项债');
+
+    expect(result['agent3-多元融资']).toBeDefined();
+    expect(result['agent3-多元融资']).toContain('5/6工具可用');
+
+    expect(result['agent5-失败案例']).toBeDefined();
+    expect(result['agent5-失败案例']).toContain('五类全未触发');
+  });
+
+  it('does not synthesize from table when individual section exists', () => {
+    const text = [
+      '## 🏠 agent1 固有对象判定',
+      'individual section content',
+      '',
+      '## 六 agent 灯色一览',
+      '',
+      '| Agent | 类型 | 灯色 | 核心结论 |',
+      '|---|---|---|---|',
+      '| **agent1** 固有对象 | 闸门型 | 🟡 YELLOW | 简表内容 |',
+    ].join('\n');
+
+    const result = parseAgentOutputs(text);
+    // Individual section wins: result contains the individual section's body text
+    expect(result['agent1-固有对象']).toContain('individual section content');
+    // And does NOT contain the synthesized fallback marker
+    expect(result['agent1-固有对象']).not.toContain('内容由 agent6 汇总表回填');
+  });
+
+  it('returns empty when neither sections nor summary table present', () => {
+    expect(parseAgentOutputs('just some random text without structure')).toEqual({});
   });
 });
