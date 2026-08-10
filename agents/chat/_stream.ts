@@ -170,12 +170,43 @@ function emitDebugMessage(
 const AGENT_PATTERN = /^agent[1-6]-(固有对象|政策应答|多元融资|财务模型|失败案例|双层决策)$/;
 
 /**
+ * Decode EdgeOne sandbox's `#Uxxxx` escape for non-ASCII chars in skill names.
+ *
+ * EdgeOne sandbox has an ASCII-only filesystem layer. When the Claude Agent
+ * SDK loads skill directories whose names contain non-ASCII chars (e.g. the
+ * Chinese-named agent skills `agent1-固有对象`), the SDK URL-escapes each
+ * non-ASCII code point as `#Uxxxx` (4 hex digits, case-insensitive) in the
+ * skill name it broadcasts via tool inputs.
+ *
+ * Empirically captured in production SSE:
+ *   tool input.skill = "agent1-#U56fa#U6709#U5bf9#U8c61"
+ *   decoded          = "agent1-固有对象"
+ *
+ * Without this decode, AGENT_PATTERN never matches and `agent_output`
+ * events never fire — so the frontend AgentPane tabs stay empty even
+ * though the LLM actually invoked the sub-skills.
+ */
+export function decodeEdgeOneSkillNameEscape(s: string): string {
+  if (typeof s !== 'string' || !s.includes('#U')) return s;
+  return s.replace(/#U([0-9a-fA-F]{4})/g, (_, hex) => {
+    try {
+      return String.fromCodePoint(parseInt(hex, 16));
+    } catch {
+      return _; // keep original on parse error
+    }
+  });
+}
+
+/**
  * 根据 Claude SDK tool_called 的 tool name 检测应触发的 SSE event 类型。
  *
  * - super-skill.complete → suggest_actions（super-skill 跑完，让用户选下一步）
  * - agent6.export_report → report_ready（agent6 触发报告模板）
  * - agent{1-6}-<中文名> → agent_output（子 agent 完成输出）
  * - 其他 → null（不触发新事件）
+ *
+ * NOTE: 输入 toolName 会被先 decodeEdgeOneSkillNameEscape() 处理，
+ * 因为 EdgeOne sandbox 把中文字符转义成 `#Uxxxx` 形式。
  */
 export function detectSseEvent(
   toolName: string | undefined | null
@@ -183,9 +214,11 @@ export function detectSseEvent(
   if (!toolName || typeof toolName !== 'string') {
     return null;
   }
-  if (toolName === 'super-skill.complete') return 'suggest_actions';
-  if (toolName === 'agent6.export_report') return 'report_ready';
-  if (AGENT_PATTERN.test(toolName)) return 'agent_output';
+  // Decode EdgeOne sandbox escape before pattern matching
+  const decoded = decodeEdgeOneSkillNameEscape(toolName);
+  if (decoded === 'super-skill.complete') return 'suggest_actions';
+  if (decoded === 'agent6.export_report') return 'report_ready';
+  if (AGENT_PATTERN.test(decoded)) return 'agent_output';
   return null;
 }
 
@@ -232,10 +265,14 @@ function emitAssistantBlocks(
       enqueueSse(controller, encoder, 'tool_called', { tool: toolName });
 
       // Phase 4 Task 9: 检测 super-skill / agent 输出事件
+      // toolName may carry EdgeOne's `#Uxxxx` escape for non-ASCII chars;
+      // detectSseEvent decodes internally, and we use the decoded form for
+      // agent_id so frontend PipelineBar/AgentPane tabs match.
       const sseType = detectSseEvent(toolName);
       if (sseType) {
+        const decodedToolName = decodeEdgeOneSkillNameEscape(toolName);
         enqueueSse(controller, encoder, sseType, {
-          agent_id: toolName,
+          agent_id: decodedToolName,
           timestamp: Date.now(),
         });
       }
@@ -251,10 +288,14 @@ function emitAssistantBlocks(
         rawToolName.includes('load_skill') ||
         rawToolName.endsWith('Skill');
       if (isSkillTool) {
-        const skillName = toolInput && typeof toolInput === 'object'
+        const rawSkillName = toolInput && typeof toolInput === 'object'
           ? (toolInput as Record<string, unknown>).skill ?? (toolInput as Record<string, unknown>).name ?? (toolInput as Record<string, unknown>).skillName
           : undefined;
-        if (typeof skillName === 'string') {
+        if (typeof rawSkillName === 'string') {
+          // Decode EdgeOne sandbox's `#Uxxxx` escape (e.g. "agent1-#U56fa#U6709#U5bf9#U8c61"
+          // → "agent1-固有对象") so the skill_loaded pill and agent_id field show
+          // readable Chinese, and detectSseEvent's AGENT_PATTERN can match.
+          const skillName = decodeEdgeOneSkillNameEscape(rawSkillName);
           enqueueSse(controller, encoder, 'skill_loaded', { name: skillName, status: 'loaded' });
 
           // Phase 4 Task 9 fix: detectSseEvent 之前基于 toolName（"Skill"），

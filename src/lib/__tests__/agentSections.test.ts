@@ -42,6 +42,40 @@ describe('sliceAgentSections', () => {
     expect(result['agent1-固有对象']).not.toContain('收到完整项目');
   });
 
+  it('PRODUCTION FORMAT — H3 header with traffic-light emoji + em-dash', () => {
+    // Captured from zhisuanchip.cn production:
+    //   ### 🔴🟡🟢 Agent1 固有对象 — 三色灯闸门判定
+    const text = [
+      '## 🚀 Phase 1(并行)— agent1 固有对象 + agent2 政策应答',
+      '',
+      '### 🔴🟡🟢 Agent1 固有对象 — 三色灯闸门判定',
+      '',
+      '| 检查项 | 项目信息 | 命中 |',
+      '|---|---|---|',
+      '| H1.red.A | 用户未提供证号 | ❌ 触发降级 |',
+      '',
+      '```json',
+      '{ "agent": "agent1-固有对象", "灯色": "yellow" }',
+      '```',
+      '',
+      '### 🔴🟡🟢 Agent2 政策应答 — 政策清单',
+      '',
+      '```json',
+      '{ "可适用政策清单": [] }',
+      '```',
+    ].join('\n');
+
+    const result = sliceAgentSections(text);
+    expect(Object.keys(result).sort()).toEqual(['agent1-固有对象', 'agent2-政策应答']);
+    expect(result['agent1-固有对象']).toContain('### 🔴🟡🟢 Agent1 固有对象');
+    expect(result['agent1-固有对象']).toContain('H1.red.A');
+    expect(result['agent1-固有对象']).not.toContain('Agent2');
+    expect(result['agent2-政策应答']).toContain('### 🔴🟡🟢 Agent2 政策应答');
+    expect(result['agent2-政策应答']).toContain('可适用政策清单');
+    // Transition header (## 🚀 Phase 1) must NOT be matched as an agent section
+    expect(result['agent3-多元融资']).toBeUndefined();
+  });
+
   it('PARALLEL AGENTS CASE — splits combined agent1+agent2 text correctly', () => {
     // Production-captured failure mode: orchestrator runs agent1 + agent2
     // in parallel, both fire agent_output events within 1ms, then ONE

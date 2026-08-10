@@ -26,30 +26,34 @@
  * agent's `summary` field in the right AgentPane slot.
  */
 
-// Match section headers like `## 🏠 agent1 固有对象判定` in the streamed text.
+// Match section headers in the streamed text. Observed formats:
 //
-// Empirically the LLM (Claude / GLM running super-skill) emits headers with
-// these characteristics, observed across multiple production SSE captures:
-//   - Emoji prefix (🏠 / 📋 / 💰 / 📊 / ⚠️ / 🚦). NOTE: emoji choice is not
-//     stable — agent2 has been observed using either 📑 or 📋. So we DON'T
-//     match by specific emoji; we accept any single non-letter symbol.
-//   - The literal token "agent{N}" — case-insensitive (LLM mixes "Agent1"
-//     and "agent1"). Sometimes there's a space: "Agent 1" / "agent 1".
-//   - The Chinese role name (固有对象 / 政策应答 / 多元融资 / 财务模型 /
-//     失败案例 / 双层决策). This is the most stable identifier.
+//   glm-5.2:        `## 🏠 agent1 固有对象判定`            (H2, lowercase)
+//   Claude/GPT:     `### 🔴🟡🟢 Agent1 固有对象 — 三色灯闸门判定`  (H3, capital, em-dash)
+//   Mixed:          `## 🏠 Agent1 固有对象输出（三色灯判定）`     (H2, capital)
 //
-// We DON'T match transition headers like `## 🔄 Phase 2 启动:agent3 多元融资`
-// because the regex requires the agent token to immediately follow the
-// `## {emoji}` prefix — the word "Phase" between emoji and agent token
-// breaks the match.
+// To survive this variability we:
+//   - accept both H2 (##) and H3 (###)
+//   - allow any emoji/symbol prefix (🔴🟡🟢, 🏠, 📋, etc.)
+//   - match agent token case-insensitively (Agent1 / agent1 / Agent 1)
+//   - require the Chinese role name (固有对象 / 政策应答 / 多元融资 /
+//     财务模型 / 失败案例 / 双层决策) as the strong anchor — this is the
+//     one stable signal across models
+//   - allow any separator (space, em-dash, colon) between agent token
+//     and role name
+//
+// We DO NOT match transition headers like `## 🚀 Phase 1(并行)— agent1 + agent2`
+// because Phase appears between ## and the agent token (Phase starts with
+// a letter, breaks our `[^\sa-zA-Z]+` symbol-only match for the prefix).
 const SECTION_PATTERNS: ReadonlyArray<{ regex: RegExp; agentId: string }> = [
-  // ## {optional non-letter symbol + space} agent{N} {Chinese role name}
-  { regex: /##\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*1\s*固有对象/g, agentId: 'agent1-固有对象' },
-  { regex: /##\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*2\s*政策应答/g, agentId: 'agent2-政策应答' },
-  { regex: /##\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*3\s*多元融资/g, agentId: 'agent3-多元融资' },
-  { regex: /##\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*4\s*财务模型/g, agentId: 'agent4-财务模型' },
-  { regex: /##\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*5\s*失败案例/g, agentId: 'agent5-失败案例' },
-  { regex: /##\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*6\s*双层决策/g, agentId: 'agent6-双层决策' },
+  // Pattern: 2-3 # + space + (optional non-letter prefix) + agent{N} + (sep) + role name
+  // Sep allows: space, em-dash (—), en-dash (–), hyphen (-), colon (:)
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*1[\s—\-:–]*固有对象/g, agentId: 'agent1-固有对象' },
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*2[\s—\-:–]*政策应答/g, agentId: 'agent2-政策应答' },
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*3[\s—\-:–]*多元融资/g, agentId: 'agent3-多元融资' },
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*4[\s—\-:–]*财务模型/g, agentId: 'agent4-财务模型' },
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*5[\s—\-:–]*失败案例/g, agentId: 'agent5-失败案例' },
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*6[\s—\-:–]*双层决策/g, agentId: 'agent6-双层决策' },
 ];
 
 interface SectionMarker {
