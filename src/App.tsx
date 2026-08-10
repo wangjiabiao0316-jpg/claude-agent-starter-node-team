@@ -30,7 +30,7 @@ import {
   makeStorageKey,
 } from './lib/imageStore';
 import { saveSnapshot, loadSnapshot, deleteSnapshot } from './lib/chatUiStore';
-import { sliceAgentSections, detectCurrentAgent, parseAgentOutputs } from './lib/agentSections';
+import { detectCurrentAgent, parseAgentOutputs } from './lib/agentSections';
 import ToolIndicators from './components/ToolIndicators';
 import ChatWindow from './components/ChatWindow';
 import IntakeWizard from './components/IntakeWizard';
