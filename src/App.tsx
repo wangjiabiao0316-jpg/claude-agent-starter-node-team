@@ -580,6 +580,25 @@ function AppInner() {
         // agent1/2/3 outputs internal and only emits the agent6 summary
         // table at the end.
         const sections = parseAgentOutputs(assistantText);
+
+        // === DIAGNOSTIC LOG === gated by localStorage flag.
+        // Enable in browser console:  localStorage.setItem('agentDebug', '1')
+        // Disable:                     localStorage.removeItem('agentDebug')
+        if (typeof localStorage !== 'undefined' && localStorage.getItem('agentDebug')) {
+          // eslint-disable-next-line no-console
+          console.log('[agentDebug] onTextDelta', {
+            deltaLen: delta.length,
+            accTextLen: assistantText.length,
+            sectionsFound: Object.keys(sections),
+            accTextHead: assistantText.slice(0, 150),
+            accTextTail: assistantText.slice(-150),
+            // Show all H2/H3 header lines found in accumulated text
+            headerLines: (assistantText.match(/^#{2,3}[^\n]*$/gm) || []).slice(-12),
+            // Show summary-table detection
+            summaryHeaderMatch: /六\s*[Aa]gent\s*(?:灯色一览|总览|输出摘要|汇总)/.test(assistantText),
+          });
+        }
+
         if (Object.keys(sections).length > 0) {
           // Update currentAgentIdRef to the agent that owns the live tail
           // (so any post-section orchestrator text is attributed correctly).
