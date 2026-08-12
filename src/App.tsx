@@ -34,6 +34,7 @@ import { detectCurrentAgent, parseAgentOutputs } from './lib/agentSections';
 import ToolIndicators from './components/ToolIndicators';
 import ChatWindow from './components/ChatWindow';
 import IntakeWizard from './components/IntakeWizard';
+import ProductHome from './components/ProductHome';
 import StopButton from './components/StopButton';
 import DebugPanel from './components/DebugPanel';
 import CodeViewer from './components/CodeViewer';
@@ -152,8 +153,8 @@ function AppInner() {
   // === uiStage 状态机(改造引入)===
   // Top-level UI state machine. Drives conditional rendering in later tasks
   // (Task 3, 4, 12 ...) — replaces ad-hoc `messages.length === 0` / `loading`
-  // checks. Initial value is 'intake' (first visit / new project).
-  const [uiStage, setUiStage] = useState<UiStage>('intake');
+  // checks. Initial value is 'home' (产品首页作为首屏入口;点 logo 也可回到此处)。
+  const [uiStage, setUiStage] = useState<UiStage>('home');
   const [historyLoading, setHistoryLoading] = useState(true);
   // Name of the skill currently being loaded by the SDK. null when no skill
   // is in flight. Set by the `skill_loaded` SSE event (singular — fires
@@ -1038,11 +1039,18 @@ function AppInner() {
         <div className={styles.chatPanel}>
           <header className={styles.header}>
             <div className={styles.headerLeft}>
-              <span className={styles.logo}>⬡</span>
-              <div>
-                <p className={styles.title}>{t("app.title")}</p>
-                <p className={styles.subtitle}>{t("app.subtitle")}</p>
-              </div>
+              <button
+                className={styles.logoBtn}
+                onClick={() => setUiStage('home')}
+                aria-label={t("app.title")}
+                title={t("app.title")}
+              >
+                <span className={styles.logo}>⬡</span>
+                <div>
+                  <p className={styles.title}>{t("app.title")}</p>
+                  <p className={styles.subtitle}>{t("app.subtitle")}</p>
+                </div>
+              </button>
             </div>
             <div className={styles.headerActions}>
               <ToolIndicators lamps={lamps} />
@@ -1064,14 +1072,17 @@ function AppInner() {
           </div>
 
           <div className={styles.chatWindowShell}>
-            {uiStage === 'intake' ? (
+            {uiStage === 'home' ? (
+              <ProductHome onStart={() => setUiStage('intake')} />
+            ) : uiStage === 'intake' ? (
               <div className={styles.intakeSlot}>
                 <IntakeWizard onSend={handleSend} disabled={false} />
               </div>
             ) : (
               <ChatWindow messages={messages} loading={loading} />
             )}
-            {historyLoading && messages.length === 0 && (
+            {/* 历史加载遮罩仅在非首页、非采集态显示,避免盖住产品首页 */}
+            {uiStage !== 'home' && historyLoading && messages.length === 0 && (
               <div className={styles.historyOverlay}>
                 <div className={styles.historySpinner} />
               </div>

@@ -1,0 +1,55 @@
+/* ── ParticleField · 粒子形态变换动画容器 ─────── */
+
+.field {
+  position: relative;
+  width: 100%;
+  height: 360px;              /* 给粒子足够的活动空间 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: rgba(10, 10, 13, 0.4);
+  border: 1px solid var(--bg-border);
+  backdrop-filter: blur(6px);
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 字幕:浮在 Canvas 底部中央,随形态切换(由 React state 驱动) */
+.caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--text-primary);
+  /* 字幕切换的淡入淡出 */
+  animation: captionIn 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
+}
+
+@keyframes captionIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 880px) {
+  .field {
+    height: 280px;
+  }
+  .caption {
+    font-size: 0.88rem;
+    bottom: 18px;
+  }
+}

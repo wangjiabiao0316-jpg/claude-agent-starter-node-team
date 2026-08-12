@@ -134,11 +134,12 @@ export interface ReportReady {
  * Top-level UI state machine. Replaces ad-hoc checks like
  * `messages.length === 0` and `loading` for driving layout decisions.
  *
+ * - 'home':    产品首页 / 固定展示页(简介·价值·使用方法),首屏入口或从 logo 点击进入
  * - 'intake':  user is filling IntakeWizard (first visit or "new project")
  * - 'running': SSE stream active, agent pipeline running
  * - 'review':  report_ready received, ReportModal shown, SuggestActions visible
  */
-export type UiStage = 'intake' | 'running' | 'review';
+export type UiStage = 'home' | 'intake' | 'running' | 'review';
 
 /**
  * Soft-warning modal payload shown when user attempts to skip a P0 field.

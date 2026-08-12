@@ -1,0 +1,308 @@
+/* ── ProductHome · 产品首页(monochrome tech 深色科技风) ─────── */
+/* 所有颜色/字体/圆角/动画时长均取自 index.css 的 CSS 变量,不引入任何彩色(灯色除外,本页不用)。 */
+
+/* 根容器:纵向流 + 可滚动 + 入场动画(复用项目惯用的 stageIn 缓动) */
+.page {
+  flex: 1;
+  min-height: 0;            /* 允许 flex 子项收缩滚动(项目惯例) */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 48px 48px 56px;
+  scroll-behavior: smooth;
+  animation: productHomeIn 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes productHomeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* —— 通用 eyebrow:mono 大写小标题(项目科技标签惯例) —— */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* —— hero 区 —— */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 0 8px;
+  text-align: center;
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent-silver);
+  filter: drop-shadow(0 0 16px var(--accent-silver-glow));   /* 复用 .logo 辉光语言 */
+  line-height: 1.1;
+}
+
+.heroSubtitle {
+  max-width: 640px;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* —— 内容板块容器(居中限宽) —— */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 880px;
+  margin-inline: auto;
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+  text-align: center;        /* 板块标题水平居中,与下方流程图对称 */
+}
+
+.introText {
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--text-secondary);
+}
+
+/* —— 产品价值:毛玻璃卡(复用 IntakeWizard .wizard 范式) ——
+   4 张卡,宽屏 4 列、中屏 2 列、窄屏 1 列,自适应避免拥挤。 */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .cardGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--bg-border-strong);
+  border-radius: var(--radius-lg);
+  background: rgba(10, 10, 13, 0.55);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 32px rgba(255, 255, 255, 0.05);
+  transition: border-color var(--transition-med), box-shadow var(--transition-med),
+              transform var(--transition-fast);
+}
+
+.card:hover {
+  border-color: var(--accent-silver-glow);
+  box-shadow: 0 0 36px rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+}
+
+.cardText {
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+/* —— 使用方法:时间轴样式 ——
+   设计:左侧一条贯穿的纵向轴线(带流光) + 图标圆牌坐在轴线上 + 文字在图标右侧。
+   去掉每个节点的独立方框(那是"散"的元凶),由连续轴线串联 5 步,整体感强。 */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* 左侧留出轴线 + 图标的空间;轴线用 ::before 画在 left 处 */
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin-inline: auto;
+  padding-left: 56px;            /* 给图标(直径40) + 左间距 让位 */
+}
+
+/* 贯穿的纵向轴线:绝对定位在容器左侧,对齐图标圆心 */
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 20px;                    /* 图标圆心位置:padding-left 56 中,图标居中在 left 20 处 */
+  top: 20px;
+  bottom: 20px;
+  width: 1px;
+  background: var(--bg-border);
+  overflow: hidden;
+}
+
+/* 轴线上的流光(用一条独立的渐变带在轴线位置滚动,模拟流动) */
+.timeline::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  width: 1px;
+  height: 60px;
+  background: linear-gradient(180deg, transparent, var(--accent-silver), transparent);
+  animation: timelineFlow 2.4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes timelineFlow {
+  0%   { top: -60px; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* 每个时间轴节点:图标(左) + 文字(右) */
+.timelineItem {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 14px 0;
+}
+
+/* 图标圆牌:用负 margin 推到左侧轴线上,压住轴线(轴线在 left:20,圆心也 对齐它) */
+.timelineIcon {
+  position: absolute;
+  left: -44px;                   /* 相对 padding-left 56 的内容区,图标圆心落在轴线(left:20)上 */
+  top: 14px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--bg-border-strong);
+  background: var(--bg-base);    /* 实底压住轴线,让图标"坐"在轴上 */
+  color: var(--accent-silver);
+  font-size: 1.05rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 8px var(--accent-silver-glow));
+  animation: timelineBreath 2.6s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes timelineBreath {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 255, 255, 0); }
+  50%      { box-shadow: 0 0 12px rgba(255, 255, 255, 0.14); }
+}
+
+/* 右侧文字区:短标签 + 完整说明,左对齐(时间轴文字惯例) */
+.timelineText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+}
+
+.timelineLabel {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+}
+
+.timelineDesc {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* —— 底部:开始使用按钮 + 声明条 —— */
+.ctaWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.cta {
+  appearance: none;          /* reset button,照搬 AgentPane .tab 范式 */
+  cursor: pointer;
+  padding: 12px 32px;
+  border-radius: 999px;      /* 胶囊,呼应 .tab */
+  border: 1px solid var(--bg-border-strong);
+  background: var(--bg-chip);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: box-shadow var(--transition-med), transform var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+.cta:hover {
+  border-color: var(--accent-silver-glow);
+  box-shadow: 0 0 18px var(--accent-silver-glow);
+}
+
+.cta:active {
+  transform: scale(0.98);
+}
+
+.cta:focus-visible {
+  outline: 1px solid var(--accent-silver);
+  outline-offset: 2px;
+}
+
+.foot {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* —— 响应式:窄屏卡片单列、流程图堆叠成纵向、hero/padding 收窄 —— */
+@media (max-width: 880px) {
+  .page {
+    padding: 32px 20px 40px;
+    gap: 32px;
+  }
+  .cardGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  /* 时间轴窄屏:收窄内边距,避免轴线+文字被挤 */
+  .timeline {
+    padding-left: 48px;
+  }
+  .timelineIcon {
+    left: -38px;
+    width: 36px;
+    height: 36px;
+  }
+  .timeline::before,
+  .timeline::after {
+    left: 18px;
+  }
+  .heroTitle {
+    font-size: 1.6rem;
+  }
+}

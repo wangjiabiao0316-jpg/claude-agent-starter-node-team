@@ -112,6 +112,40 @@
   filter: drop-shadow(0 0 10px var(--accent-silver-glow));
   flex-shrink: 0;
 }
+/* 可点击的 logo+产品名区域,点击回到产品首页(uiStage='home')。
+   用 button 包裹语义正确、键盘可达;reset 范式参考 AgentPane .tab。
+   margin 负值抵消 padding,保证视觉边界与原 logo+文字组合一致,不撑大 header。 */
+.logoBtn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;          /* transparent 占位,避免 hover 切边框时 1px 抖动 */
+  border-radius: var(--radius-md);
+  padding: 4px 8px;
+  margin: -4px -8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;                              /* 替代原 headerLeft 的 gap(现 headerLeft 只剩这一个子元素) */
+  min-width: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-med),
+              transform var(--transition-fast);
+}
+.logoBtn:hover {
+  border-color: var(--bg-border-strong);
+  box-shadow: 0 0 14px var(--accent-silver-glow);
+}
+.logoBtn:hover .logo {
+  filter: drop-shadow(0 0 14px var(--accent-silver-glow));   /* hover 时 logo 辉光略增强 */
+}
+.logoBtn:active {
+  transform: scale(0.98);
+}
+.logoBtn:focus-visible {
+  outline: 1px solid var(--accent-silver);
+  outline-offset: 2px;
+}
 .title {
   font-family: var(--font-display);
   font-size: 1.02rem;

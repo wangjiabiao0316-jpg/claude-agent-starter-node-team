@@ -44,6 +44,36 @@ const zh = {
   "welcome.ex4Text": "广州城中村改造项目，请帮我匹配 Top3 相似失败案例，并提示主要风险点与规避建议。",
   "welcome.foot": "SIX AGENTS · ONE DECISION · POWERED BY EDGEONE MAKERS",
 
+  // Product home (点击 logo / 产品名进入的产品首页)
+  // 板块一·产品简介(hero 区复用上面 welcome.* 的 eyebrow/title/subtitle)
+  "home.eyebrow": "产品简介 · PRODUCT OVERVIEW",
+  "home.introTitle": "什么是「万象更芯」",
+  "home.intro": "面向城市更新项目的运营前置决策智能体。输入项目区位、产权、规模与改造方向,系统串联六大智能体(固有对象识别 / 政策应答 / 多元融资 / 财务模型 / 失败案例 / 双层决策),覆盖咨询、投资、建设、运营全阶段,自动产出可上会的红绿灯判定与论证材料。",
+  // 板块二·产品价值(三张卡)
+  "home.valueTitle": "产品价值",
+  "home.value1Title": "咨投建运全阶段覆盖",
+  "home.value1Text": "从产权文保筛查到融资方案、财务测算、失败案例对标,一条链路给出上会就绪度,告别多工具拼接。",
+  "home.value2Title": "三色灯硬规则闸门",
+  "home.value2Text": "产权清晰度、文保规划、资本金比例、抵押物合规等硬约束先行判定,任一红灯即终止,避免算到一半才发现不合规。",
+  "home.value3Title": "沙箱算账而非心算",
+  "home.value3Text": "IRR / NPV / DSCR / 回收期由 EdgeOne 沙箱执行 Python 财务引擎计算,对照业态门槛基准,杜绝 LLM 估算偏差。",
+  "home.value4Title": "人机协商迭代",
+  "home.value4Text": "报告并非终点——可重新运行某个智能体、补充条件再次分析,人在回路中持续打磨上会结论。",
+  // 板块三·使用方法(四步)
+  "home.usageTitle": "使用方法",
+  "home.usage1": "点击下方「开始使用」进入采集向导。",
+  "home.usage2": "按五步引导填写项目条件(城市 / 区位 · 现状产权 · 规模指标 · 改造方向 · 测算目标),可选填、可返回修改。",
+  "home.usage3": "确认描述后发送,六大智能体依依赖关系串并行执行,结果汇总为顶层红绿灯与分维度报告。",
+  "home.usage4": "在右侧 Dock 切换查看各智能体明细,一键导出上会报告或重新运行某个环节。",
+  "home.usage5": "基于报告结果重新运行某环节,或补充条件再次分析,持续打磨上会结论。",
+  // 流程图节点的短标签(图示用,完整说明 hover 显示,见 home.usage1~5)
+  "home.usageLabel1": "进入向导",
+  "home.usageLabel2": "五步采集",
+  "home.usageLabel3": "智能体执行",
+  "home.usageLabel4": "查看报告",
+  "home.usageLabel5": "迭代分析",
+  "home.cta": "开始使用",
+
   // Preset questions
   "preset.1": "使用终端命令检查当前系统时间和操作系统版本。",
   "preset.2": "创建 /tmp/fib.py，写入计算斐波那契数列前 10 项的 Python 代码并执行，将结果打印出来。",

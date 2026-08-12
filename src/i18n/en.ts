@@ -44,6 +44,36 @@ const en = {
   "welcome.ex4Text": "For an urban-village renewal project in Guangzhou, match the top-3 similar failure cases and highlight key risks and mitigations.",
   "welcome.foot": "SIX AGENTS · ONE DECISION · POWERED BY EDGEONE MAKERS",
 
+  // Product home (the product landing page reached by clicking logo / title)
+  // Section 1 · Overview (hero reuses welcome.* eyebrow/title/subtitle above)
+  "home.eyebrow": "PRODUCT OVERVIEW",
+  "home.introTitle": "What is Urban Core",
+  "home.intro": "An operation-first decision intelligence agent for urban-renewal projects. Enter location, ownership, scale and renovation direction; six agents (heritage objects / policy / financing / financial model / failure cases / two-layer decision) run across the full consulting–investment–construction–operation lifecycle and produce a review-ready traffic-light verdict with supporting evidence.",
+  // Section 2 · Value (three cards)
+  "home.valueTitle": "Product Value",
+  "home.value1Title": "Full-lifecycle coverage",
+  "home.value1Text": "From heritage & ownership screening to financing, financial modelling and failure-case benchmarking — one pipeline delivers review-readiness instead of stitching tools.",
+  "home.value2Title": "Hard-rule traffic-light gate",
+  "home.value2Text": "Ownership clarity, heritage, capital-ratio and collateral compliance are checked first; any red light halts the run before you waste compute on a non-compliant deal.",
+  "home.value3Title": "Sandboxed accounting, not guesswork",
+  "home.value3Text": "IRR / NPV / DSCR / payback are computed by a Python financial engine in the EdgeOne sandbox against industry-hurdle benchmarks — no LLM arithmetic drift.",
+  "home.value4Title": "Human-in-the-loop iteration",
+  "home.value4Text": "A report isn't the end — rerun any agent or refine conditions and re-analyse, keeping the human in the loop to sharpen the review conclusion.",
+  // Section 3 · How to use (four steps)
+  "home.usageTitle": "How to Use",
+  "home.usage1": "Click \"Get Started\" below to open the intake wizard.",
+  "home.usage2": "Fill the five-step project conditions (city · location · ownership & condition · scale · direction & goal). All optional fields can be edited or revisited.",
+  "home.usage3": "Send the description; the six agents run in dependency order and aggregate into a top-level traffic light plus per-dimension reports.",
+  "home.usage4": "Switch the right-side Dock to inspect each agent, export the review report, or rerun any stage.",
+  "home.usage5": "Rerun a stage from its results, or add conditions and re-analyse — keep sharpening the review conclusion.",
+  // Flow node short labels (for the diagram; full text shown on hover via home.usage1~5)
+  "home.usageLabel1": "Open wizard",
+  "home.usageLabel2": "5-step intake",
+  "home.usageLabel3": "Agents run",
+  "home.usageLabel4": "Review report",
+  "home.usageLabel5": "Iterate",
+  "home.cta": "Get Started",
+
   // Preset questions
   "preset.1": "Use terminal commands to check the current system time and OS version.",
   "preset.2": "Create /tmp/fib.py, write Python code to calculate the first 10 Fibonacci numbers, execute it, and print the result.",
