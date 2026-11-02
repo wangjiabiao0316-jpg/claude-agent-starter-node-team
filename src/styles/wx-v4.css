@@ -921,11 +921,9 @@ button { cursor: pointer; }
 .chat-inputrow button { height: 34px; padding: 0 16px; border-radius: 8px; border: 1px solid #2b8f6f; background: linear-gradient(135deg, #2f9e78, #237a5c); color: #fff; font-size: 12px; cursor: pointer; flex-shrink: 0; }
 .chat-inputrow button:disabled { opacity: .45; cursor: not-allowed; }
 
-/* —— V4.1 综合结论页：整页锁视口高，浓缩看板（无瀑布流） —— */
+/* —— V4.1 综合结论页：整页锁视口高，浓缩看板（无瀑布流）；页眉复用全局 .page-head —— */
 .screen.conclusion-screen { height: calc(100vh - 68px); min-height: 0; padding: 24px 0 18px; overflow: hidden; }
 .screen.conclusion-screen .shell { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
-.conclusion-topline { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex: none; }
-.conclusion-h1 { font-size: 26px; margin: 6px 0 4px; font-weight: 640; color: var(--text); }
 .conclusion-topline-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .conclusion-hero { flex: none; }
 .conclusion-hero .verdict-line { font-size: 26px; line-height: 1.45; margin: 9px 0 10px; }
@@ -941,3 +939,50 @@ button { cursor: pointer; }
 .export-menu button:hover { background: #1d2f3f; }
 .export-menu b { font-size: 12px; font-weight: 600; }
 .export-menu small { font-size: 10px; color: #7d919f; }
+
+/* ============================================================
+   V4.2 — 七 agent 核心结论模块（ConclusionMatrix，对齐设计稿红框）
+   版式：模块头 + 清单主表（左）+ 选中条目详情（右），主-从联动
+   ============================================================ */
+
+.cm { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.cm-head { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid #2c3a45; }
+.cm-title { font-size: 16px; font-weight: 620; margin: 4px 0 0; color: var(--text); letter-spacing: .5px; }
+
+/* 主-从双栏：左主表弹性，右详情固定宽；窄屏退化为上下堆叠 */
+.cm-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr); gap: 12px; }
+
+/* —— 左：清单主表 —— */
+.cm-table { min-height: 0; display: flex; flex-direction: column; border: 1px solid #2d3d4a; border-radius: 9px; background: #16232e; overflow: hidden; }
+.cm-thead { flex: none; display: grid; gap: 10px; padding: 9px 14px; border-bottom: 1px solid #2d3d4a; background: #1b2b38; font-size: 9.5px; letter-spacing: 1px; color: #7d919f; }
+.cm-tbody { flex: 1; min-height: 0; overflow-y: auto; }
+.cm-row { width: 100%; display: grid; gap: 10px; align-items: center; padding: 11px 14px; border: 0; border-bottom: 1px solid #243240; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background 0.15s; }
+.cm-row:last-child { border-bottom: 0; }
+.cm-row:hover { background: #1c2b38; }
+.cm-row.selected { background: #213648; box-shadow: inset 3px 0 0 var(--gold); }
+.cm-cell { min-width: 0; font-size: 11.5px; color: #cfd9e0; line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-cell-title { color: #eef3f6; font-weight: 600; font-size: 12px; }
+.cm-cell-badge .lamp-badge, .cm-cell-badge .tag { max-width: 100%; }
+.cm-cell-evidence { color: #8fa3b0; font-size: 10.5px; }
+.cm-dash { color: #4c5f6e; }
+
+/* —— 右：选中条目详情 —— */
+.cm-detail { min-height: 0; display: flex; flex-direction: column; gap: 10px; border: 1px solid #2d3d4a; border-radius: 9px; background: #16232e; padding: 13px 15px; overflow-y: auto; }
+.cm-detail-head { flex: none; font-size: 10px; letter-spacing: 1.5px; color: #7d919f; }
+.cm-detail-title { flex: none; font-size: 13.5px; font-weight: 620; color: var(--gold2); line-height: 1.45; padding-bottom: 9px; border-bottom: 1px solid #2c3a45; overflow-wrap: anywhere; }
+.cm-dl { display: flex; flex-direction: column; }
+.cm-dl-row { display: flex; flex-direction: column; gap: 4px; padding: 9px 0; border-bottom: 1px solid #243240; }
+.cm-dl-row:last-child { border-bottom: 0; }
+.cm-dl-key { font-size: 10px; color: #7d919f; letter-spacing: 1px; flex: none; }
+.cm-dl-val { font-size: 12px; color: #e2eaf0; line-height: 1.65; overflow-wrap: anywhere; }
+
+/* —— 详情底部：模块级结论与建议 —— */
+.cm-verdict { margin-top: auto; padding-top: 11px; border-top: 1px solid #2c3a45; }
+.cm-verdict-head { font-size: 10px; letter-spacing: 1.5px; color: #9a8a6c; margin-bottom: 6px; }
+.cm-verdict p { margin: 5px 0; font-size: 11.5px; color: #e0c9a2; line-height: 1.65; overflow-wrap: anywhere; }
+
+/* —— 响应式：窄屏主-从改上下堆叠，详情不再滚动 —— */
+@media (max-width: 1080px) {
+  .cm-grid { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+  .cm-detail { max-height: 300px; }
+}

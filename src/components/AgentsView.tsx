@@ -76,6 +76,15 @@ export const AgentsView: React.FC<Props> = ({
   return (
     <section className="screen active agent-screen">
       <div className="shell">
+        {/* —— 页眉：与其他屏同构（eyebrow + 主题词 + 副题），高度与位置一致 —— */}
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">{t('agents.eyebrow')}</p>
+            <h1>{t('agents.title')}</h1>
+            <p>{t('app.subtitle')}</p>
+          </div>
+        </div>
+
         {/* —— 顶：编排流水线 + 工具状态 —— */}
         <div className="agent-topline">
           <PipelineBar

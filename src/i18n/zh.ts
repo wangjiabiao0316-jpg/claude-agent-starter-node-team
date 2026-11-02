@@ -2,6 +2,8 @@ const zh = {
   // Header
   "app.title": "问牛工",
   "app.subtitle": "万象更芯 · 智算营城",
+  "agents.title": "七大 Agent 工作区",
+  "agents.eyebrow": "AGENTS WORKSPACE",
 
   // Empty state
   "empty.title": "Claude Agent Starter",

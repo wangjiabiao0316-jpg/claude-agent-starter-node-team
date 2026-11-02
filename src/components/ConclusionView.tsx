@@ -49,7 +49,7 @@ export const ConclusionView: React.FC<Props> = ({
   outputs,
   onOpenAgents,
 }) => {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const zh = lang === 'zh';
 
   // 演示态：未跑 agent（outputs 空且无 report）时预填演示数据
@@ -98,14 +98,12 @@ export const ConclusionView: React.FC<Props> = ({
   return (
     <section className="screen active conclusion-screen">
       <div className="shell">
-        {/* —— 顶行：标题 | 演示 tag + 导出结论下拉 —— */}
-        <div className="conclusion-topline">
+        {/* —— 页眉：与其他屏同构（eyebrow + 主题词 + 副题），高度与位置一致 —— */}
+        <div className="page-head">
           <div style={{ minWidth: 0 }}>
             <p className="eyebrow">06 / EXECUTIVE CONCLUSION</p>
-            <h1 className="conclusion-h1">{zh ? '项目综合决策结论' : 'Executive Conclusion'}</h1>
-            <p className="muted" style={{ fontSize: 12, margin: 0 }}>
-              {zh ? '先呈现项目判断，再提供指标、维度依据与待办事项。' : 'Verdict first, then metrics, dimensions and actions.'}
-            </p>
+            <h1>{zh ? '项目综合决策结论' : 'Executive Conclusion'}</h1>
+            <p>{t('app.subtitle')}</p>
           </div>
           <div className="conclusion-topline-right">
             {isDemo && <span className="tag warn">{zh ? '演示数据 · 非正式投资意见' : 'DEMO DATA'}</span>}
