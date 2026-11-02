@@ -25,6 +25,12 @@ interface ProductHomeProps {
 export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
   const { t, lang } = useT();
 
+  // lead 行拆分：品牌组合只对齐主文案段（括号补充说明不算宽）
+  const leadText = t('welcome.subtitle');
+  const cutAt = leadText.indexOf('（') >= 0 ? leadText.indexOf('（') : leadText.indexOf('(');
+  const leadMain = cutAt > 0 ? leadText.slice(0, cutAt) : leadText;
+  const leadRest = cutAt > 0 ? leadText.slice(cutAt) : '';
+
   // 主题位品牌组合等比放大：宽度对齐下方 lead 文本行（zoom 等比缩放整组，布局占位同步）
   const brandRef = useRef<HTMLDivElement | null>(null);
   const leadRef = useRef<HTMLSpanElement | null>(null);
@@ -78,7 +84,8 @@ export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
             </span>
           </div>
           <p className="hero-lead">
-            <span ref={leadRef}>{t('welcome.subtitle')}</span>
+            <span ref={leadRef}>{leadMain}</span>
+            {leadRest && <span>{leadRest}</span>}
           </p>
           <p className="hero-desc">{t('home.intro')}</p>
           <div className="hero-foot">
