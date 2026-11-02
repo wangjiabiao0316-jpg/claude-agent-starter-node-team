@@ -101,7 +101,7 @@ export const ConclusionView: React.FC<Props> = ({
         {/* —— 页眉：与其他屏同构（eyebrow + 主题词 + 副题），高度与位置一致 —— */}
         <div className="page-head">
           <div style={{ minWidth: 0 }}>
-            <h1>{zh ? '项目综合决策结论' : 'Executive Conclusion'}</h1>
+            <h1>{zh ? '综合决策结论' : 'Executive Conclusion'}</h1>
             <p>Executive Project Conclusion</p>
           </div>
           <div className="conclusion-topline-right">
