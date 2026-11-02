@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { ToolLampState, Message, AgentOutput } from '../types';
+import type { Message, AgentOutput } from '../types';
 import type { RawSseEvent } from '../api';
 import PipelineBar from './PipelineBar';
 import AgentBoard from './AgentBoard';
@@ -23,7 +23,6 @@ import { useT } from '../i18n';
  * dockMode：'chat' 对话（默认）/ 'debug' TRACE / 'code' 代码视图。
  */
 interface Props {
-  lamps: ToolLampState[];
   skillInUse: string | null;
   onStop: () => void;
   loading: boolean;
@@ -44,7 +43,6 @@ function agentCode(index: number): string {
 }
 
 export const AgentsView: React.FC<Props> = ({
-  lamps,
   skillInUse,
   onStop,
   loading,
@@ -76,12 +74,11 @@ export const AgentsView: React.FC<Props> = ({
   return (
     <section className="screen active agent-screen">
       <div className="shell">
-        {/* —— 页眉：与其他屏同构（eyebrow + 主题词 + 副题），高度与位置一致 —— */}
+        {/* —— 页眉：与其他屏同构（eyebrow + 主题词 + 英文小字），高度与位置一致 —— */}
         <div className="page-head">
           <div>
-            <p className="eyebrow">{t('agents.eyebrow')}</p>
             <h1>{t('agents.title')}</h1>
-            <p>{t('app.subtitle')}</p>
+            <p>Seven-Agent Workspace</p>
           </div>
         </div>
 
@@ -97,11 +94,6 @@ export const AgentsView: React.FC<Props> = ({
             }}
           />
           <div className="tool-lamps">
-            {lamps.map((lamp) => (
-              <span key={lamp.id} className={`tool-lamp ${lamp.active ? 'on' : ''}`} title={lamp.label}>
-                {lamp.icon} {lamp.label}
-              </span>
-            ))}
             {skillInUse && <span className="skill-pill">⚡ {skillInUse}</span>}
             {loading && (
               <button type="button" className="stop-btn" onClick={onStop} aria-label={t('aria.stopGeneration')}>

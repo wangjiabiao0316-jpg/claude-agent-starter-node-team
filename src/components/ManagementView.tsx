@@ -62,9 +62,8 @@ export const ManagementView: React.FC<Props> = (props) => {
       <div className="shell">
         <div className="page-head">
           <div>
-            <p className="eyebrow">{t('management.eyebrow')}</p>
             <h1>{t('management.title')}</h1>
-            <p>{t('app.subtitle')}</p>
+            <p>Project Asset Summary</p>
           </div>
         </div>
 

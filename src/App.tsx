@@ -157,7 +157,8 @@ function AppInner() {
   })), [t]);
 
   const [messages, setMessages] = useState<Message[]>([]);
-  const [lamps, setLamps]       = useState<ToolLampState[]>(buildLamps);
+  // 工具灯 UI 已从智能体顶栏移除；状态与 SSE 更新保留，便于日后恢复展示
+  const [, setLamps]            = useState<ToolLampState[]>(buildLamps);
   const [loading, setLoading]   = useState(false);
   // === uiStage 状态机(改造引入)===
   // Top-level UI state machine. Drives conditional rendering in later tasks
@@ -1285,7 +1286,6 @@ function AppInner() {
         )}
         {uiStage === 'agents' && (
           <AgentsView
-            lamps={lamps}
             skillInUse={skillInUse}
             onStop={handleStop}
             loading={loading}
