@@ -208,7 +208,7 @@ const zh = {
   // === V3.0 六屏单屏导航 ===
   "nav.home": "产品介绍",
   "nav.management": "项目管理",
-  "nav.agents": "智能体",
+  "nav.agents": "智能体群",
   "nav.conclusion": "综合结论",
 
   // 项目管理屏

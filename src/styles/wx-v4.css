@@ -29,7 +29,10 @@
 
 /* ── B. 基础 + 顶栏 ─────────────────────────────────────── */
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+/* scrollbar-gutter:stable —— 三屏 topbar 右侧元素恒定对齐：
+   项目管理页可滚动(滚动条出现)、智能体/结论页锁视口(无滚动条)，
+   不保留沟槽时顶栏右侧元素会左右差 5px */
+html { scroll-behavior: smooth; scrollbar-gutter: stable; }
 body {
   margin: 0;
   background: var(--bg);
@@ -189,8 +192,14 @@ button { cursor: pointer; }
 .hero-lead { font-size: 18px; letter-spacing: 3px; color: #e5e9ec; margin-bottom: 18px; }
 .hero-desc { font-size: 13px; line-height: 1.9; color: #aebbc7; max-width: 560px; }
 .hero-foot { display: flex; align-items: center; gap: 22px; margin-top: 44px; }
-.hero-project { padding-left: 13px; font-size: 14px; }
-.hero-project small { display: block; color: #a0afbd; font-size: 9px; letter-spacing: 1.6px; margin-top: 4px; }
+.hero-project { padding-left: 13px; font-size: 12px; letter-spacing: 1.6px; color: #a0afbd; }
+/* —— hero 主题位：左上角品牌块复制（放大版，样式同 .brand-*） —— */
+.hero-brand { display: flex; align-items: center; gap: 24px; margin: 6px 0 26px; }
+.hero-brand .brand-mark { width: 76px; height: 76px; font-size: 46px; border-radius: 14px; border-width: 1.5px; }
+.hero-brand .brand-mark .mark-ai { top: -10px; right: -14px; font-size: 11px; padding: 2px 6px; }
+.hero-brand .brand-name { font-size: 44px; letter-spacing: 4px; }
+.hero-brand .brand-title { font-size: 64px; -webkit-text-stroke: 1px currentColor; }
+.hero-brand .brand-en { font-size: 14px; letter-spacing: 6px; margin-top: 10px; color: var(--gold2); }
 .hero-index { position: absolute; right: clamp(28px, 4vw, 72px); bottom: 22px; z-index: 2; color: #9aaab9; font-size: 10px; letter-spacing: 2px; opacity: 0.55; }
 .hero-stamp {
   position: absolute; right: 7%; top: 12%; z-index: 2;
@@ -877,9 +886,26 @@ button { cursor: pointer; }
 .ab-verdict-body { display: flex; align-items: center; gap: 12px; min-height: 0; }
 .ab-verdict-text { min-width: 0; flex: 1; }
 .ab-verdict-text p { margin: 0; font-size: 12px; color: #d5dfe6; line-height: 1.6; }
-.ab-idle { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #5f7280; }
-.ab-idle-mark { font-size: 34px; opacity: .5; }
-.ab-idle p { margin: 0; font-size: 12px; line-height: 1.7; max-width: 280px; text-align: center; }
+/* —— V4.3 固定模板：状态条 / 占位文字 / 三态迷你图表 —— */
+.ab-pending { color: #5f7280 !important; }
+.ab-status { flex: none; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px dashed #33465a; border-radius: 10px; background: #16232e; }
+.ab-status.running { border-style: solid; border-color: #3f5a74; }
+.ab-status-emoji { font-size: 22px; line-height: 1; }
+.ab-status.running .ab-status-emoji { animation: wxpulse 1.2s ease-in-out infinite; }
+.ab-status-text { min-width: 0; }
+.ab-status-text b { display: block; font-size: 12px; color: #d5dfe6; }
+.ab-status-text small { font-size: 10px; color: #7d919f; }
+.board-chart { flex: none; position: relative; border: 1px solid #243440; border-radius: 10px; background: #16232e; padding: 10px 14px 12px; }
+.bc-head { display: flex; justify-content: space-between; align-items: center; font-size: 10px; letter-spacing: 2px; color: #7d919f; margin-bottom: 9px; }
+.bc-state { letter-spacing: 1px; color: #8fa3b0; }
+.bc-plot { display: grid; gap: 7px; }
+.bc-row { display: grid; grid-template-columns: 76px 1fr 64px; align-items: center; gap: 10px; }
+.bc-label { font-size: 11px; color: #8fa3b0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bc-track { position: relative; height: 10px; border-radius: 5px; border: 1px solid #293845; background: repeating-linear-gradient(90deg, #1d2a36 0 18px, #223140 18px 36px); overflow: hidden; }
+.bc-track i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 5px; background: linear-gradient(90deg, #2b8f6f, #4fd1a5); transition: width .5s ease; }
+.bc-running .bc-track i { background: linear-gradient(90deg, #96774f, #e8b84b); }
+.bc-val { font-size: 11px; color: #d5dfe6; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bc-empty { position: absolute; inset: 36px 14px 12px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #5f7280; background: rgba(22, 35, 46, 0.72); pointer-events: none; }
 
 /* —— 运行态 per-agent 小动效：
       a1 闸门脉冲 / a2 文档翻页 / a3 金币弹跳 / a4 柱状生长 /

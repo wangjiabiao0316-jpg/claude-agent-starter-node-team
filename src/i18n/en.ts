@@ -208,7 +208,7 @@ const en = {
   // === V3.0 six-screen single-page nav ===
   "nav.home": "Product",
   "nav.management": "Projects",
-  "nav.agents": "Agents",
+  "nav.agents": "Agent Swarm",
   "nav.conclusion": "Conclusion",
 
   // Project management screen

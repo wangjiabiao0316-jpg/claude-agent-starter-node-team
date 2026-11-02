@@ -4,20 +4,21 @@ import { readLamp } from '../lib/pipeline';
 import { buildConclusionMatrix } from '../lib/conclusionMatrix';
 import { AGENT_TABS } from './AgentPane';
 import ConclusionMatrix from './ConclusionMatrix';
+import BoardChart, { type BarSpec } from './BoardChart';
 import { useT } from '../i18n';
 
 /**
- * AgentBoard —— 中栏结论看板（V4.2）。
+ * AgentBoard —— 中栏结论看板（V4.3 固定模板版）。
  *
- * 有结构化结论数据时优先渲染核心结论模块（ConclusionMatrix，
- * 对齐设计稿红框形式：清单主表 + 选中条目详情）；凑不出矩阵时
- * 回退 V4.1 三段式固定版式：
- *   输入重点 —— 从首条用户消息解析出的项目采集字段 chips
- *   输出重点 —— 该 agent output_json 的优先关键字段（最多 6 条）
- *   判定结论 —— 灯色徽章 + 该 agent 自身的结论/建议字段
+ * 三态共用同一套模板骨架（类似模板文件）：
+ *   状态条    —— 待命 / 执行中（per-agent emoji + 动效提示）
+ *   输入重点  —— 固定采集字段 chips（未采集显示「待采集」）
+ *   结论可视化 —— BoardChart 三态：空图表 → 随机数据跳动 → 固定结论数据
+ *   输出重点  —— 固定字段行（未完成显示「结论运算中……」，完成缺字段显示「—」）
+ *   判定结论  —— 灯色徽章 + 结论文字（同上占位规则）
  *
- * agent 还在跑时以 per-agent 小动效替代（agent-motion--a1..a7），
- * 空闲无输出时显示待命态。所有提取都是展示层容错：缺字段直接不渲染。
+ * 完成态凑出核心结论矩阵时优先 ConclusionMatrix，下挂固定图表（结论数据）。
+ * 所有提取都是展示层容错：缺字段显示占位，绝不阻塞版式。
  */
 
 /** 每 agent 看板配置：输入关注的采集字段 label / 输出优先键（子串匹配）/ 结论键 */
@@ -73,6 +74,51 @@ const BOARD_SPECS: Record<string, BoardSpec> = {
   },
 };
 
+/** 每 agent 图表条目：label 固定展示，keys 按 pool 子串匹配抽数值 */
+const CHART_SPECS: Record<string, Array<{ label: string; keys: string[] }>> = {
+  'agent1-固有对象': [
+    { label: 'H1 政策', keys: ['H1'] },
+    { label: 'S1 资产', keys: ['S1'] },
+    { label: 'S2 区位', keys: ['S2'] },
+    { label: '总分', keys: ['总分'] },
+  ],
+  'agent2-政策应答': [
+    { label: '政策匹配', keys: ['匹配'] },
+    { label: '门槛', keys: ['门槛'] },
+    { label: 'H1', keys: ['H1'] },
+  ],
+  'agent3-多元融资': [
+    { label: '综合分', keys: ['综合分'] },
+    { label: 'DSCR', keys: ['DSCR'] },
+    { label: '资本金', keys: ['资本金'] },
+  ],
+  'agent4-财务模型': [
+    { label: 'IRR', keys: ['IRR'] },
+    { label: 'NPV', keys: ['NPV'] },
+    { label: '回收期', keys: ['回收期'] },
+  ],
+  'agent5-失败案例': [
+    { label: 'Top 相似', keys: ['Top', '相似'] },
+    { label: 'S1', keys: ['S1'] },
+    { label: 'S2', keys: ['S2'] },
+    { label: '总分', keys: ['总分'] },
+  ],
+  'agent7-建造判别': [
+    { label: '结构潜力', keys: ['结构'] },
+    { label: '消防转换', keys: ['消防'] },
+    { label: '卫生间路线', keys: ['卫生间'] },
+    { label: '否决项', keys: ['否决', 'fatal'] },
+  ],
+  'agent6-双层决策': [
+    { label: 'H1 政策', keys: ['H1'] },
+    { label: 'H2 财务', keys: ['H2'] },
+    { label: 'H3 运营', keys: ['H3'] },
+    { label: 'H4 工程', keys: ['H4'] },
+  ],
+};
+
+const clamp = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
+
 /** 展示值格式化：对象/数组压缩为短文本 */
 function fmtValue(v: unknown): string {
   if (v === null || v === undefined) return '';
@@ -85,8 +131,6 @@ function fmtValue(v: unknown): string {
   }
   return JSON.stringify(v);
 }
-
-const clamp = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
 /** 顶层 + 一层嵌套对象平铺（嵌套键显示为 父.子），供字段匹配 */
 function flattenOnce(json: Record<string, unknown>): Record<string, unknown> {
@@ -103,24 +147,39 @@ function flattenOnce(json: Record<string, unknown>): Record<string, unknown> {
   return pool;
 }
 
-/** 按 keys 优先序从平铺池抽 kv（子串匹配；跳过内部字段与灯色，灯色走徽章） */
-function pickFields(pool: Record<string, unknown>, keys: string[], limit: number): Array<[string, string]> {
-  const rows: Array<[string, string]> = [];
-  const used = new Set<string>();
-  for (const key of keys) {
-    const hit = Object.keys(pool).find(
-      (k) => !used.has(k) && !k.includes('灯') && k.includes(key),
-    );
-    if (hit) {
-      const val = clamp(fmtValue(pool[hit]), 80);
-      if (val) {
-        rows.push([hit, val]);
-        used.add(hit);
+/** 模板行：每个固定字段必出一行（label 恒定），未命中 → null（上层渲染占位） */
+function templateRows(pool: Record<string, unknown>, keys: string[]): Array<[string, string | null]> {
+  return keys.map((key) => {
+    const hit = Object.keys(pool).find((k) => !k.includes('灯') && k.includes(key));
+    const val = hit ? clamp(fmtValue(pool[hit]), 80) : null;
+    return [key, val || null];
+  });
+}
+
+/** 从展示值抽数字：数字直取；字符串取首个数值片段；布尔转 0/1；纯文本 → null */
+function numFrom(v: unknown): number | null {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'boolean') return v ? 1 : 0;
+  if (typeof v === 'string') {
+    const m = v.match(/-?\d+(\.\d+)?/);
+    return m ? parseFloat(m[0]) : null;
+  }
+  return null;
+}
+
+/** 图表数据：label 骨架恒定；值按 pool 匹配（数字驱动柱长，纯文本仅展示） */
+function buildBars(agentId: string, pool: Record<string, unknown>): BarSpec[] {
+  const items = CHART_SPECS[agentId] ?? [];
+  return items.map(({ label, keys }) => {
+    for (const key of keys) {
+      const hit = Object.keys(pool).find((k) => !k.includes('灯') && k.includes(key));
+      if (hit) {
+        const display = clamp(fmtValue(pool[hit]), 24);
+        return { label, value: numFrom(pool[hit]), display: display || null };
       }
     }
-    if (rows.length >= limit) break;
-  }
-  return rows;
+    return { label, value: null, display: null };
+  });
 }
 
 /** 首条用户消息 →「- 城市:重庆」行解析（composeProjectPrompt 的行格式） */
@@ -134,6 +193,9 @@ function parseIntake(messages: Message[]): Record<string, string> {
   }
   return map;
 }
+
+/** per-agent 状态条 emoji（顺序同 AGENT_TABS 展示序） */
+const STATUS_EMOJI = ['🏠', '📑', '💰', '📊', '⚠️', '🏗️', '🚦'];
 
 interface Props {
   outputs: Record<string, AgentOutput>;
@@ -163,102 +225,76 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
     () => (output?.output_json ? flattenOnce(output.output_json) : {}),
     [output],
   );
-  const outRows = useMemo(() => pickFields(pool, spec.outputKeys, 6), [pool, spec]);
-  const verdictRows = useMemo(() => pickFields(pool, spec.verdictKeys, 2), [pool, spec]);
+  const outRows = useMemo(() => templateRows(pool, spec.outputKeys), [pool, spec]);
+  const verdictRows = useMemo(() => templateRows(pool, spec.verdictKeys), [pool, spec]);
+  const bars = useMemo(() => buildBars(activeAgentId, pool), [activeAgentId, pool]);
 
   // 核心结论矩阵（V4.2）：output_json 优先，缺失时从 summary 的结论 JSON /
-  // markdown 表格提取；凑不出矩阵（返回 null）走三段式回退版式
+  // markdown 表格提取；凑不出矩阵（返回 null）走模板版式
   const matrix = useMemo(
     () => buildConclusionMatrix(activeAgentId, output?.output_json, output?.summary),
     [activeAgentId, output],
   );
 
   const running = loading && !output;
+  // 图表三态：有输出=固定结论数据；运行中=随机跳动；待命=空图表
+  const chartState: 'idle' | 'running' | 'done' = output ? 'done' : running ? 'running' : 'idle';
+  // 占位文案：未完成 → 结论运算中……；已完成但缺字段 → —
+  const pending = zh ? '结论运算中……' : 'computing…';
+  const missing = zh ? '—' : '—';
+  const fieldPlaceholder = output ? missing : pending;
 
-  // —— 运行态：per-agent 小动效 ——
-  if (running) {
-    return (
-      <div className="agent-board">
-        <div className={`agent-motion agent-motion--a${idx + 1}`}>
-          <div className="motion-art">
-            {idx === 0 && <span className="art-emoji art-gate">🏠</span>}
-            {idx === 1 && <span className="art-emoji art-flip">📑</span>}
-            {idx === 2 && <span className="art-emoji art-coin">💰</span>}
-            {idx === 3 && (
-              <span className="art-bars">
-                <i /><i /><i />
-              </span>
-            )}
-            {idx === 4 && (
-              <span className="art-radar">
-                <i className="ring" />
-                <i className="sweep" />
-                <span className="core">⚠</span>
-              </span>
-            )}
-            {idx === 5 && <span className="art-emoji art-crane">🏗️</span>}
-            {idx === 6 && (
-              <span className="art-lamps">
-                <i /><i /><i />
-              </span>
-            )}
-          </div>
-          <div className="motion-label">
-            {meta?.name} · {zh ? '执行中' : 'running'}
-          </div>
-          <div className="motion-hint">{spec.motion}</div>
-          <div className="motion-bar"><span /></div>
-        </div>
-      </div>
-    );
-  }
-
-  // —— 空闲待命态 ——
-  if (!output) {
-    return (
-      <div className="agent-board">
-        <div className="ab-idle">
-          <span className="ab-idle-mark">{meta?.emoji}</span>
-          <p>{zh ? '该智能体待命。发送项目信息后，这里展示它的输入、输出与判定。' : 'Standby. Send a project to see input, output and verdict here.'}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // —— 核心结论模块态：矩阵优先（对齐设计稿红框呈现） ——
+  // —— 核心结论模块态：矩阵优先 + 固定图表（结论数据已落定） ——
   if (matrix) {
     return (
       <div className="agent-board">
         <ConclusionMatrix model={matrix} />
+        <BoardChart state="done" bars={bars} zh={zh} />
       </div>
     );
   }
 
-  // —— 回退：三段固定版式 ——
-  const inputChips = spec.inputKeys.filter((k) => intake[k]);
+  // —— 统一模板版式：待命 / 运行 / 完成三态共用骨架 ——
   return (
     <div className="agent-board">
+      {/* 状态条：待命 / 执行中（完成后隐藏腾空间） */}
+      {!output && (
+        <div className={`ab-status ${running ? 'running' : ''}`}>
+          <span className="ab-status-emoji">{STATUS_EMOJI[idx] ?? '⚙️'}</span>
+          <div className="ab-status-text">
+            <b>
+              {meta?.name} · {running ? (zh ? '执行中' : 'running') : zh ? '待命' : 'standby'}
+            </b>
+            <small>{running ? spec.motion : zh ? '等待编排器调度' : 'waiting for orchestrator'}</small>
+          </div>
+        </div>
+      )}
+
       <div className="ab-row ab-input">
         <div className="ab-head">{zh ? '输入重点' : 'INPUT'}</div>
         <div className="ab-chips">
-          {inputChips.length === 0 && <span className="ab-empty">{zh ? '未解析到采集字段' : 'no parsed fields'}</span>}
-          {inputChips.map((k) => (
+          {spec.inputKeys.length === 0 && <span className="ab-empty">{zh ? '无采集字段' : 'no fields'}</span>}
+          {spec.inputKeys.map((k) => (
             <span key={k} className="ab-chip">
               <i>{k}</i>
-              <b>{intake[k]}</b>
+              <b className={intake[k] ? '' : 'ab-pending'}>{intake[k] || (zh ? '待采集' : '—')}</b>
             </span>
           ))}
         </div>
       </div>
 
+      <BoardChart state={chartState} bars={bars} zh={zh} />
+
       <div className="ab-row ab-output">
         <div className="ab-head">{zh ? '输出重点' : 'OUTPUT'}</div>
         <div className="ab-kv">
-          {outRows.length === 0 && <span className="ab-empty">{zh ? '暂无结构化字段' : 'no fields'}</span>}
+          {outRows.length === 0 && <span className="ab-empty">{zh ? '无输出字段' : 'no fields'}</span>}
           {outRows.map(([k, v]) => (
             <div key={k} className="ab-kv-row">
               <span className="ab-kv-key">{k}</span>
-              <span className="ab-kv-val" title={v}>{v}</span>
+              <span className={`ab-kv-val ${v ? '' : 'ab-pending'}`} title={v ?? undefined}>
+                {v || fieldPlaceholder}
+              </span>
             </div>
           ))}
         </div>
@@ -275,13 +311,15 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
                   ? zh ? '黄灯 · 有条件通过' : 'Conditional'
                   : zh ? '红灯 · 不通过' : 'Blocked'}
             </span>
-          ) : (
+          ) : output ? (
             <span className="tag neutral">{zh ? '无灯色' : 'no lamp'}</span>
+          ) : (
+            <span className="tag neutral ab-pending">{pending}</span>
           )}
           <div className="ab-verdict-text">
-            {verdictRows.length === 0 && <span className="ab-empty">{zh ? '暂无结论字段' : 'no verdict'}</span>}
+            {verdictRows.every(([, v]) => !v) && <p className="ab-pending">{fieldPlaceholder}</p>}
             {verdictRows.map(([k, v]) => (
-              <p key={k} title={v}>{clamp(v, 64)}</p>
+              v ? <p key={k} title={v}>{clamp(v, 64)}</p> : null
             ))}
           </div>
         </div>

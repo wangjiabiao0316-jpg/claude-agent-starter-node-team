@@ -25,10 +25,6 @@ interface ProductHomeProps {
 export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
   const { t, lang } = useT();
 
-  // 大标题拆金色 span（中英文断句不同，按 lang 硬拆最稳）
-  const titleA = lang === 'zh' ? '万象更芯 · ' : 'Urban Core · ';
-  const titleB = lang === 'zh' ? '智算营城' : 'AI Decision Engine';
-
   // product-visual 左侧文案（视觉叙事件，内联双语）
   const visualCopy = lang === 'zh'
     ? { h3a: '七大智能体，', h3b: '一份上会答卷', p: '从产权筛查到财务测算，从政策合规到失败案例对标——链路上每一步的判定都留有证据与轨迹，可回溯、可复核、可迭代。' }
@@ -47,21 +43,24 @@ export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
       <div className="hero">
         <div className="hero-content">
           <p className="hero-overline">{t('welcome.eyebrow')}</p>
-          {/* 中文标题强制单行；英文更长，保持自然折行 */}
-          <h1 className={lang === 'zh' ? 'hero-title-zh' : undefined}>
-            {titleA}
-            <span>{titleB}</span>
-          </h1>
+          {/* —— 主题位：左上角品牌块复制（放大版：牛字方块 + AI 冒泡 + 问牛工 + 副标） —— */}
+          <div className="hero-brand">
+            <span className="brand-mark">
+              <span className="mark-niu">牛</span>
+              <i className="mark-ai">AI</i>
+            </span>
+            <span className="brand-name">
+              <span className="brand-title">{t('app.title')}</span>
+              <span className="brand-en">{t('app.subtitle')}</span>
+            </span>
+          </div>
           <p className="hero-lead">{t('welcome.subtitle')}</p>
           <p className="hero-desc">{t('home.intro')}</p>
           <div className="hero-foot">
             <button type="button" className="btn primary" onClick={onStart}>
               {t('home.cta')} →
             </button>
-            <span className="hero-project">
-              {t('app.title')}
-              <small>CSCEC · EDGEONE MAKERS</small>
-            </span>
+            <span className="hero-project">CSCEC · EDGEONE MAKERS</span>
           </div>
         </div>
         <span className="hero-stamp">CSCEC · URBAN RENEWAL · AI</span>
