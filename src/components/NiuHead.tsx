@@ -1,23 +1,37 @@
 import React from 'react';
 
 /**
- * NiuHead —— 「牛」字象形图形（金文风格笔画），品牌方块内使用。
+ * NiuHead —— 牛头剪影（无框 logo 图形）。
  *
- * 双角上仰内拢、中笔短竖、横笔两端上挑、竖笔下展收尖，笔画跟随容器 currentColor（var(--gold)）。
- * 与 .brand-mark 方块配合：svg 占方块约 72%，右上角 AI 气泡由 .mark-ai 承担。
+ * 实心剪影：双长角上扬外展、两侧尖耳、面部收窄至吻部，双眼为镂空缝形
+ * （fillRule=evenodd 挖洞，透出底色）。笔画/填充跟随容器 currentColor（var(--gold)）。
+ * 与 .brand-mark（无边框）配合，右上角 AI 气泡由 .mark-ai 承担。
  */
 const NiuHead: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-    {/* 左角 */}
-    <path d="M15.5 3.5 C11 7.5 9.5 13 12.5 17 C14.2 19.3 17.5 21.5 22 23.5" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-    {/* 右角（镜像） */}
-    <path d="M32.5 3.5 C37 7.5 38.5 13 35.5 17 C33.8 19.3 30.5 21.5 26 23.5" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-    {/* 中笔：两角之间的短竖 */}
-    <path d="M24 6 L24 22.5" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-    {/* 横笔：两端上挑 */}
-    <path d="M6.5 23.5 C8.5 26 11 26.8 14 26.8 L34 26.8 C37 26.8 39.5 26 41.5 23.5" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" />
-    {/* 竖笔：向下展笔收尖 */}
-    <path d="M22.2 25 L25.8 25 L24.8 43 Q24 45.4 23.2 43 Z" fill="currentColor" />
+    <path
+      fill="currentColor"
+      fillRule="evenodd"
+      d="M5.5 3.5
+         C2.8 9 2.6 17 6.3 23.2
+         L3.2 26.8
+         C5 27.9 7.2 28.9 9.8 29.9
+         C11.4 33.6 12.8 37.4 14.2 41
+         Q14.8 44.2 17.5 44.2
+         L30.5 44.2
+         Q33.2 44.2 33.8 41
+         C35.2 37.4 36.6 33.6 38.2 29.9
+         C40.8 28.9 43 27.9 44.8 26.8
+         L41.7 23.2
+         C45.4 17 45.2 9 42.5 3.5
+         C39.8 8.8 37 13.8 33.8 18.4
+         Q29.5 23.6 24 23.6
+         Q18.5 23.6 14.2 18.4
+         C11 13.8 8.2 8.8 5.5 3.5
+         Z
+         M14.2 26.4 Q18.4 24.9 21.6 26.6 Q18.2 29.2 14.2 26.4 Z
+         M26.4 26.6 Q29.6 24.9 33.8 26.4 Q29.8 29.2 26.4 26.6 Z"
+    />
   </svg>
 );
 
