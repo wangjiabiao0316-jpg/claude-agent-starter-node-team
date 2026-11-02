@@ -77,16 +77,17 @@ button { cursor: pointer; }
   border-radius: 999px;
 }
 .brand-name { display: inline-flex; flex-direction: column; width: max-content; font-size: 16px; font-weight: 650; letter-spacing: 2px; color: var(--text); }
-/* 问牛工：手绘毛笔感（Ma Shan Zheng，回退楷体/黑体）+ 描边加粗 + scaleY 压扁 */
+/* 问牛工：斜粗黑体（900 + 描边）+ SVG ink-wobble 滤镜让笔画边缘带轻微内弧手绘感 */
 .brand-title {
   display: block;
-  font-family: 'Ma Shan Zheng', 'STXingkai', 'KaiTi', 'SimHei', sans-serif;
-  font-weight: 400;
+  font-family: 'SimHei', 'Microsoft YaHei', sans-serif;
+  font-style: italic; font-weight: 900;
   font-size: 25px; letter-spacing: 0; line-height: 1.1;
-  -webkit-text-stroke: 1px currentColor;
+  -webkit-text-stroke: 0.5px currentColor;
   transform: scaleY(.8);
   transform-origin: left bottom;
   text-align: justify; text-align-last: justify;
+  filter: url(#ink-wobble);
 }
 .brand-en { display: block; font-size: 8.5px; letter-spacing: 1.2px; color: #91a1b0; margin-top: 1px; }
 

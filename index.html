@@ -4,13 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- 顶栏品牌字「问牛工」手绘感字体（马善政毛笔楷书），失败回退系统楷体/黑体 -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet" />
     <title>问牛工 · 万象更芯智算营城</title>
   </head>
   <body>
+    <!-- 品牌「问牛工」笔画边缘手绘抖边滤镜：噪声位移让直线边缘带轻微内弧波动 -->
+    <svg style="position:absolute;width:0;height:0" aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="ink-wobble" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.15" numOctaves="2" seed="7" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.6" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </defs>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
