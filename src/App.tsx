@@ -400,8 +400,7 @@ function AppInner() {
     loadConversation(conversationIdRef.current).finally(() => {
       _historyFetchInFlight = false;
     });
-    // === 刷新页面恢复旧会话时,uiStage 切到 conclusion 查看历史结论 ===
-    setUiStage('conclusion');
+    // 刷新恢复旧会话时停留在产品介绍页（uiStage 保持初始 'home'），由用户自行导航
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

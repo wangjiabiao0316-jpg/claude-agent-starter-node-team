@@ -206,7 +206,7 @@ const en = {
   "wizard.cityMigrationAck": "Got it",
 
   // === V3.0 six-screen single-page nav ===
-  "nav.home": "Product",
+  "nav.home": "Home",
   "nav.management": "Projects",
   "nav.agents": "Agent Swarm",
   "nav.conclusion": "Conclusion",
