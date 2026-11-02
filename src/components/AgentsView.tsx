@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import type { Message, AgentOutput } from '../types';
 import type { RawSseEvent } from '../api';
-import PipelineBar from './PipelineBar';
 import AgentBoard from './AgentBoard';
 import ChatDock from './ChatDock';
 import { AGENT_TABS } from './AgentPane';
@@ -11,8 +10,8 @@ import { useT } from '../i18n';
 /**
  * AgentsView — V4.1 七 agent 工作台（agent-shell 三栏）。
  *
- *   顶 .agent-topline —— 编排流水线（.pipeline）+ 工具灯 / skill / 停止按钮
- *   左 .agent-sidebar —— 七 agent-item（A1~A7 金码块，完成态灯点）
+ *   顶 .agent-topline —— skill / 停止按钮（流水线条已删，状态并入左侧列表灯点）
+ *   左 .agent-sidebar —— 七 agent-item（A1~A7 金码块 + 名称前状态灯点）
  *   中 .agent-main    —— agent-banner（选中 agent 大标题+灯）
  *                        + AgentBoard 结论看板（输入/输出/判定三段，不滚动；
  *                          运行中显示 per-agent 小动效）
@@ -82,17 +81,8 @@ export const AgentsView: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* —— 顶：编排流水线 + 工具状态 —— */}
+        {/* —— 顶：工具状态（skill / 停止按钮） —— */}
         <div className="agent-topline">
-          <PipelineBar
-            outputs={outputs}
-            activeAgentId={activeAgentId}
-            streaming={loading}
-            onSelect={(agentId) => {
-              onAgentSelect(agentId);
-              onDockModeChange('chat');
-            }}
-          />
           <div className="tool-lamps">
             {skillInUse && <span className="skill-pill">⚡ {skillInUse}</span>}
             {loading && (
@@ -123,8 +113,11 @@ export const AgentsView: React.FC<Props> = ({
                     title={out ? `${a.name} · 已完成` : `${a.name} · 待命`}
                   >
                     <span className={`agent-code ${lamp === 'green' ? 'done' : ''}`}>{agentCode(i)}</span>
-                    <span>
-                      <span className="agent-label">{a.name}</span>
+                    <span style={{ minWidth: 0 }}>
+                      <span className="agent-label">
+                        <i className={`agent-dot ${lamp ?? ''}`} aria-hidden="true" />
+                        {a.name}
+                      </span>
                       <span className="agent-caption">
                         {out
                           ? lamp === 'green'

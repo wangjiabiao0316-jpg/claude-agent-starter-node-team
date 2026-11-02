@@ -372,7 +372,7 @@ button { cursor: pointer; }
 .map-thumb { height: 132px; border-radius: 6px; background: url('../assets/wx-map-context.jpg') center/cover; filter: saturate(0.72); }
 
 /* ── H. 七大 Agent 工作区（agent-shell，V2.6 终版） ───────── */
-.agent-topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+.agent-topline { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
 .agent-flow { display: flex; align-items: center; gap: 7px; color: #8d9eae; font-size: 10px; flex-wrap: wrap; }
 .flow-node { border: 1px solid #35495d; padding: 5px 8px; border-radius: 4px; background: none; color: inherit; font-size: 10px; }
 .flow-node.current { color: var(--gold2); border-color: #96774f; background: #2a261f; }
@@ -409,7 +409,12 @@ button { cursor: pointer; }
 .agent-code.done { border-color: #416c5e; color: #9bcab6; background: #19342e; }
 .agent-item.active .agent-code { background: var(--gold); border-color: var(--gold); color: #18232b; }
 .agent-item > span:last-child { display: block; flex: 1 1 auto; min-width: 0; max-width: 100%; }
-.agent-label { display: block; font-size: 12px; line-height: 1.45; font-weight: 650; color: #edf0ef; white-space: normal; overflow-wrap: anywhere; }
+.agent-label { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.45; font-weight: 650; color: #edf0ef; white-space: normal; overflow-wrap: anywhere; }
+/* 名称前状态灯点：绿=通过 黄=有条件 红=不通过 无色=待命 */
+.agent-dot { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #3a4a58; border: 1px solid #4b5e6d; }
+.agent-dot.green { background: #4fd1a5; border-color: #4fd1a5; box-shadow: 0 0 6px rgba(79, 209, 165, 0.55); }
+.agent-dot.yellow { background: #e0b45e; border-color: #e0b45e; box-shadow: 0 0 6px rgba(224, 180, 94, 0.55); }
+.agent-dot.red { background: #e26d5e; border-color: #e26d5e; box-shadow: 0 0 6px rgba(226, 109, 94, 0.55); }
 .agent-caption { display: block; font-size: 10px; line-height: 1.5; color: #a9b5bd; margin-top: 3px; white-space: normal; overflow-wrap: anywhere; }
 .agent-sidebar > .rule { margin: 15px 2px; }
 
