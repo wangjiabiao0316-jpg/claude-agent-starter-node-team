@@ -1,7 +1,7 @@
 const en = {
   // Header
-  "app.title": "Urban Core · AI Decision Engine",
-  "app.subtitle": "Operation-first urban renewal finance & decision agent · EdgeOne Makers",
+  "app.title": "问牛工",
+  "app.subtitle": "Urban Core · AI Decision Engine",
 
   // Empty state
   "empty.title": "Claude Agent Starter",

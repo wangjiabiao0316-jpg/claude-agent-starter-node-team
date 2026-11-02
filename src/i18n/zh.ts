@@ -1,7 +1,7 @@
 const zh = {
   // Header
-  "app.title": "万象更芯 · 智算营城",
-  "app.subtitle": "运营前置视角下的城市更新财务和决策智能体 · EdgeOne Makers",
+  "app.title": "问牛工",
+  "app.subtitle": "万象更芯 · 智算营城",
 
   // Empty state
   "empty.title": "Claude Agent Starter",
