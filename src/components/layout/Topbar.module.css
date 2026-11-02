@@ -1,0 +1,44 @@
+/* 顶栏：三槽（品牌 | 项目上下文 | 操作区） */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px 10px;
+  border-bottom: 1px solid var(--bg-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+/* 项目上下文（B1）居中槽位，占满剩余空间 */
+.context {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 未接线时的空占位：虚线框 + 弱化文字，不虚构任何项目数据 */
+.contextEmpty {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  padding: 6px 14px;
+  border: 1px dashed var(--bg-border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}

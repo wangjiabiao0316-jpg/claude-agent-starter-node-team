@@ -1,0 +1,149 @@
+/* TransitionView — V3.0 transition 屏（新建项目过渡页） */
+.view {
+  display: grid;
+  grid-template-columns: minmax(480px, 1fr) 300px;
+  gap: 24px;
+  padding: 48px 48px 56px;
+  height: 100%;
+  overflow-y: auto;
+  align-items: start;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--cyan);
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: clamp(28px, 3.6vw, 44px);
+  font-weight: 650;
+  letter-spacing: -1.2px;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.stepCard {
+  padding: 22px 20px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, rgba(20, 39, 55, 0.96), rgba(12, 25, 37, 0.98));
+  border: 1px solid rgba(74, 111, 133, 0.48);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.17), inset 0 1px 0 rgba(210, 240, 247, 0.025);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stepCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--cyan);
+  box-shadow: 0 0 18px rgba(99, 201, 220, 0.12);
+}
+
+.stepNum {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gold2);
+  text-shadow: 0 0 20px rgba(231, 201, 154, 0.14);
+}
+
+.stepTitle {
+  margin-top: 10px;
+  font-size: 17px;
+  font-weight: 620;
+  color: var(--text-primary);
+}
+
+.stepDesc {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.cta {
+  margin-top: 8px;
+  align-self: flex-start;
+  padding: 12px 28px;
+  border-radius: 6px;
+  border: 1px solid #e2c28f;
+  background: linear-gradient(110deg, #e2c28f, #c99e68);
+  color: #101b23;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 5px 22px rgba(201, 158, 104, 0.14);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 7px 28px rgba(201, 158, 104, 0.28);
+}
+
+.side {
+  padding: 22px 20px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, rgba(20, 39, 55, 0.96), rgba(12, 25, 37, 0.98));
+  border: 1px solid rgba(74, 111, 133, 0.48);
+}
+
+.sideTitle {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
+.checklist {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checkItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.checkDot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px rgba(99, 201, 220, 0.6);
+}
+
+@media (max-width: 900px) {
+  .view {
+    grid-template-columns: 1fr;
+  }
+  .steps {
+    grid-template-columns: 1fr;
+  }
+}

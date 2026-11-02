@@ -42,13 +42,13 @@ const en = {
   "welcome.ex3Text": "An old factory in Chengdu becomes a cultural-creative park: 180M CNY capex, 28M annual rent, 9M annual opex. Please calculate IRR and NPV.",
   "welcome.ex4Title": "⚠️ Failure Case Match",
   "welcome.ex4Text": "For an urban-village renewal project in Guangzhou, match the top-3 similar failure cases and highlight key risks and mitigations.",
-  "welcome.foot": "SIX AGENTS · ONE DECISION · POWERED BY EDGEONE MAKERS",
+  "welcome.foot": "SEVEN AGENTS · ONE DECISION · POWERED BY EDGEONE MAKERS",
 
   // Product home (the product landing page reached by clicking logo / title)
   // Section 1 · Overview (hero reuses welcome.* eyebrow/title/subtitle above)
   "home.eyebrow": "PRODUCT OVERVIEW",
   "home.introTitle": "What is Urban Core",
-  "home.intro": "An operation-first decision intelligence agent for urban-renewal projects. Enter location, ownership, scale and renovation direction; six agents (heritage objects / policy / financing / financial model / failure cases / two-layer decision) run across the full consulting–investment–construction–operation lifecycle and produce a review-ready traffic-light verdict with supporting evidence.",
+  "home.intro": "An operation-first decision intelligence agent for urban-renewal projects. Enter location, ownership, scale and renovation direction; seven agents (asset gate / policy / financing / financial model / failure validation / two-layer decision / delivery) run across the full consulting–investment–construction–operation lifecycle and produce a review-ready traffic-light verdict with supporting evidence.",
   // Section 2 · Value (three cards)
   "home.valueTitle": "Product Value",
   "home.value1Title": "Full-lifecycle coverage",
@@ -63,7 +63,7 @@ const en = {
   "home.usageTitle": "How to Use",
   "home.usage1": "Click \"Get Started\" below to open the intake wizard.",
   "home.usage2": "Fill the five-step project conditions (city · location · ownership & condition · scale · direction & goal). All optional fields can be edited or revisited.",
-  "home.usage3": "Send the description; the six agents run in dependency order and aggregate into a top-level traffic light plus per-dimension reports.",
+  "home.usage3": "Send the description; the seven agents run in dependency order and aggregate into a top-level traffic light plus per-dimension reports.",
   "home.usage4": "Switch the right-side Dock to inspect each agent, export the review report, or rerun any stage.",
   "home.usage5": "Rerun a stage from its results, or add conditions and re-analyse — keep sharpening the review conclusion.",
   // Flow node short labels (for the diagram; full text shown on hover via home.usage1~5)
@@ -202,6 +202,48 @@ const en = {
   "wizard.cityMigrationTitle": "Non-pilot city",
   "wizard.cityMigrationBody": "Your previously entered city {city} is not in the 15 pilot cities list (agent2 H1 dimension 1). Please choose from the 15 cities, or pick the nearest pilot city as a proxy (results for reference only).",
   "wizard.cityMigrationAck": "Got it",
+
+  // === V3.0 six-screen single-page nav ===
+  "nav.home": "Product",
+  "nav.management": "Projects",
+  "nav.agents": "Agents",
+  "nav.conclusion": "Conclusion",
+
+  // Project management screen
+  "management.eyebrow": "PROJECT SUMMARY",
+  "management.title": "Project Summary",
+  "management.emptyTitle": "No projects yet",
+  "management.emptyHint": "Click \"New Project\" on the right to start",
+  "management.summaryHint": "Select a project on the left to open its decision conclusion.",
+  "management.updatedAt": "Last updated",
+  "management.createLabel": "New Project",
+  "management.createFoot": "SEVEN AGENTS · ONE DECISION",
+
+  // New project transition screen
+  "transition.eyebrow": "NEW PROJECT",
+  "transition.title": "New Project",
+  "transition.subtitle": "Operation-first urban renewal finance & decision agent",
+  "transition.step1Title": "Build Profile",
+  "transition.step1Desc": "Fill 22 fields to build the project asset profile",
+  "transition.step2Title": "Organize Materials",
+  "transition.step2Desc": "Add ownership, heritage and finance details before entering the agents",
+  "transition.step3Title": "Enter Agents",
+  "transition.step3Desc": "Seven agents orchestrate and output the traffic-light verdict",
+  "transition.cta": "Enter Agents →",
+  "transition.sideTitle": "Pre-creation Checklist",
+  "transition.check1": "Location & city (15 pilot cities)",
+  "transition.check2": "Ownership type & heritage level",
+  "transition.check3": "Physical parameters (area / structure / height)",
+  "transition.check4": "Funding (investment / equity / mortgage)",
+  "transition.check5": "Finance & exit strategy",
+
+  // Conclusion screen
+  "conclusion.eyebrow": "DECISION CONCLUSION",
+  "conclusion.title": "Decision Conclusion",
+  "conclusion.emptyTitle": "No decision report yet",
+  "conclusion.emptyHint": "Submit a project on the Agents screen first; the report is generated after the seven-agent run.",
+  "conclusion.download": "Download HTML",
+  "conclusion.chatTitle": "Analysis Process",
 } as const;
 
 export default en;

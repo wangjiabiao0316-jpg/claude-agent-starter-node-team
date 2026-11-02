@@ -42,13 +42,13 @@ const zh = {
   "welcome.ex3Text": "成都一处老旧厂区拟改造为文创园区：改造投入约 1.8 亿元，预估年租金收入 2800 万元、年运营成本 900 万元，请测算 IRR 和 NPV。",
   "welcome.ex4Title": "⚠️ 失败案例匹配",
   "welcome.ex4Text": "广州城中村改造项目，请帮我匹配 Top3 相似失败案例，并提示主要风险点与规避建议。",
-  "welcome.foot": "SIX AGENTS · ONE DECISION · POWERED BY EDGEONE MAKERS",
+  "welcome.foot": "SEVEN AGENTS · ONE DECISION · POWERED BY EDGEONE MAKERS",
 
   // Product home (点击 logo / 产品名进入的产品首页)
   // 板块一·产品简介(hero 区复用上面 welcome.* 的 eyebrow/title/subtitle)
   "home.eyebrow": "产品简介 · PRODUCT OVERVIEW",
   "home.introTitle": "什么是「万象更芯」",
-  "home.intro": "面向城市更新项目的运营前置决策智能体。输入项目区位、产权、规模与改造方向,系统串联六大智能体(固有对象识别 / 政策应答 / 多元融资 / 财务模型 / 失败案例 / 双层决策),覆盖咨询、投资、建设、运营全阶段,自动产出可上会的红绿灯判定与论证材料。",
+  "home.intro": "面向城市更新项目的运营前置决策智能体。输入项目区位、产权、规模与改造方向,系统串联七大智能体(前置闸门 / 政策应答 / 多元融资 / 通用财务 / 失败校验 / 双层决策 / 成果交付),覆盖咨询、投资、建设、运营全阶段,自动产出可上会的红绿灯判定与论证材料。",
   // 板块二·产品价值(三张卡)
   "home.valueTitle": "产品价值",
   "home.value1Title": "咨投建运全阶段覆盖",
@@ -63,7 +63,7 @@ const zh = {
   "home.usageTitle": "使用方法",
   "home.usage1": "点击下方「开始使用」进入采集向导。",
   "home.usage2": "按五步引导填写项目条件(城市 / 区位 · 现状产权 · 规模指标 · 改造方向 · 测算目标),可选填、可返回修改。",
-  "home.usage3": "确认描述后发送,六大智能体依依赖关系串并行执行,结果汇总为顶层红绿灯与分维度报告。",
+  "home.usage3": "确认描述后发送,七大智能体依依赖关系串并行执行,结果汇总为顶层红绿灯与分维度报告。",
   "home.usage4": "在右侧 Dock 切换查看各智能体明细,一键导出上会报告或重新运行某个环节。",
   "home.usage5": "基于报告结果重新运行某环节,或补充条件再次分析,持续打磨上会结论。",
   // 流程图节点的短标签(图示用,完整说明 hover 显示,见 home.usage1~5)
@@ -202,6 +202,48 @@ const zh = {
   "wizard.cityMigrationTitle": "非试点城市",
   "wizard.cityMigrationBody": "你之前填的城市 {city} 不在 agent2 H1 维度1 的 15 个试点城市名单。请从 15 城中重新选择,或选择最近的试点城市作为代算(结果仅供参考)。",
   "wizard.cityMigrationAck": "我知道了",
+
+  // === V3.0 六屏单屏导航 ===
+  "nav.home": "产品介绍",
+  "nav.management": "项目管理",
+  "nav.agents": "智能体",
+  "nav.conclusion": "综合结论",
+
+  // 项目管理屏
+  "management.eyebrow": "PROJECT SUMMARY",
+  "management.title": "项目资产摘要",
+  "management.emptyTitle": "暂无项目",
+  "management.emptyHint": "点击右侧「创建新项目」开始建立档案",
+  "management.summaryHint": "点击左侧项目可进入其综合结论屏，查看七智能体输出与决策结论。",
+  "management.updatedAt": "最近更新",
+  "management.createLabel": "创建新项目",
+  "management.createFoot": "SEVEN AGENTS · ONE DECISION",
+
+  // 新建项目过渡屏
+  "transition.eyebrow": "NEW PROJECT",
+  "transition.title": "创建新项目",
+  "transition.subtitle": "运营前置视角下的城市更新财务与决策智能体",
+  "transition.step1Title": "建立档案",
+  "transition.step1Desc": "填写 22 项项目字段，建立城市更新项目资产档案",
+  "transition.step2Title": "整理资料",
+  "transition.step2Desc": "补充产权、文保、财务等关键信息，准备进入智能体",
+  "transition.step3Title": "进入 Agent",
+  "transition.step3Desc": "七智能体编排执行，输出三色灯决策结论",
+  "transition.cta": "进入 Agent →",
+  "transition.sideTitle": "创建前准备清单",
+  "transition.check1": "项目区位与城市（15 试点城市）",
+  "transition.check2": "产权类型与文保等级",
+  "transition.check3": "物理参数（面积 / 结构 / 高度）",
+  "transition.check4": "资金面（投资 / 资本金 / 抵押）",
+  "transition.check5": "财务与退出策略",
+
+  // 综合结论屏
+  "conclusion.eyebrow": "DECISION CONCLUSION",
+  "conclusion.title": "综合结论",
+  "conclusion.emptyTitle": "暂无决策报告",
+  "conclusion.emptyHint": "请先在「智能体」屏提交项目，等待七智能体编排完成后生成报告。",
+  "conclusion.download": "下载 HTML",
+  "conclusion.chatTitle": "分析过程",
 } as const;
 
 export default zh;

@@ -1,0 +1,48 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  border-radius: 20px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.badgeGreen {
+  color: var(--lamp-green);
+  background: var(--lamp-green-dim);
+}
+.badgeGreen .dot {
+  background: var(--lamp-green);
+}
+.badgeYellow {
+  color: var(--lamp-yellow);
+  background: var(--lamp-yellow-dim);
+}
+.badgeYellow .dot {
+  background: var(--lamp-yellow);
+}
+.badgeRed {
+  color: var(--lamp-red);
+  background: var(--lamp-red-dim);
+}
+.badgeRed .dot {
+  background: var(--lamp-red);
+}
+.badgeNeutral {
+  color: var(--text-secondary);
+  background: var(--bg-chip);
+}
+.badgeNeutral .dot {
+  background: var(--text-secondary);
+}

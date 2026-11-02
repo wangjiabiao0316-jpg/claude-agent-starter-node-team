@@ -43,8 +43,13 @@
   font-size: 2.2rem;
   font-weight: 700;
   letter-spacing: 0.14em;
-  color: var(--accent-silver);
-  filter: drop-shadow(0 0 16px var(--accent-silver-glow));   /* 复用 .logo 辉光语言 */
+  /* V3.0 签名视觉：香槟铜金 → 电光青渐变标题 */
+  background: linear-gradient(120deg, var(--gold2) 0%, var(--gold) 28%, var(--cyan) 72%, var(--cyan2) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 0 18px rgba(99, 201, 220, 0.25));
   line-height: 1.1;
 }
 

@@ -1,0 +1,77 @@
+/* 全局 Shell 骨架：三列栅格（sidebar | main | dock） */
+
+.shell {
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+/* 三列 stage 浮于 CityScene 画布之上 */
+.stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* 左列：纯 flex 定位容器，视觉由 Sidebar 组件自身承担 */
+.sidebarCol {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 中列：主面板（顶栏 + 内容区） */
+.main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative;
+  background: rgba(8, 8, 12, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid var(--bg-border);
+}
+
+.topbarSlot {
+  flex-shrink: 0;
+}
+
+.content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 右列：统一 dock（智能体 / Trace / 代码），承载其视觉 */
+.dockCol {
+  flex: 0 0 400px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: rgba(8, 8, 12, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* ── Responsive ── */
+@media (max-width: 1200px) {
+  .dockCol { flex-basis: 340px; }
+}
+@media (max-width: 900px) {
+  .dockCol { flex-basis: 300px; }
+  .main { border-right: none; }
+}
+@media (max-width: 640px) {
+  .dockCol { display: none; }
+  .main { border-right: none; }
+}

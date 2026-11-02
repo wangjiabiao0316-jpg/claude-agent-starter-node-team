@@ -1,120 +1,24 @@
+/* ============================================================
+   全局基础样式（V4.0 大气版）
+   设计系统主体在 ./styles/wx-v4.css，本文件只保留最底层 reset
+   与根容器约束。语言切换、token、组件样式均在 wx-v4.css。
+   ============================================================ */
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-:root {
-  /* ── 万象更芯 · 智算营城 — monochrome tech theme ── */
-  --bg-base: #050507;
-  --bg-surface: rgba(12, 12, 15, 0.62);
-  --bg-elevated: rgba(20, 20, 25, 0.78);
-  --bg-chip: rgba(255, 255, 255, 0.045);
-  --bg-border: rgba(255, 255, 255, 0.10);
-  --bg-border-strong: rgba(255, 255, 255, 0.20);
-
-  --text-primary: #f2f2f4;
-  --text-secondary: #9aa0a8;
-  --text-muted: #5b6169;
-
-  /* 全界面唯一彩色 = 灯色语义（三色灯判定） */
-  --lamp-green: #3ddc84;
-  --lamp-yellow: #f5c842;
-  --lamp-red: #ff4d4f;
-  --lamp-green-dim: rgba(61, 220, 132, 0.14);
-  --lamp-yellow-dim: rgba(245, 200, 66, 0.14);
-  --lamp-red-dim: rgba(255, 77, 79, 0.14);
-
-  --accent-silver: #e8eaee;
-  --accent-silver-glow: rgba(232, 234, 238, 0.35);
-
-  --user-bubble: rgba(255, 255, 255, 0.08);
-  --user-border: rgba(255, 255, 255, 0.16);
-  --bot-bubble: rgba(255, 255, 255, 0.03);
-  --bot-border: rgba(255, 255, 255, 0.08);
-
-  --font-display: 'Syne', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
-  --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'Syne', sans-serif;
-  --font-mono: 'DM Mono', 'PingFang SC', 'Microsoft YaHei', monospace;
-
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-
-  --shadow-card: 0 12px 48px rgba(0, 0, 0, 0.55);
-  --transition-fast: 140ms cubic-bezier(.4, 0, .2, 1);
-  --transition-med: 280ms cubic-bezier(.4, 0, .2, 1);
-}
-
 html, body, #root {
-  height: 100%;
+  min-height: 100%;
   width: 100%;
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;
+  /* V4.0 页面正常滚动（旧版 overflow:hidden 已废除） */
+  overflow-x: clip;
 }
 
-/* scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
-
-/* Language toggle */
-.lang-toggle {
-  position: fixed;
-  top: 14px;
-  right: 18px;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 1px solid var(--bg-border);
-  background: rgba(10, 10, 12, 0.5);
-  backdrop-filter: blur(12px);
-  cursor: pointer;
-  transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-  line-height: 1;
-}
-.lang-toggle:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: var(--bg-border-strong);
-  box-shadow: 0 0 18px rgba(255, 255, 255, 0.08);
-}
-.lang-toggle:active {
-  transform: scale(0.96);
-}
-.lang-toggle__label {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--text-muted);
-  transition: font-size 0.35s cubic-bezier(.4, 0, .2, 1),
-              color 0.35s cubic-bezier(.4, 0, .2, 1),
-              font-weight 0.35s cubic-bezier(.4, 0, .2, 1),
-              transform 0.35s cubic-bezier(.4, 0, .2, 1),
-              text-shadow 0.35s ease;
-  transform: scale(0.9);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.lang-toggle__label--active {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--accent-silver);
-  transform: scale(1);
-  text-shadow: 0 0 12px var(--accent-silver-glow);
-}
-.lang-toggle__sep {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-muted);
-  opacity: 0.4;
-  margin: 0 3px;
-  user-select: none;
-}
+img { max-width: 100%; display: block; }
+a { color: inherit; }

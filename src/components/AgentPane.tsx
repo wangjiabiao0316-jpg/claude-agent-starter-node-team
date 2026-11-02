@@ -3,21 +3,21 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { AgentOutput } from '../types';
 import { readLamp as readLampFromJson } from '../lib/pipeline';
-import styles from './AgentPane.module.css';
 
 /**
- * AgentPane — the always-on "agent cockpit".
+ * AgentPane — 选中智能体的结构化输出渲染器（V4.0 .agent-body 体系）。
  *
- * Tabs follow the super-skill orchestrator's naming convention
- * (matches `detectSseEvent` regex `agent{1-6}-<中文名>` in
- * agents/chat/_stream.ts). Default tab is the synthesis agent (agent6).
+ * V3.0 时代的 tab 选择职责已移交 AgentsView 左栏 .agent-list，
+ * 本组件只渲染「当前选中 agent」的输出：
  *
- * Each tab shows: summary card → lamp badge (灯色) → structured key/value
- * rendering of output_json → collapsible raw JSON. Tabs without output show
- * a standby placeholder so the 6-agent system is visible at all times.
+ *   summary（markdown）→ 关键字段（agentpane-row）→ 原始 JSON（折叠）
+ *   无输出时渲染待命态（wx-empty）。
+ *
+ * AGENT_TABS / DEFAULT_AGENT_TAB 导出保持不变
+ * （App.tsx 的 activeAgentTab 状态与全局搜索索引仍在使用）。
  */
 
-interface AgentTabDef {
+export interface AgentTabDef {
   id: string;
   label: string;
   name: string;      // full Chinese name for the standby view
@@ -26,16 +26,21 @@ interface AgentTabDef {
   default?: boolean;
 }
 
+// 设计稿（大气版 V4.0）七大智能体命名：前置闸门 / 政策应答 / 多元融资 /
+// 通用财务 / 失败校验 / 双层决策 / 成果交付。
+// ⚠️ id 必须与后端 SSE 的 skillName 严格一致（agent1-固有对象 等），
+//    否则 agent_output 事件匹配不上、输出丢失；name/role 走设计稿展示层。
 export const AGENT_TABS: AgentTabDef[] = [
-  { id: 'agent6-双层决策', label: '决策', name: '双层决策', emoji: '🚦', role: '聚合全部下游输出，给出顶层灯色与四维子灯判定', default: true },
-  { id: 'agent1-固有对象', label: '固有', name: '固有对象识别', emoji: '🏠', role: '产权 / 文保 / 物理参数三色灯判定' },
-  { id: 'agent2-政策应答', label: '政策', name: '政策应答', emoji: '📑', role: '试点城市合规与政策门槛匹配' },
-  { id: 'agent3-多元融资', label: '融资', name: '多元融资', emoji: '💰', role: '资本金与贷款结构组合方案' },
-  { id: 'agent4-财务模型', label: '财务', name: '财务模型', emoji: '📊', role: 'IRR / NPV / 现金流测算' },
-  { id: 'agent5-失败案例', label: '风险', name: '失败案例', emoji: '⚠️', role: '相似失败案例匹配与风险提示' },
+  { id: 'agent1-固有对象', label: '前置', name: '前置闸门智能体', emoji: '🏠', role: '固有对象 / 资产条件' },
+  { id: 'agent2-政策应答', label: '政策', name: '政策应答智能体', emoji: '📑', role: '政策匹配 / 合规研判' },
+  { id: 'agent3-多元融资', label: '融资', name: '多元融资智能体', emoji: '💰', role: '融资渠道 / 资金结构' },
+  { id: 'agent4-财务模型', label: '财务', name: '通用财务智能体', emoji: '📊', role: '财务测算 / 投资回报' },
+  { id: 'agent5-失败案例', label: '校验', name: '失败校验智能体', emoji: '⚠️', role: '失败案例 / 风险根因' },
+  { id: 'agent6-双层决策', label: '决策', name: '双层决策智能体', emoji: '🚦', role: '顶层判断 / 维度子灯', default: true },
+  { id: 'agent7-成果交付', label: '交付', name: '成果交付阶段', emoji: '📦', role: 'DELIVERY / 决策成果交付' },
 ];
 
-export const DEFAULT_AGENT_TAB = AGENT_TABS.find(t => t.default)?.id ?? AGENT_TABS[0].id;
+export const DEFAULT_AGENT_TAB = AGENT_TABS.find((t) => t.default)?.id ?? AGENT_TABS[0].id;
 
 type LampColor = 'green' | 'yellow' | 'red';
 
@@ -56,22 +61,20 @@ function FieldRow({ k, v }: { k: string; v: unknown }) {
     const text = String(v);
     const isLamp = k === '灯色' && (text === 'green' || text === 'yellow' || text === 'red');
     return (
-      <div className={styles.fieldRow}>
-        <span className={styles.fieldKey}>{k}</span>
+      <div className="agentpane-row">
+        <span className="agentpane-key">{k}</span>
         {isLamp ? (
-          <span className={`${styles.lampBadge} ${styles[`lamp_${text}`]}`}>
-            {LAMP_TEXT[text as LampColor]}
-          </span>
+          <span className={`lamp-badge ${text}`}>{LAMP_TEXT[text as LampColor]}</span>
         ) : (
-          <span className={styles.fieldVal}>{text}</span>
+          <span className="agentpane-val">{text}</span>
         )}
       </div>
     );
   }
   return (
-    <div className={styles.fieldBlock}>
-      <span className={styles.fieldKey}>{k}</span>
-      <pre className={styles.fieldJson}>{JSON.stringify(v, null, 2)}</pre>
+    <div className="agentpane-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+      <span className="agentpane-key">{k}</span>
+      <pre className="agentpane-json" style={{ width: '100%' }}>{JSON.stringify(v, null, 2)}</pre>
     </div>
   );
 }
@@ -79,90 +82,52 @@ function FieldRow({ k, v }: { k: string; v: unknown }) {
 interface Props {
   outputs: Record<string, AgentOutput>;
   activeTab: string;
-  onTabChange: (id: string) => void;
+  /** tab 切换回调保留在接口里（当前布局由左栏触发），此处不再渲染 tabs */
+  onTabChange?: (id: string) => void;
 }
 
-export const AgentPane: React.FC<Props> = ({ outputs, activeTab, onTabChange }) => {
+export const AgentPane: React.FC<Props> = ({ outputs, activeTab }) => {
   const current = outputs[activeTab];
-  const activeMeta = AGENT_TABS.find(t => t.id === activeTab) ?? AGENT_TABS[0];
+  const activeMeta = AGENT_TABS.find((t) => t.id === activeTab) ?? AGENT_TABS[0];
   const activeLamp = readLamp(current);
 
+  if (!current) {
+    // 待命态：七 agent 体系在左栏始终可见，此处只提示等待编排
+    return (
+      <div className="wx-empty">
+        <p className="eyebrow">STANDBY</p>
+        <h3>{activeMeta.name}</h3>
+        <p>{activeMeta.role}</p>
+        <p className="dim">待命 · 等待编排器调度</p>
+      </div>
+    );
+  }
+
   return (
-    <div className={styles.pane}>
-      <div className={styles.tabs} role="tablist" aria-label="智能体输出">
-        {AGENT_TABS.map(t => {
-          const out = outputs[t.id];
-          const lamp = readLamp(out);
-          const dotCls = [
-            styles.tabDot,
-            out ? styles.tabDotDone : '',
-            lamp === 'green' ? styles.dotGreen : '',
-            lamp === 'yellow' ? styles.dotYellow : '',
-            lamp === 'red' ? styles.dotRed : '',
-          ].filter(Boolean).join(' ');
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === t.id}
-              onClick={() => onTabChange(t.id)}
-              className={`${styles.tab} ${activeTab === t.id ? styles.tabActive : ''}`}
-              title={out ? `${t.name} · 已完成` : `${t.name} · 待命`}
-            >
-              <span className={dotCls} />
-              {t.emoji} {t.label}
-            </button>
-          );
-        })}
-      </div>
+    <div className="agent-body">
+      <p className="eyebrow">{activeMeta.name} · OUTPUT</p>
+      {activeLamp && <span className={`lamp-badge ${activeLamp}`}>{LAMP_TEXT[activeLamp]}</span>}
 
-      <div className={styles.body}>
-        {current ? (
-          <>
-            <div className={styles.headCard}>
-              <div className={styles.headRow}>
-                <span className={styles.headName}>{activeMeta.emoji} {activeMeta.name}</span>
-                {activeLamp && (
-                  <span className={`${styles.lampBadge} ${styles[`lamp_${activeLamp}`]}`}>
-                    {LAMP_TEXT[activeLamp]}
-                  </span>
-                )}
-              </div>
-              {current.summary && (
-                <div className={styles.summaryMd}>
-                  <Markdown remarkPlugins={[remarkGfm]}>{current.summary}</Markdown>
-                </div>
-              )}
-            </div>
-
-            {current.output_json && Object.keys(current.output_json).length > 0 && (
-              <div className={styles.fields}>
-                {Object.entries(current.output_json).map(([k, v]) => (
-                  <FieldRow key={k} k={k} v={v} />
-                ))}
-              </div>
-            )}
-
-            <details className={styles.raw}>
-              <summary className={styles.rawToggle}>原始 JSON</summary>
-              <pre className={styles.rawJson}>
-                {JSON.stringify(current.output_json ?? {}, null, 2)}
-              </pre>
-            </details>
-          </>
-        ) : (
-          <div className={styles.standby}>
-            <span className={styles.standbyEmoji}>{activeMeta.emoji}</span>
-            <p className={styles.standbyName}>{activeMeta.name}</p>
-            <p className={styles.standbyRole}>{activeMeta.role}</p>
-            <p className={styles.standbyHint}>
-              <span className={styles.standbyBlink} />
-              待命 · 等待编排器调度
-            </p>
+      {current.summary && (
+        <div className="stream-msg">
+          <div className="md">
+            <Markdown remarkPlugins={[remarkGfm]}>{current.summary}</Markdown>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {current.output_json && Object.keys(current.output_json).length > 0 && (
+        <div className="agentpane-fields">
+          {Object.entries(current.output_json).map(([k, v]) => (
+            <FieldRow key={k} k={k} v={v} />
+          ))}
+        </div>
+      )}
+
+      <details>
+        <summary className="dim" style={{ fontSize: 10, cursor: 'pointer', padding: '6px 0' }}>原始 JSON</summary>
+        <pre className="agentpane-json">{JSON.stringify(current.output_json ?? {}, null, 2)}</pre>
+      </details>
     </div>
   );
 };

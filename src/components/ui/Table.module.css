@@ -1,0 +1,42 @@
+.wrap {
+  overflow-x: auto;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+}
+.loading {
+  padding: 12px;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+}
+.empty {
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.th {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bg-border-strong);
+  background: var(--bg-chip);
+  white-space: nowrap;
+}
+.td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--bg-border);
+  color: var(--text-primary);
+}
+.tr:last-child .td {
+  border-bottom: none;
+}
+.tr:hover {
+  background: var(--bg-chip);
+}

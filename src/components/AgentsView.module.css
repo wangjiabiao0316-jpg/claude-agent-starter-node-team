@@ -1,0 +1,116 @@
+/* AgentsView — V3.0 agents 屏（七 agent 工作台） */
+.view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0 20px 20px;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.skillsLoading {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--cyan2);
+  padding: 4px 10px;
+  border: 1px solid rgba(99, 201, 220, 0.3);
+  border-radius: 20px;
+  background: rgba(99, 201, 220, 0.08);
+}
+
+.pipelineSlot {
+  flex: 0 0 auto;
+}
+
+.body {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(480px, 1fr) 286px;
+  gap: 14px;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.chatPanel {
+  min-width: 0;
+  border-radius: var(--radius-md);
+  background: var(--glass);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--bg-border);
+  overflow: hidden;
+}
+
+.dock {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--radius-md);
+  background: var(--glass);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--bg-border);
+  overflow: hidden;
+}
+
+.dockTabs {
+  display: flex;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--bg-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
+}
+
+.dockTab {
+  flex: 1;
+  padding: 12px 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.dockTab:hover {
+  color: var(--text-primary);
+}
+
+.dockTabActive {
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--cyan);
+  background: var(--bg-chip);
+}
+
+.dockBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 1120px) {
+  .body {
+    grid-template-columns: minmax(420px, 1fr) 260px;
+  }
+}
+
+@media (max-width: 760px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+  .dock {
+    display: none;
+  }
+}

@@ -120,12 +120,12 @@
 
 /* per-type accents (monochrome, with lamp colours for semantics) */
 .type_text_delta { color: var(--text-primary); border-color: var(--bg-border-strong); }
-.type_tool_called { color: var(--lamp-yellow); border-color: rgba(245, 200, 66, 0.35); }
-.type_error { color: var(--lamp-red); border-color: rgba(255, 77, 79, 0.4); }
-.type_done { color: var(--lamp-green); border-color: rgba(61, 220, 132, 0.35); }
+.type_tool_called { color: var(--lamp-yellow); border-color: rgba(217, 166, 94, 0.35); }
+.type_error { color: var(--lamp-red); border-color: rgba(207, 125, 120, 0.4); }
+.type_done { color: var(--lamp-green); border-color: rgba(117, 190, 165, 0.35); }
 .type_suggest_actions,
 .type_agent_output,
-.type_report_ready { color: var(--lamp-green); border-color: rgba(61, 220, 132, 0.35); }
+.type_report_ready { color: var(--lamp-green); border-color: rgba(117, 190, 165, 0.35); }
 .type_skill_loaded,
 .type_skills_available { color: var(--accent-silver); border-color: var(--bg-border-strong); }
 .type_unknown { color: var(--text-muted); }

@@ -1,84 +1,116 @@
 import React from 'react';
 import { useT } from '../i18n';
 import ParticleField from './ParticleField';
-import styles from './ProductHome.module.css';
 
 /**
- * ProductHome — 产品首页(固定展示页)。
+ * ProductHome — V4.0 大气版产品首页。
  *
- * 触发方式:点击 header 左上角 logo / 产品名(App.tsx 的 logoBtn)后,
- * uiStage 切到 'home',本组件在 chatWindowShell 内渲染。
+ * 结构与设计稿 1:1：
+ *   .hero            —— full-bleed 城市图 hero（左深右透渐变压图）：
+ *                        overline / 大标题（金色 span）/ lead / desc / CTA / 竖排章 / 角标
+ *   .product-story   —— 产品叙事区：
+ *                        head（eyebrow+大标题+总述）
+ *                        product-visual（球面粒子场 + 左侧文案 + 右下角标）
+ *                        product-principles（三张原则卡 = 咨投建运/三色灯/沙箱算账）
+ *                        product-story-action（开始使用 CTA）
  *
- * 内容分三块:产品简介 / 产品价值(三卡) / 使用方法(四步)。
- * hero 区复用 i18n 的 welcome.*(eyebrow/title/subtitle),三块正文用 home.*。
- * 叠加在全局 CityScene 3D 背景之上,自身只渲染毛玻璃内容卡片。
- * 点击「开始使用」回调 onStart,由父组件 setUiStage('intake') 进入采集向导。
+ * hero 在 .home-fullscreen（App 根类）下撑满 100vh-68px。
+ * 点击「开始使用」回调 onStart → setUiStage('transition')。
  */
 interface ProductHomeProps {
-  /** 点击「开始使用」按钮时触发,父组件据此进入 IntakeWizard */
+  /** 点击「开始使用」时触发，父组件据此进入 transition 屏 */
   onStart: () => void;
 }
 
-// 使用方法五步的流程图节点定义:图标 + 短标签 + hover 完整说明
-const USAGE_NODES = [
-  { icon: '▸', label: 'home.usageLabel1', full: 'home.usage1' },
-  { icon: '✎', label: 'home.usageLabel2', full: 'home.usage2' },
-  { icon: '⚙', label: 'home.usageLabel3', full: 'home.usage3' },
-  { icon: '▤', label: 'home.usageLabel4', full: 'home.usage4' },
-  { icon: '↻', label: 'home.usageLabel5', full: 'home.usage5' },
-] as const;
-
 export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
-  const { t } = useT();
+  const { t, lang } = useT();
+
+  // 大标题拆金色 span（中英文断句不同，按 lang 硬拆最稳）
+  const titleA = lang === 'zh' ? '万象更芯 · ' : 'Urban Core · ';
+  const titleB = lang === 'zh' ? '智算营城' : 'AI Decision Engine';
+
+  // product-visual 左侧文案（视觉叙事件，内联双语）
+  const visualCopy = lang === 'zh'
+    ? { h3a: '七大智能体，', h3b: '一份上会答卷', p: '从产权筛查到财务测算，从政策合规到失败案例对标——链路上每一步的判定都留有证据与轨迹，可回溯、可复核、可迭代。' }
+    : { h3a: 'Seven agents, ', h3b: 'one board-ready answer', p: 'From property screening to financial modeling, policy compliance to failure-case benchmarking — every judgment on the chain leaves evidence and trace, auditable and iterable.' };
+
+  // 三张原则卡（i18n home.value1~3）
+  const principles = [
+    { title: t('home.value1Title'), text: t('home.value1Text') },
+    { title: t('home.value2Title'), text: t('home.value2Text') },
+    { title: t('home.value3Title'), text: t('home.value3Text') },
+  ];
 
   return (
-    <div className={styles.page}>
-      {/* —— hero 区:复用 welcome.* —— */}
-      <header className={styles.hero}>
-        <p className={styles.eyebrow}>{t('welcome.eyebrow')}</p>
-        <h1 className={styles.heroTitle}>{t('welcome.title')}</h1>
-        <p className={styles.heroSubtitle}>{t('welcome.subtitle')}</p>
-      </header>
-
-      {/* —— 板块一:产品简介 —— */}
-      <section className={styles.section}>
-        <p className={styles.eyebrow}>{t('home.eyebrow')}</p>
-        <h2 className={styles.sectionTitle}>{t('home.introTitle')}</h2>
-        <p className={styles.introText}>{t('home.intro')}</p>
-      </section>
-
-      {/* —— 板块二:产品价值(粒子形态变换动画,合并原四张卡) ——
-          粒子在六边形logo → 环 → 三色灯 → 网格 → 循环箭头 之间消散重组,
-          字幕随形态轮播对应价值点。 */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>{t('home.valueTitle')}</h2>
-        <ParticleField t={t} />
-      </section>
-
-      {/* —— 板块三:使用方法(时间轴样式:左侧贯穿轴线 + 图标在轴上 + 右侧文字) —— */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>{t('home.usageTitle')}</h2>
-        <ol className={styles.timeline}>
-          {USAGE_NODES.map((node) => (
-            <li key={node.full} className={styles.timelineItem}>
-              <span className={styles.timelineIcon} aria-hidden="true">{node.icon}</span>
-              <div className={styles.timelineText}>
-                <span className={styles.timelineLabel}>{t(node.label)}</span>
-                <span className={styles.timelineDesc}>{t(node.full)}</span>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {/* —— 底部:开始使用按钮 + 声明条 —— */}
-      <div className={styles.ctaWrap}>
-        <button className={styles.cta} onClick={onStart}>
-          {t('home.cta')}
-        </button>
-        <p className={styles.foot}>{t('welcome.foot')}</p>
+    <section className="screen active">
+      {/* —— V4.0 hero：城市图 + 金色大字 —— */}
+      <div className="hero">
+        <div className="hero-content">
+          <p className="hero-overline">{t('welcome.eyebrow')}</p>
+          {/* 中文标题强制单行；英文更长，保持自然折行 */}
+          <h1 className={lang === 'zh' ? 'hero-title-zh' : undefined}>
+            {titleA}
+            <span>{titleB}</span>
+          </h1>
+          <p className="hero-lead">{t('welcome.subtitle')}</p>
+          <p className="hero-desc">{t('home.intro')}</p>
+          <div className="hero-foot">
+            <button type="button" className="btn primary" onClick={onStart}>
+              {t('home.cta')} →
+            </button>
+            <span className="hero-project">
+              {t('app.title')}
+              <small>CSCEC · EDGEONE MAKERS</small>
+            </span>
+          </div>
+        </div>
+        <span className="hero-stamp">CSCEC · URBAN RENEWAL · AI</span>
+        <span className="hero-index">
+          WANXIANG CORE
+          <span>01 — PRODUCT</span>
+        </span>
       </div>
-    </div>
+
+      {/* —— V4.0 product-story：粒子球 + 三原则 —— */}
+      <div className="product-story">
+        <div className="product-story-head">
+          <p className="eyebrow">{t('home.eyebrow')}</p>
+          <h2>{t('home.valueTitle')}</h2>
+          <p>{t('app.subtitle')}</p>
+        </div>
+
+        <div className="product-visual">
+          <ParticleField variant="hero" />
+          <div className="product-visual-copy">
+            <p className="eyebrow">DECISION PIPELINE</p>
+            <h3>
+              {visualCopy.h3a}
+              <span>{visualCopy.h3b}</span>
+            </h3>
+            <p>{visualCopy.p}</p>
+          </div>
+          <div className="product-visual-index">
+            03 — AGENTS
+            <span>{t('welcome.foot')}</span>
+          </div>
+        </div>
+
+        <div className="product-principles">
+          {principles.map((card) => (
+            <div key={card.title}>
+              <b>{card.title}</b>
+              <span>{card.text}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="product-story-action">
+          <button type="button" className="btn primary" onClick={onStart}>
+            {t('home.cta')} →
+          </button>
+        </div>
+      </div>
+    </section>
   );
 };
 

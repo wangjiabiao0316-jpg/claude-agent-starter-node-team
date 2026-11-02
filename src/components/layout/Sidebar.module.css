@@ -1,0 +1,30 @@
+/* 侧栏：三槽（header | body | footer），自带深色 + 毛玻璃视觉 */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 260px;
+  min-width: 0;
+  min-height: 0;
+  background: rgba(8, 8, 12, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid var(--bg-border);
+}
+
+.header {
+  flex-shrink: 0;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--bg-border);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.footer {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--bg-border);
+}

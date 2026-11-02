@@ -129,17 +129,21 @@ export interface ReportReady {
   html_content: string;
 }
 
-// === uiStage 状态机(改造引入)===
+// === uiStage 状态机(六屏单屏导航改造)===
 /**
- * Top-level UI state machine. Replaces ad-hoc checks like
- * `messages.length === 0` and `loading` for driving layout decisions.
+ * Top-level UI state machine — V3.0 六屏单屏导航。
+ * running 不再是一级 state，由 agents 屏 + loading 标志承载：
+ *   agents + loading=true  = SSE 流式进行中（实时）
+ *   agents + loading=false = 已完成，查看七 agent 输出
  *
- * - 'home':    产品首页 / 固定展示页(简介·价值·使用方法),首屏入口或从 logo 点击进入
- * - 'intake':  user is filling IntakeWizard (first visit or "new project")
- * - 'running': SSE stream active, agent pipeline running
- * - 'review':  report_ready received, ReportModal shown, SuggestActions visible
+ * - 'home':       产品首页（hero + 简介 + 价值 + 使用方法）
+ * - 'management': 项目管理（历史项目列表 + 创建新项目）
+ * - 'transition': 新建项目过渡页（三步流程）
+ * - 'input':      22 字段采集向导（IntakeWizard）
+ * - 'agents':     七 agent 工作台（实时流 + 座舱 + Trace）
+ * - 'conclusion': 综合结论（评级 + KPI + 报告）
  */
-export type UiStage = 'home' | 'intake' | 'running' | 'review';
+export type UiStage = 'home' | 'management' | 'transition' | 'input' | 'agents' | 'conclusion';
 
 /**
  * Soft-warning modal payload shown when user attempts to skip a P0 field.

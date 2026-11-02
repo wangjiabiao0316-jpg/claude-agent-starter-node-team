@@ -1,0 +1,102 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.btn:focus-visible {
+  outline: 1px solid var(--accent-silver);
+  outline-offset: 2px;
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btnSm {
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+}
+.btnMd {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+.btnLg {
+  padding: 12px 24px;
+  font-size: 16px;
+}
+
+.btnPrimary {
+  background: var(--accent-silver);
+  color: var(--bg-base);
+  border-color: var(--accent-silver);
+}
+.btnPrimary:hover:not(:disabled) {
+  box-shadow: 0 0 16px var(--accent-silver-glow);
+}
+
+.btnSecondary {
+  background: var(--bg-chip);
+  color: var(--text-primary);
+  border-color: var(--bg-border-strong);
+}
+.btnSecondary:hover:not(:disabled) {
+  background: var(--bg-border);
+  border-color: var(--accent-silver);
+}
+
+.btnGhost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+.btnGhost:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--bg-chip);
+}
+
+.btnDanger {
+  background: var(--lamp-red-dim);
+  color: var(--lamp-red);
+  border-color: var(--lamp-red);
+}
+.btnDanger:hover:not(:disabled) {
+  background: var(--lamp-red);
+  color: var(--text-primary);
+}
+
+.btnLoading {
+  cursor: progress;
+}
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: btnSpin 0.6s linear infinite;
+}
+@keyframes btnSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

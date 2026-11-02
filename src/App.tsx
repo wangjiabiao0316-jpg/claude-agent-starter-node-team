@@ -31,23 +31,18 @@ import {
 } from './lib/imageStore';
 import { saveSnapshot, loadSnapshot, deleteSnapshot } from './lib/chatUiStore';
 import { detectCurrentAgent, parseAgentOutputs } from './lib/agentSections';
-import ToolIndicators from './components/ToolIndicators';
-import ChatWindow from './components/ChatWindow';
 import IntakeWizard from './components/IntakeWizard';
 import ProductHome from './components/ProductHome';
-import StopButton from './components/StopButton';
-import DebugPanel from './components/DebugPanel';
-import CodeViewer from './components/CodeViewer';
-import ConversationSidebar from './components/ConversationSidebar';
 import GitHubLink from './components/GitHubLink';
 import DeployLink from './components/DeployLink';
-import CityScene from './components/CityScene';
-import PipelineBar from './components/PipelineBar';
-// === Phase 4 Task 10: super-skill orchestrator UI ===
-import { SuggestActions } from './components/SuggestActions';
-import { AgentPane, DEFAULT_AGENT_TAB } from './components/AgentPane';
-import { ReportModal } from './components/ReportModal';
-import styles from './App.module.css';
+// === 六屏单屏导航视图 ===
+import { ManagementView } from './components/ManagementView';
+import { TransitionView } from './components/TransitionView';
+import { AgentsView } from './components/AgentsView';
+import { ConclusionView } from './components/ConclusionView';
+// DEFAULT_AGENT_TAB 仍从 AgentPane 导出（activeAgentTab 初始值）
+import { DEFAULT_AGENT_TAB } from './components/AgentPane';
+import { AGENT_TABS } from './components/AgentPane';
 
 const LAMP_IDS = ['commands', 'files', 'code_interpreter', 'browser'] as const;
 type LampId = typeof LAMP_IDS[number];
@@ -63,6 +58,14 @@ const LAMP_I18N_KEYS: Record<string, string> = {
   code_interpreter: 'tool.codeRunner',
   browser: 'tool.browser',
 };
+
+// === 六屏单屏导航：顶部一级入口（transition/input 是 management 子屏，不进 nav） ===
+const NAV_ITEMS: { stage: UiStage; label: MessageKeys }[] = [
+  { stage: 'home', label: 'nav.home' },
+  { stage: 'management', label: 'nav.management' },
+  { stage: 'agents', label: 'nav.agents' },
+  { stage: 'conclusion', label: 'nav.conclusion' },
+];
 
 /**
  * Map an EdgeOne platform tool name to a lamp group.
@@ -86,6 +89,13 @@ function toolToLampId(toolName: string): LampId | null {
 const CONVERSATION_ID_STORAGE_KEY = 'eo_conversation_id';
 const EO_USER_ID_STORAGE_KEY = 'eo-uuid';
 const CONVERSATIONS_PAGE_SIZE = 20;
+
+/**
+ * 模块加载时（早于 React 首渲染的 getOrCreateConversationId 写入）记录
+ * 是否真的存在旧会话。仅此时存在的 id 才算"旧会话恢复"；
+ * 首渲染刚生成的新空 id 不应触发"刷新跳 conclusion"。
+ */
+const BOOT_HAD_CONVERSATION = getExistingConversationId() !== null;
 
 /** Returns existing conversation ID from localStorage, or null if first visit */
 function getExistingConversationId(): string | null {
@@ -130,14 +140,13 @@ let _historyFetchInFlight = false;
 export default function App() {
   return (
     <I18nProvider>
-      <LangToggle />
       <AppInner />
     </I18nProvider>
   );
 }
 
 function AppInner() {
-  const { t } = useT();
+  const { t, lang } = useT();
 
   const buildLamps = useCallback((): ToolLampState[] => LAMP_IDS.map(id => ({
     id,
@@ -380,9 +389,9 @@ function AppInner() {
   useEffect(() => {
     void refreshConversations('replace');
 
-    if (!getExistingConversationId() || _historyFetchInFlight) {
+    if (!BOOT_HAD_CONVERSATION || _historyFetchInFlight) {
       // First visit OR a sibling fetch is in flight — skip history fetch
-      if (!getExistingConversationId()) setHistoryLoading(false);
+      if (!BOOT_HAD_CONVERSATION) setHistoryLoading(false);
       return;
     }
 
@@ -390,9 +399,8 @@ function AppInner() {
     loadConversation(conversationIdRef.current).finally(() => {
       _historyFetchInFlight = false;
     });
-    // === Bugfix: 刷新页面恢复旧会话时,uiStage 必须切到 review,
-    // 否则 IntakeWizard 会盖住 ChatWindow,用户看不到历史消息。 ===
-    setUiStage('review');
+    // === 刷新页面恢复旧会话时,uiStage 切到 conclusion 查看历史结论 ===
+    setUiStage('conclusion');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -498,8 +506,8 @@ function AppInner() {
     setLoading(false);
     // === uiStage 状态机(改造引入)===
     // SSE done/error fired — agent pipeline finished, user is now reviewing
-    // the assistant's reply. (loading=false && messages.length>0 → 'review'.)
-    setUiStage('review');
+    // the assistant's reply. (loading=false && messages.length>0 → 'conclusion'.)
+    setUiStage('conclusion');
     abortCtrlRef.current = null;
     // Stop appending subsequent text_delta into any agent's summary —
     // the section marker is now closed.
@@ -535,8 +543,8 @@ function AppInner() {
     setMessages(prev => [...prev, userMsg, botMsg]);
     setLoading(true);
     // === uiStage 状态机(改造引入)===
-    // User just sent a message — agent pipeline is now running.
-    setUiStage('running');
+    // User just sent a message — agent pipeline is now running on the agents screen.
+    setUiStage('agents');
 
     /**
      * Optimistic sidebar update — fires as soon as the backend emits its first
@@ -879,8 +887,8 @@ function AppInner() {
     setLoading(false);
     // === uiStage 状态机(改造引入)===
     // User aborted the run — they're now reviewing the partial reply
-    // (loading=false && messages.length>0 → 'review'.)
-    setUiStage('review');
+    // (loading=false && messages.length>0 → 'conclusion'.)
+    setUiStage('conclusion');
     // Stop appending further text_delta into any agent's summary.
     currentAgentIdRef.current = null;
 
@@ -900,8 +908,8 @@ function AppInner() {
     conversationIdRef.current = id;
     setActiveConversationId(id);
     setDockMode('agents');
-    // === Bugfix: 切到旧会话必须切到 review 阶段,IntakeWizard 才会卸载、ChatWindow 才会显示历史消息 ===
-    setUiStage('review');
+    // === 切到旧会话跳结论屏,查看历史消息与结论 ===
+    setUiStage('conclusion');
     void loadConversation(id);
   }, [loading, loadConversation, resetAgentState]);
 
@@ -921,8 +929,8 @@ function AppInner() {
     setDockMode('agents');
     initDoneRef.current = false;
     setHistoryLoading(false);
-    // === Bugfix: 新建会话必须切回 intake 阶段,IntakeWizard 才会重新挂载 ===
-    setUiStage('intake');
+    // === 新建会话先进过渡页(transition),再进 22 字段采集 ===
+    setUiStage('transition');
   }, [loading, resetAgentState]);
 
   const handleLoadMoreConversations = useCallback(() => {
@@ -1018,134 +1026,293 @@ function AppInner() {
 
   const sidebarHasMore = useMemo(() => Boolean(nextCursor), [nextCursor]);
 
+  // 导航高亮：management 屏包含 transition/input 两个子屏
+  const navIsActive = (stage: UiStage) => {
+    if (stage === 'management') {
+      return uiStage === 'management' || uiStage === 'transition' || uiStage === 'input';
+    }
+    return uiStage === stage;
+  };
+
+  // === V4.0 全局工具栏：搜索（⌘K）/ 通知 / 用户 popover ===
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [noticeOpen, setNoticeOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // 工具栏少量文案（内联双语，避免为视觉件扩 i18n 表）
+  const GT = {
+    searchPh: { zh: '搜索页面、智能体…', en: 'Search screens, agents…' },
+    heading: { zh: '快速跳转', en: 'Quick jump' },
+    screen: { zh: '页面导航', en: 'Navigation' },
+    agent: { zh: '智能体', en: 'Agent' },
+    noticeTitle: { zh: '通知', en: 'Notifications' },
+    noticeEmpty: { zh: '暂无新通知，智能体运行完成后会在这里推送。', en: 'No new notifications yet.' },
+    agentDone: { zh: '已完成分析', en: 'finished analysis' },
+    userTitle: { zh: '账号', en: 'Account' },
+    version: { zh: '万象更芯 V4.0 · 大气版', en: 'WANXIANG CORE V4.0' },
+    exit: { zh: '退出演示', en: 'Exit demo' },
+  } as const;
+  const gt = (k: keyof typeof GT) => GT[k][lang];
+
+  // 搜索索引 = 四个一级屏 + 七个智能体 tab（点击直达）
+  const searchIndex = useMemo(() => {
+    const screens = NAV_ITEMS.map(n => ({
+      label: t(n.label), sub: gt('screen'), stage: n.stage, agentId: undefined as string | undefined,
+    }));
+    const agents = AGENT_TABS.map(a => ({
+      label: a.name, sub: gt('agent'), stage: 'agents' as UiStage, agentId: a.id as string | undefined,
+    }));
+    return [...screens, ...agents];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t, lang]);
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return searchIndex;
+    return searchIndex.filter(i => i.label.toLowerCase().includes(q));
+  }, [searchIndex, searchQuery]);
+
+  const handleSearchGo = useCallback((item: { stage: UiStage; agentId?: string }) => {
+    setUiStage(item.stage);
+    if (item.agentId) setActiveAgentTab(item.agentId);
+    setSearchOpen(false);
+    setSearchQuery('');
+  }, []);
+
+  // ⌘K / Ctrl+K 唤起搜索；Esc 关闭全部 popover
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setNoticeOpen(false); setUserOpen(false);
+        setSearchOpen(true);
+        requestAnimationFrame(() => searchInputRef.current?.focus());
+      }
+      if (e.key === 'Escape') {
+        setSearchOpen(false); setNoticeOpen(false); setUserOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // 点击工具栏外部关闭 popover
+  useEffect(() => {
+    if (!searchOpen && !noticeOpen && !userOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest?.('.global-tools')) {
+        setSearchOpen(false); setNoticeOpen(false); setUserOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [searchOpen, noticeOpen, userOpen]);
+
+  // 通知 = 已完成的智能体（真实状态，不伪造）
+  const notices = AGENT_TABS.filter(a => agentOutputs[a.id]);
+  const activeConversation = conversations.find(c => c.id === activeConversationId);
+  const projectLabel = activeConversation?.title || (lang === 'zh' ? '未命名项目' : 'Untitled Project');
+
   return (
-    <div className={styles.shell}>
-      <CityScene />
+    <div className={`app-root ${uiStage === 'home' ? 'home-fullscreen' : ''}`}>
+      {/* === V4.0 顶栏：W 标 brand + 四导航 + 项目 pill + 全局工具 === */}
+      <nav className="topbar">
+        <button
+          className="brand"
+          onClick={() => setUiStage('home')}
+          aria-label={t('app.title')}
+          title={t('app.title')}
+        >
+          <span className="brand-mark"><span>W</span></span>
+          <span className="brand-name">
+            {t('app.title')}
+            <span className="brand-en">WANXIANG CORE · CSCEC</span>
+          </span>
+        </button>
 
-      <div className={styles.stage}>
-        <ConversationSidebar
-          conversations={conversations}
-          activeConversationId={activeConversationId}
-          loading={conversationsLoading}
-          loadingMore={conversationsLoadingMore}
-          hasMore={sidebarHasMore}
-          disabled={loading}
-          onSelect={handleSelectConversation}
-          onCreate={handleCreateConversation}
-          onLoadMore={handleLoadMoreConversations}
-          onDelete={handleDeleteConversation}
-        />
-
-        <div className={styles.chatPanel}>
-          <header className={styles.header}>
-            <div className={styles.headerLeft}>
-              <button
-                className={styles.logoBtn}
-                onClick={() => setUiStage('home')}
-                aria-label={t("app.title")}
-                title={t("app.title")}
-              >
-                <span className={styles.logo}>⬡</span>
-                <div>
-                  <p className={styles.title}>{t("app.title")}</p>
-                  <p className={styles.subtitle}>{t("app.subtitle")}</p>
-                </div>
-              </button>
-            </div>
-            <div className={styles.headerActions}>
-              <ToolIndicators lamps={lamps} />
-              {skillInUse && <span className={styles.skillsLoading}>using {skillInUse}</span>}
-              <StopButton visible={loading} onStop={handleStop} />
-            </div>
-          </header>
-
-          <div className={styles.pipelineSlot}>
-            <PipelineBar
-              outputs={agentOutputs}
-              activeAgentId={activeAgentTab}
-              streaming={loading}
-              onSelect={(agentId) => {
-                setActiveAgentTab(agentId);
-                setDockMode('agents');
-              }}
-            />
-          </div>
-
-          <div className={styles.chatWindowShell}>
-            {uiStage === 'home' ? (
-              <ProductHome onStart={() => setUiStage('intake')} />
-            ) : uiStage === 'intake' ? (
-              <div className={styles.intakeSlot}>
-                <IntakeWizard onSend={handleSend} disabled={false} />
-              </div>
-            ) : (
-              <ChatWindow messages={messages} loading={loading} />
-            )}
-            {/* 历史加载遮罩仅在非首页、非采集态显示,避免盖住产品首页 */}
-            {uiStage !== 'home' && historyLoading && messages.length === 0 && (
-              <div className={styles.historyOverlay}>
-                <div className={styles.historySpinner} />
-              </div>
-            )}
-          </div>
-          {/* === Phase 4 Task 10: super-skill suggest_actions button group === */}
-          {suggestActions.length > 0 && (
-            <SuggestActions
-              actions={suggestActions}
-              onClick={handleSuggestActionClick}
-            />
-          )}
+        <div className="mainnav" role="tablist">
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item.stage}
+              type="button"
+              role="tab"
+              aria-selected={navIsActive(item.stage)}
+              className={navIsActive(item.stage) ? 'active' : ''}
+              onClick={() => setUiStage(item.stage)}
+            >
+              {t(item.label)}
+            </button>
+          ))}
         </div>
 
-        {/* === Right dock: agent cockpit (always-on) / SSE trace / code === */}
-        <div className={styles.dock}>
-          <div className={styles.dockTabs} role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={dockMode === 'agents'}
-              className={`${styles.dockTab} ${dockMode === 'agents' ? styles.dockTabActive : ''}`}
-              onClick={() => setDockMode('agents')}
-            >
-              智能体
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={dockMode === 'debug'}
-              className={`${styles.dockTab} ${dockMode === 'debug' ? styles.dockTabActive : ''}`}
-              onClick={() => setDockMode('debug')}
-            >
-              Trace
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={dockMode === 'code'}
-              className={`${styles.dockTab} ${dockMode === 'code' ? styles.dockTabActive : ''}`}
-              onClick={() => setDockMode('code')}
-            >
-              代码
-            </button>
-          </div>
-          <div className={styles.dockBody}>
-            {dockMode === 'agents' && (
-              <AgentPane
-                outputs={agentOutputs}
-                activeTab={activeAgentTab}
-                onTabChange={setActiveAgentTab}
+        <div className="topmeta">
+          <span className="project-pill" title={projectLabel}>{projectLabel}</span>
+          <span className="mode-pill">DECISION CORE</span>
+
+          <div className="global-tools">
+            {/* 全局搜索（⌘K）：屏 + 智能体直达 */}
+            <div className="global-search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                value={searchQuery}
+                onFocus={() => { setSearchOpen(true); setNoticeOpen(false); setUserOpen(false); }}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={gt('searchPh')}
+                aria-label={gt('searchPh')}
               />
+              <kbd>⌘K</kbd>
+              {searchOpen && (
+                <div className="tool-popover search-popover">
+                  <div className="popover-heading">
+                    {gt('heading')}
+                    <span className="popover-count">{searchResults.length}</span>
+                  </div>
+                  {searchResults.slice(0, 8).map((item) => (
+                    <button
+                      key={`${item.stage}-${item.agentId ?? 'screen'}`}
+                      type="button"
+                      className="search-result"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSearchGo(item)}
+                    >
+                      {item.label}
+                      <small>{item.sub}</small>
+                    </button>
+                  ))}
+                  {searchResults.length === 0 && (
+                    <div className="popover-empty">{gt('searchPh')}</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 通知：已完成的智能体（真实状态） */}
+            <button
+              type="button"
+              className="tool-icon-btn"
+              aria-label={gt('noticeTitle')}
+              onClick={() => { setNoticeOpen(o => !o); setSearchOpen(false); setUserOpen(false); }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" />
+                <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+              </svg>
+              {notices.length > 0 && <i className="notice-dot" />}
+            </button>
+            {noticeOpen && (
+              <div className="tool-popover notice-popover">
+                <div className="popover-heading">
+                  {gt('noticeTitle')}
+                  <span className="popover-count">{notices.length}</span>
+                </div>
+                {notices.length > 0 ? notices.map((a) => (
+                  <div key={a.id} className="search-result" style={{ cursor: 'default' }}>
+                    {a.name}
+                    <small>{gt('agentDone')}</small>
+                  </div>
+                )) : (
+                  <div className="popover-empty">{gt('noticeEmpty')}</div>
+                )}
+              </div>
             )}
-            {dockMode === 'debug' && (
-              <DebugPanel events={debugEvents} onClear={() => setDebugEvents([])} />
+
+            {/* 用户 */}
+            <button
+              type="button"
+              className="user-entry"
+              aria-label={gt('userTitle')}
+              onClick={() => { setUserOpen(o => !o); setSearchOpen(false); setNoticeOpen(false); }}
+            >
+              C
+            </button>
+            {userOpen && (
+              <div className="tool-popover user-popover">
+                <div className="user-card">
+                  <span className="user-avatar">C</span>
+                  <span>
+                    <strong>CSCEC · DECISION</strong>
+                    <small>{gt('version')}</small>
+                  </span>
+                </div>
+                <button type="button" className="account-action" onClick={() => setUserOpen(false)}>
+                  {gt('exit')}
+                  <span aria-hidden="true">→</span>
+                </button>
+              </div>
             )}
-            {dockMode === 'code' && <CodeViewer />}
+            <LangToggle />
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* === Phase 4 Task 10: super-skill report modal === */}
-      <ReportModal report={report} onClose={() => setReport(null)} />
+      {/* === 单屏主体（各屏自带 .screen 容器） === */}
+      <main>
+        {uiStage === 'home' && (
+          <ProductHome onStart={() => setUiStage('transition')} />
+        )}
+        {uiStage === 'management' && (
+          <ManagementView
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            loading={conversationsLoading}
+            loadingMore={conversationsLoadingMore}
+            hasMore={sidebarHasMore}
+            disabled={loading}
+            onSelect={handleSelectConversation}
+            onCreate={handleCreateConversation}
+            onLoadMore={handleLoadMoreConversations}
+            onDelete={handleDeleteConversation}
+          />
+        )}
+        {uiStage === 'transition' && (
+          <TransitionView onStart={() => setUiStage('input')} />
+        )}
+        {uiStage === 'input' && (
+          <section className="screen active">
+            <div className="shell">
+              <IntakeWizard onSend={handleSend} disabled={false} />
+            </div>
+          </section>
+        )}
+        {uiStage === 'agents' && (
+          <AgentsView
+            lamps={lamps}
+            skillInUse={skillInUse}
+            onStop={handleStop}
+            loading={loading}
+            messages={messages}
+            outputs={agentOutputs}
+            activeAgentId={activeAgentTab}
+            onAgentSelect={setActiveAgentTab}
+            debugEvents={debugEvents}
+            onClearDebug={() => setDebugEvents([])}
+            dockMode={dockMode}
+            onDockModeChange={setDockMode}
+          />
+        )}
+        {uiStage === 'conclusion' && (
+          <ConclusionView
+            report={report}
+            suggestActions={suggestActions}
+            onSuggestAction={handleSuggestActionClick}
+            messages={messages}
+            outputs={agentOutputs}
+          />
+        )}
+      </main>
+
+      {/* 历史加载遮罩（进入非 home 屏且正在加载历史） */}
+      {uiStage !== 'home' && historyLoading && messages.length === 0 && (
+        <div className="history-overlay">
+          <div className="history-spinner" />
+        </div>
+      )}
 
       <GitHubLink />
       <DeployLink />

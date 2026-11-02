@@ -3,9 +3,9 @@
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: rgba(255, 99, 99, 0.12);
-  color: #ff6363;
-  border: 1px solid rgba(255, 99, 99, 0.32);
+  background: var(--lamp-red-dim);
+  color: var(--lamp-red);
+  border: 1px solid rgba(207, 125, 120, 0.38);
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
@@ -13,7 +13,7 @@
   transition: background 120ms ease, transform 120ms ease;
 }
 .btn:hover {
-  background: rgba(255, 99, 99, 0.22);
+  background: rgba(207, 125, 120, 0.28);
 }
 .btn:active {
   transform: scale(0.97);

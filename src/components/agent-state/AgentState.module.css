@@ -1,0 +1,86 @@
+/* Agent 状态环：外圈 + 中心点（伪元素），六态视觉 */
+
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.state {
+  position: relative;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-border-strong);
+  background: transparent;
+  transition: border-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+/* 中心点 */
+.state::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: background var(--transition-fast);
+}
+
+/* ── 尺寸 ── */
+.size_sm { width: 10px; height: 10px; }
+.size_sm::after { width: 4px; height: 4px; }
+.size_md { width: 14px; height: 14px; }
+.size_md::after { width: 6px; height: 6px; }
+.size_lg { width: 18px; height: 18px; }
+.size_lg::after { width: 8px; height: 8px; }
+
+/* ── 状态视觉 ── */
+
+/* idle：空心灰环 */
+.state_idle { border-color: var(--bg-border-strong); }
+.state_idle::after { background: var(--text-muted); }
+
+/* queued：虚线环，等待上游 */
+.state_queued { border-color: var(--bg-border-strong); border-style: dashed; }
+.state_queued::after { background: var(--text-muted); }
+
+/* running：银蓝呼吸（透明度脉动，纯 token 色，无硬编码 rgba） */
+.state_running {
+  border-color: var(--accent-silver);
+  animation: statePulse 1.2s ease-in-out infinite;
+}
+.state_running::after { background: var(--accent-silver); }
+
+/* completed：默认银白，可由 lamp_* 覆盖为三色灯 */
+.state_completed { border-color: var(--accent-silver); }
+.state_completed::after { background: var(--accent-silver); }
+
+/* failed：红灯 */
+.state_failed { border-color: var(--lamp-red); }
+.state_failed::after { background: var(--lamp-red); }
+
+/* blocked：黄灯 */
+.state_blocked { border-color: var(--lamp-yellow); }
+.state_blocked::after { background: var(--lamp-yellow); }
+
+/* completed 叠加灯色（覆盖默认银白） */
+.lamp_green { border-color: var(--lamp-green); }
+.lamp_green::after { background: var(--lamp-green); }
+.lamp_yellow { border-color: var(--lamp-yellow); }
+.lamp_yellow::after { background: var(--lamp-yellow); }
+.lamp_red { border-color: var(--lamp-red); }
+.lamp_red::after { background: var(--lamp-red); }
+
+@keyframes statePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* 文本标签 */
+.label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
