@@ -47,13 +47,13 @@ const BOARD_SPECS: Record<string, BoardSpec> = {
     verdictKeys: ['建议动作', '结论', '判定'],
     motion: '正在测算资本金与融资组合…',
   },
-  'agent4-现金流': {
+  'agent4-财务模型': {
     inputKeys: ['总投资', '月租金', '可租赁面积', '出租率', '持有年限'],
     outputKeys: ['IRR', 'NPV', '回收期', '门槛', '现金流'],
     verdictKeys: ['建议动作', '结论', '判定'],
     motion: '正在跑现金流与回报测算…',
   },
-  'agent5-失败校验': {
+  'agent5-失败案例': {
     inputKeys: ['城市', '业态方向', '改造模式', '总投资'],
     outputKeys: ['Top', '相似', '失败模式', 'S1', 'S2', '总分', '风险点'],
     verdictKeys: ['建议动作', '风险点', '结论'],
@@ -65,11 +65,11 @@ const BOARD_SPECS: Record<string, BoardSpec> = {
     verdictKeys: ['建议动作', '结论', '顶层灯色'],
     motion: '正在合成双层决策…',
   },
-  'agent7-成果交付': {
-    inputKeys: ['城市', '区位', '改造模式'],
-    outputKeys: ['交付', '报告', '清单', '摘要'],
-    verdictKeys: ['结论', '交付物'],
-    motion: '正在打包成果与报告…',
+  'agent7-建造判别': {
+    inputKeys: ['城市', '区位', '改造模式', '结构鉴定'],
+    outputKeys: ['结构', '消防', '卫生间', '否决', 'fatal', '总分', '灯色'],
+    verdictKeys: ['建议动作', '结论', '判定'],
+    motion: '正在运行 JEV 建造判别引擎…',
   },
 };
 
@@ -196,12 +196,12 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
                 <span className="core">⚠</span>
               </span>
             )}
-            {idx === 5 && (
+            {idx === 5 && <span className="art-emoji art-crane">🏗️</span>}
+            {idx === 6 && (
               <span className="art-lamps">
                 <i /><i /><i />
               </span>
             )}
-            {idx === 6 && <span className="art-emoji art-box">📦</span>}
           </div>
           <div className="motion-label">
             {meta?.name} · {zh ? '执行中' : 'running'}

@@ -26,18 +26,20 @@ export interface AgentTabDef {
   default?: boolean;
 }
 
-// 设计稿（大气版 V4.0）七大智能体命名：前置闸门 / 政策应答 / 多元融资 /
-// 通用财务 / 失败校验 / 双层决策 / 成果交付。
+// 七大智能体命名对齐后端编排 DAG（agents/chat/_orchestrator.ts）：
+// 前置闸门 / 政策应答 / 多元融资 / 通用财务 / 失败校验 / 建造判别 / 双层决策。
+// 执行顺序：agent1∥agent2 → 3 → 4 → 5 → agent7-建造判别 → agent6-双层决策
+// （2026-10-06 后端把 agent7 从「成果交付」改为「建造判别」，置于双层决策之前）。
 // ⚠️ id 必须与后端 SSE 的 skillName 严格一致（agent1-固有对象 等），
-//    否则 agent_output 事件匹配不上、输出丢失；name/role 走设计稿展示层。
+//    否则 agent_output 事件匹配不上、输出丢失；name/role 走展示层。
 export const AGENT_TABS: AgentTabDef[] = [
-  { id: 'agent1-固有对象', label: '前置', name: '前置闸门智能体', emoji: '🏠', role: '固有对象 / 资产条件' },
-  { id: 'agent2-政策应答', label: '政策', name: '政策应答智能体', emoji: '📑', role: '政策匹配 / 合规研判' },
-  { id: 'agent3-多元融资', label: '融资', name: '多元融资智能体', emoji: '💰', role: '融资渠道 / 资金结构' },
-  { id: 'agent4-财务模型', label: '财务', name: '通用财务智能体', emoji: '📊', role: '财务测算 / 投资回报' },
-  { id: 'agent5-失败案例', label: '校验', name: '失败校验智能体', emoji: '⚠️', role: '失败案例 / 风险根因' },
-  { id: 'agent6-双层决策', label: '决策', name: '双层决策智能体', emoji: '🚦', role: '顶层判断 / 维度子灯', default: true },
-  { id: 'agent7-成果交付', label: '交付', name: '成果交付阶段', emoji: '📦', role: 'DELIVERY / 决策成果交付' },
+  { id: 'agent1-固有对象', label: '前置', name: '前置闸门', emoji: '🏠', role: '固有对象 / 资产条件' },
+  { id: 'agent2-政策应答', label: '政策', name: '政策应答', emoji: '📑', role: '政策匹配 / 合规研判' },
+  { id: 'agent3-多元融资', label: '融资', name: '多元融资', emoji: '💰', role: '融资渠道 / 资金结构' },
+  { id: 'agent4-财务模型', label: '财务', name: '通用财务', emoji: '📊', role: '财务测算 / 投资回报' },
+  { id: 'agent5-失败案例', label: '校验', name: '失败校验', emoji: '⚠️', role: '失败案例 / 风险根因' },
+  { id: 'agent7-建造判别', label: '建造', name: '建造判别', emoji: '🏗️', role: '结构潜力 / 消防转换 / 直接否决项' },
+  { id: 'agent6-双层决策', label: '决策', name: '双层决策', emoji: '🚦', role: '顶层判断 / 维度子灯', default: true },
 ];
 
 export const DEFAULT_AGENT_TAB = AGENT_TABS.find((t) => t.default)?.id ?? AGENT_TABS[0].id;

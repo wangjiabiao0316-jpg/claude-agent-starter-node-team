@@ -230,7 +230,7 @@ button { cursor: pointer; }
 .product-story-action { display: flex; justify-content: center; margin-top: 28px; }
 
 /* ── E. 项目管理（pm-layout） ────────────────────────────── */
-.pm-layout { display: grid; grid-template-columns: 230px minmax(420px, 1fr) minmax(390px, 0.92fr); gap: 14px; align-items: stretch; }
+.pm-layout { display: grid; grid-template-columns: 196px minmax(420px, 1fr) minmax(390px, 0.92fr); gap: 14px; align-items: stretch; }
 
 .pm-history { padding: 15px; min-height: 490px; display: flex; flex-direction: column; }
 .pm-history-list { display: grid; gap: 9px; align-content: start; }
@@ -386,7 +386,7 @@ button { cursor: pointer; }
 .screen.agent-screen { height: calc(100vh - 68px); min-height: 0; padding: 28px 0 24px; overflow: hidden; }
 .screen.agent-screen .agent-shell { flex: 1; min-height: 0; }
 
-.agent-shell { display: grid; grid-template-columns: 258px minmax(500px, 1fr) minmax(0, 292px); gap: 15px; align-items: stretch; }
+.agent-shell { display: grid; grid-template-columns: 196px minmax(500px, 1fr) minmax(0, 292px); gap: 15px; align-items: stretch; }
 .agent-sidebar { min-width: 0; min-height: 0; padding: 17px 14px; display: flex; flex-direction: column; }
 .agent-sidebar-title { font-size: 10px; letter-spacing: 1.8px; color: #a6b2bb; padding: 7px 9px 15px; }
 .agent-list { display: grid; grid-template-rows: none; gap: 7px; flex: 0 0 auto; }
@@ -778,7 +778,7 @@ button { cursor: pointer; }
 
 /* ── L. 响应式（各层合并） ────────────────────────────────── */
 @media (max-width: 1380px) {
-  .agent-shell { grid-template-columns: 235px minmax(430px, 1fr) minmax(0, 260px); gap: 12px; }
+  .agent-shell { grid-template-columns: 184px minmax(430px, 1fr) minmax(0, 260px); gap: 12px; }
   .agent-item { min-height: 68px; padding: 9px; }
   .agent-label { font-size: 11px; }
   .agent-caption { font-size: 9px; }
@@ -788,7 +788,7 @@ button { cursor: pointer; }
   .global-search { width: 220px; }
   .topbar { gap: 18px; padding: 0 22px; }
   .brand { min-width: 190px; }
-  .pm-layout { grid-template-columns: 220px minmax(350px, 1fr); }
+  .pm-layout { grid-template-columns: 184px minmax(350px, 1fr); }
   .pm-create { grid-column: 1 / -1; min-height: 480px; }
 }
 @media (max-width: 1200px) {
@@ -799,7 +799,7 @@ button { cursor: pointer; }
   .input-grid > .side .panel:last-child { grid-column: 1 / -1; }
 }
 @media (max-width: 1120px) {
-  .agent-shell { grid-template-columns: 220px minmax(0, 1fr); }
+  .agent-shell { grid-template-columns: 176px minmax(0, 1fr); }
   .agent-right { grid-column: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
 }
 @media (max-width: 1100px) {
@@ -883,14 +883,14 @@ button { cursor: pointer; }
 
 /* —— 运行态 per-agent 小动效：
       a1 闸门脉冲 / a2 文档翻页 / a3 金币弹跳 / a4 柱状生长 /
-      a5 雷达扫描 / a6 红绿灯循环 / a7 打包跳动 —— */
+      a5 雷达扫描 / a6 塔吊起吊（建造判别）/ a7 红绿灯循环（双层决策）—— */
 .agent-motion { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
 .motion-art { height: 84px; display: flex; align-items: center; justify-content: center; }
 .art-emoji { font-size: 44px; }
 .art-gate { animation: wx-gate 1.6s ease-in-out infinite; }
 .art-flip { animation: wx-flip 1.4s ease-in-out infinite; }
 .art-coin { animation: wx-coin 1.2s cubic-bezier(.36,.07,.19,.97) infinite; }
-.art-box { animation: wx-coin 1.3s ease-in-out infinite; }
+.art-crane { animation: wx-gate 1.5s ease-in-out infinite; }
 .art-bars { display: inline-flex; align-items: flex-end; gap: 6px; height: 56px; }
 .art-bars i { width: 14px; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, #4fd1a5, #2b8f6f); animation: wx-bars 1.3s ease-in-out infinite; }
 .art-bars i:nth-child(2) { animation-delay: .18s; }

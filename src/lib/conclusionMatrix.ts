@@ -479,14 +479,15 @@ function buildA6(json: Record<string, unknown>, tables: Array<Array<Record<strin
       const d = (v && typeof v === 'object' && !Array.isArray(v)) ? v as Record<string, unknown> : {};
       const lamp = pickStr(d, ['灯色']);
       if (!lamp && !pickStr(d, ['依据'])) continue;
+      const lampStatus = lamp ? classifyStatus(lamp) : null;
       rows.push({
         id: dim,
         title: dim,
         cells: [clampText(pickStr(d, ['依据']) || '待输出依据', 44)],
-        badge: lamp ? classifyStatus(lamp) : null,
-        evidence: lamp ? classifyStatus(lamp).label : '待定',
+        badge: lampStatus,
+        evidence: lampStatus?.label ?? '待定',
         detail: [
-          { label: '维度灯色', value: lamp || '待定', tone: lamp ? classifyStatus(lamp).tone : undefined },
+          { label: '维度灯色', value: lampStatus?.label ?? '待定', tone: lampStatus?.tone },
           { label: '判定依据', value: pickStr(d, ['依据']) || '待补充' },
           ...Object.entries(d)
             .filter(([k]) => !['灯色', '依据'].includes(k))
@@ -535,7 +536,7 @@ function buildA6(json: Record<string, unknown>, tables: Array<Array<Record<strin
   };
 }
 
-/** A7 成果交付：通用要素矩阵（schema 未固化，全部字段容错展示） */
+/** A7 建造判别：通用要素矩阵（JEV 五连判 schema 未固化，全部字段容错展示） */
 function buildA7(json: Record<string, unknown>): MatrixModel | null {
   const rows: MatrixRow[] = [];
   for (const [k, v] of flatEntries(json)) {
@@ -554,8 +555,8 @@ function buildA7(json: Record<string, unknown>): MatrixModel | null {
   }
   if (rows.length === 0) return null;
   return {
-    tag: 'DELIVERY MATRIX',
-    title: '决策成果交付要素',
+    tag: 'BUILD CHECK MATRIX',
+    title: '建造判别要素',
     columns: ['内容'],
     badgeColumn: '状态',
     rows,
@@ -570,7 +571,7 @@ const BUILDERS: Record<string, (json: Record<string, unknown>, tables: Array<Arr
   'agent4-财务模型': (j) => buildA4(j),
   'agent5-失败案例': buildA5,
   'agent6-双层决策': buildA6,
-  'agent7-成果交付': (j) => buildA7(j),
+  'agent7-建造判别': (j) => buildA7(j),
 };
 
 /* ────────────────────────── 入口 ────────────────────────── */

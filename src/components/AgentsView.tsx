@@ -36,9 +36,10 @@ interface Props {
   onSend: (text: string) => void;
 }
 
-/** agent 序号 → 展示码（agent1-固有对象 → A1） */
-function agentCode(index: number): string {
-  return `A${index + 1}`;
+/** agent id → 展示码（agent1-固有对象 → A1；编号取自 id，与后端 stage 编号一致） */
+function agentCode(id: string, index: number): string {
+  const m = /^agent(\d+)/.exec(id);
+  return `A${m ? m[1] : index + 1}`;
 }
 
 export const AgentsView: React.FC<Props> = ({
@@ -108,7 +109,7 @@ export const AgentsView: React.FC<Props> = ({
                     aria-pressed={activeAgentId === a.id}
                     title={out ? `${a.name} · 已完成` : `${a.name} · 待命`}
                   >
-                    <span className={`agent-code ${lamp === 'green' ? 'done' : ''}`}>{agentCode(i)}</span>
+                    <span className={`agent-code ${lamp === 'green' ? 'done' : ''}`}>{agentCode(a.id, i)}</span>
                     <span style={{ minWidth: 0 }}>
                       <span className="agent-label">
                         <i className={`agent-dot ${lamp ?? ''}`} aria-hidden="true" />
@@ -141,7 +142,7 @@ export const AgentsView: React.FC<Props> = ({
           <div className="agent-main">
             <div className="panel agent-banner">
               <div style={{ minWidth: 0 }}>
-                <p className="eyebrow">AGENT WORKSPACE · {agentCode(AGENT_TABS.findIndex((a) => a.id === activeAgentId))}</p>
+                <p className="eyebrow">AGENT WORKSPACE · {agentCode(activeAgentId, AGENT_TABS.findIndex((a) => a.id === activeAgentId))}</p>
                 <h2 className="agent-title">{activeMeta.emoji} {activeMeta.name}</h2>
                 <p className="agent-description">{activeMeta.role}</p>
               </div>

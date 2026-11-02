@@ -50,7 +50,7 @@ const en = {
   // Section 1 · Overview (hero reuses welcome.* eyebrow/title/subtitle above)
   "home.eyebrow": "PRODUCT OVERVIEW",
   "home.introTitle": "What is Urban Core",
-  "home.intro": "An operation-first decision intelligence agent for urban-renewal projects. Enter location, ownership, scale and renovation direction; seven agents (asset gate / policy / financing / financial model / failure validation / two-layer decision / delivery) run across the full consulting–investment–construction–operation lifecycle and produce a review-ready traffic-light verdict with supporting evidence.",
+  "home.intro": "An operation-first decision intelligence agent for urban-renewal projects. Enter location, ownership, scale and renovation direction; seven agents (asset gate / policy / financing / financial model / failure validation / build check / two-layer decision) run across the full consulting–investment–construction–operation lifecycle and produce a review-ready traffic-light verdict with supporting evidence.",
   // Section 2 · Value (three cards)
   "home.valueTitle": "Product Value",
   "home.value1Title": "Full-lifecycle coverage",
