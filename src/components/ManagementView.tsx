@@ -58,7 +58,7 @@ export const ManagementView: React.FC<Props> = (props) => {
   };
 
   return (
-    <section className="screen active">
+    <section className="screen active management-screen">
       <div className="shell">
         <div className="page-head">
           <div>

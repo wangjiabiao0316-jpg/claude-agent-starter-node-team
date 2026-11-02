@@ -104,7 +104,7 @@ export const ConclusionView: React.FC<Props> = ({
             <h1>{zh ? '综合决策结论' : 'Executive Conclusion'}</h1>
             <p>Executive Project Conclusion</p>
           </div>
-          <div className="conclusion-topline-right">
+          <div className="page-head-tools">
             {isDemo && <span className="tag warn">{zh ? '演示数据 · 非正式投资意见' : 'DEMO DATA'}</span>}
             <div className="export-wrap" ref={menuRef}>
               <button

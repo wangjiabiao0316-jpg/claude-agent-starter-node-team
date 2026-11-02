@@ -10,7 +10,7 @@ import { useT } from '../i18n';
 /**
  * AgentsView — V4.1 七 agent 工作台（agent-shell 三栏）。
  *
- *   顶 .agent-topline —— skill / 停止按钮（流水线条已删，状态并入左侧列表灯点）
+ *   页眉 .page-head —— 主题词左对齐 + skill/停止按钮右对齐（.page-head-tools）
  *   左 .agent-sidebar —— 七 agent-item（A1~A7 金码块 + 名称前状态灯点）
  *   中 .agent-main    —— agent-banner（选中 agent 大标题+灯）
  *                        + AgentBoard 结论看板（输入/输出/判定三段，不滚动；
@@ -73,17 +73,13 @@ export const AgentsView: React.FC<Props> = ({
   return (
     <section className="screen active agent-screen">
       <div className="shell">
-        {/* —— 页眉：与其他屏同构（eyebrow + 主题词 + 英文小字），高度与位置一致 —— */}
+        {/* —— 页眉：主题词左对齐 + 功能按钮右对齐，三屏高度与位置统一 —— */}
         <div className="page-head">
           <div>
             <h1>{t('agents.title')}</h1>
             <p>Seven-Agent Workspace</p>
           </div>
-        </div>
-
-        {/* —— 顶：工具状态（skill / 停止按钮） —— */}
-        <div className="agent-topline">
-          <div className="tool-lamps">
+          <div className="page-head-tools">
             {skillInUse && <span className="skill-pill">⚡ {skillInUse}</span>}
             {loading && (
               <button type="button" className="stop-btn" onClick={onStop} aria-label={t('aria.stopGeneration')}>

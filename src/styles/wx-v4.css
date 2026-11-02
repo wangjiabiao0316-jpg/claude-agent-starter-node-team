@@ -117,9 +117,11 @@ button { cursor: pointer; }
 .muted { color: var(--muted); }
 .dim { color: #718395; }
 
-.page-head { display: flex; justify-content: space-between; align-items: end; gap: 22px; margin: 0 0 10px; }
+/* 三屏统一页眉：主题词左对齐、功能按钮右对齐、固定高度（内容区起点一致） */
+.page-head { display: flex; justify-content: space-between; align-items: center; gap: 22px; min-height: 48px; margin: 0; }
 .page-head h1 { font-size: 21px; letter-spacing: -0.3px; margin: 3px 0 2px; font-weight: 620; color: #edf1f4; }
 .page-head p { margin: 0; color: var(--muted); font-size: 10px; letter-spacing: 1.2px; }
+.page-head-tools { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .page-actions { display: flex; gap: 9px; align-items: center; }
 
 .btn {
@@ -372,7 +374,9 @@ button { cursor: pointer; }
 .map-thumb { height: 132px; border-radius: 6px; background: url('../assets/wx-map-context.jpg') center/cover; filter: saturate(0.72); }
 
 /* ── H. 七大 Agent 工作区（agent-shell，V2.6 终版） ───────── */
-.agent-topline { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+/* 三屏统一内容起点：shell 均为纵向 flex + 12px 间距（页眉 → 内容区） */
+.screen.agent-screen .shell { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.screen.management-screen .shell { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
 .agent-flow { display: flex; align-items: center; gap: 7px; color: #8d9eae; font-size: 10px; flex-wrap: wrap; }
 .flow-node { border: 1px solid #35495d; padding: 5px 8px; border-radius: 4px; background: none; color: inherit; font-size: 10px; }
 .flow-node.current { color: var(--gold2); border-color: #96774f; background: #2a261f; }
@@ -380,7 +384,6 @@ button { cursor: pointer; }
 
 /* agents 屏锁定视口高度：页面不滚动，所有面板内部滚动（瀑布流向下） */
 .screen.agent-screen { height: calc(100vh - 68px); min-height: 0; padding: 28px 0 24px; overflow: hidden; }
-.screen.agent-screen .shell { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 15px; }
 .screen.agent-screen .agent-shell { flex: 1; min-height: 0; }
 
 .agent-shell { display: grid; grid-template-columns: 258px minmax(500px, 1fr) minmax(0, 292px); gap: 15px; align-items: stretch; }
@@ -736,10 +739,7 @@ button { cursor: pointer; }
 .pipeline-arrow { color: #4a5d6d; font-size: 10px; }
 @keyframes wxpulse { 50% { opacity: 0.35; } }
 
-/* 工具灯（ToolIndicators）+ skill pill */
-.tool-lamps { display: flex; align-items: center; gap: 8px; }
-.tool-lamp { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid #34485c; border-radius: 5px; background: #101d2b; color: #8d9eae; font-size: 10px; transition: 0.18s; }
-.tool-lamp.on { color: var(--gold2); border-color: #96774f; background: #2a261f; }
+/* skill pill（页眉右侧工具状态） */
 .skill-pill { padding: 5px 10px; border: 1px solid #416c5e; border-radius: 5px; background: #19342e; color: #9bcab6; font-size: 10px; }
 
 /* StopButton */
@@ -927,9 +927,8 @@ button { cursor: pointer; }
 .chat-inputrow button:disabled { opacity: .45; cursor: not-allowed; }
 
 /* —— V4.1 综合结论页：整页锁视口高，浓缩看板（无瀑布流）；页眉复用全局 .page-head —— */
-.screen.conclusion-screen { height: calc(100vh - 68px); min-height: 0; padding: 24px 0 18px; overflow: hidden; }
+.screen.conclusion-screen { height: calc(100vh - 68px); min-height: 0; padding: 28px 0 14px; overflow: hidden; }
 .screen.conclusion-screen .shell { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
-.conclusion-topline-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .conclusion-hero { flex: none; }
 .conclusion-hero .verdict-line { font-size: 26px; line-height: 1.45; margin: 9px 0 10px; }
 .screen.conclusion-screen .summary-kpis { margin: 0; }
