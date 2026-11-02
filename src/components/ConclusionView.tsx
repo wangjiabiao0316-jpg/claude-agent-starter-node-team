@@ -10,26 +10,18 @@ import {
   downloadDoc,
 } from '../lib/exportDocs';
 
-// ── 演示数据（决赛路演：未跑 agent 时预填，对齐大气版 V4.0 设计稿）──
-
-// 演示下一步行动（对齐设计稿 action-row 4 步）
-const DEMO_ACTIONS: SuggestAction[] = [
-  { id: 'demo-01', emoji: '①', title: '补充产权与资产边界资料', description: '补齐产权、文保、经营前置条件的关键证明材料' },
-  { id: 'demo-02', emoji: '②', title: '完成融资渠道与资金结构核验', description: '锁定资本金比例与贷款结构组合方案' },
-  { id: 'demo-03', emoji: '③', title: '深化财务假设与敏感性分析', description: '对租金、出租率、折现率做敏感性压力测试' },
-  { id: 'demo-04', emoji: '④', title: '组织人工复核并形成上会材料', description: '人工确认关键判定后输出正式上会报告' },
-];
+// ── 数据口径：项目管理页选中项目并跑通智能体才有真实数据，否则空模板 ──
 
 /**
  * ConclusionView — V4.1 综合结论屏：高度浓缩的结论看板（整页锁视口高，无瀑布流）。
  *
- *   .conclusion-topline — eyebrow + 标题 | 演示 tag + 「导出结论」下拉
+ *   .page-head          — 主题词 | 模板/导出 tag + 「导出结论」下拉
  *   .conclusion-hero    — 一句话结论 + 说明 | 金色大评级
  *   .summary-kpis       — 四格核心指标（IRR / NPV / 回收期 / 综合评级）
  *   .conclusion-lower   — 左：双层决策四维子灯；右：下一步行动
  *
- * 「导出结论」下拉三件套（lib/exportDocs）：
- *   政府版上会文件 / 投资版上会文件 / 详细推演脚本
+ * 「导出结论」下拉（lib/exportDocs）：
+ *   政府版上会文件 / 投资版上会文件 / 完整结论文件 / 详细推演脚本
  */
 interface Props {
   report: ReportReady | null;
@@ -52,14 +44,14 @@ export const ConclusionView: React.FC<Props> = ({
   const { lang } = useT();
   const zh = lang === 'zh';
 
-  // 演示态：未跑 agent（outputs 空且无 report）时预填演示数据
-  const isDemo = Object.keys(outputs).length === 0 && !report;
-  const actions = isDemo ? DEMO_ACTIONS : suggestActions;
+  // 跑通口径：有双层决策输出（链路终局 agent）或已生成报告 → 真实数据；否则空模板
+  const hasRun = !!(outputs['agent6-双层决策'] || report);
+  const actions = hasRun ? suggestActions : [];
 
-  // 结论看板口径（真实输出优先，演示回退）——导出文档共用同一份数据
+  // 结论看板口径（真实输出优先，模板占位回退）——导出文档共用同一份数据
   const data = useMemo(
-    () => collectConclusionData(outputs, actions, isDemo),
-    [outputs, actions, isDemo],
+    () => collectConclusionData(outputs, actions, hasRun),
+    [outputs, actions, hasRun],
   );
 
   // —— 导出下拉：外点关闭 ——
@@ -105,12 +97,14 @@ export const ConclusionView: React.FC<Props> = ({
             <p>Executive Project Conclusion</p>
           </div>
           <div className="page-head-tools">
-            {isDemo && <span className="tag warn">{zh ? '演示数据 · 非正式投资意见' : 'DEMO DATA'}</span>}
+            {!hasRun && <span className="tag warn">{zh ? '模板 · 未跑通智能体' : 'TEMPLATE'}</span>}
             <div className="export-wrap" ref={menuRef}>
               <button
                 type="button"
                 className="btn primary export-btn"
-                onClick={() => setMenuOpen((v) => !v)}
+                onClick={() => hasRun && setMenuOpen((v) => !v)}
+                disabled={!hasRun}
+                title={hasRun ? undefined : zh ? '跑通智能体后可导出' : 'run the agents first'}
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
               >
@@ -153,7 +147,7 @@ export const ConclusionView: React.FC<Props> = ({
           <div className="conclusion-grade">
             <strong>{data.grade}</strong>
             <small>{zh ? '投资建设评级 · 原型示意' : 'OVERALL GRADE'}</small>
-            <small>{zh ? `建议口径：${data.gradeLamp === 'green' ? '有序推进' : data.gradeLamp === 'red' ? '暂缓推进' : '有条件推进'}` : ''}</small>
+            <small>{zh ? `建议口径：${!data.hasRun ? '待推演' : data.gradeLamp === 'green' ? '有序推进' : data.gradeLamp === 'red' ? '暂缓推进' : '有条件推进'}` : ''}</small>
           </div>
         </div>
 

@@ -33,6 +33,7 @@ import { saveSnapshot, loadSnapshot, deleteSnapshot } from './lib/chatUiStore';
 import { detectCurrentAgent, parseAgentOutputs } from './lib/agentSections';
 import IntakeWizard from './components/IntakeWizard';
 import ProductHome from './components/ProductHome';
+import NiuHead from './components/NiuHead';
 import GitHubLink from './components/GitHubLink';
 import DeployLink from './components/DeployLink';
 // === 六屏单屏导航视图 ===
@@ -1126,7 +1127,7 @@ function AppInner() {
           title={t('app.title')}
         >
           <span className="brand-mark">
-            <span className="mark-niu">牛</span>
+            <NiuHead />
             <i className="mark-ai">AI</i>
           </span>
           <span className="brand-name">

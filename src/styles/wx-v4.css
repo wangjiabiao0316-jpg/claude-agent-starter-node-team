@@ -58,10 +58,11 @@ button { cursor: pointer; }
   padding: 0 34px;
   backdrop-filter: blur(18px);
 }
-.brand { display: flex; align-items: center; gap: 12px; min-width: 230px; cursor: pointer; background: none; border: 0; text-align: left; padding: 0; }
+.brand { display: flex; align-items: stretch; gap: 12px; min-width: 230px; cursor: pointer; background: none; border: 0; text-align: left; padding: 0; }
+/* 牛字方块：随文字组（问牛工+小字）等高，aspect-ratio 保持方形 */
 .brand-mark {
   position: relative;
-  width: 30px; height: 30px;
+  width: auto; aspect-ratio: 1 / 1;
   border: 1px solid #a18b69;
   color: var(--gold);
   display: grid; place-items: center;
@@ -69,7 +70,8 @@ button { cursor: pointer; }
   border-radius: 8px;
   flex: none;
 }
-.brand-mark .mark-niu { font-weight: 800; }
+/* 卡通牛头 svg：占方块约七成，四周留边 */
+.brand-mark svg { width: 72%; height: 72%; }
 /* 牛字右上角 AI 冒泡 */
 .brand-mark .mark-ai {
   position: absolute; top: -7px; right: -10px;
@@ -197,8 +199,8 @@ button { cursor: pointer; }
 .hero-project { padding-left: 13px; font-size: 12px; letter-spacing: 1.6px; color: #a0afbd; }
 /* —— hero 主题位：左上角品牌块复制（等比放大至与 lead 行同宽，样式同 .brand-*） —— */
 /* width:max-content —— 收缩到内容自然宽，ref 测量 offsetWidth 才是组合真实宽度 */
-.hero-brand { display: flex; align-items: center; gap: 24px; margin: 6px 0 26px; width: max-content; }
-.hero-brand .brand-mark { width: 76px; height: 76px; font-size: 46px; border-radius: 14px; border-width: 1.5px; }
+.hero-brand { display: flex; align-items: stretch; gap: 24px; margin: 6px 0 26px; width: max-content; }
+.hero-brand .brand-mark { font-size: 46px; border-radius: 14px; border-width: 1.5px; }
 .hero-brand .brand-mark .mark-ai { top: -10px; right: -14px; font-size: 11px; padding: 2px 6px; }
 .hero-brand .brand-name { font-size: 44px; letter-spacing: 4px; }
 .hero-brand .brand-title { font-size: 64px; -webkit-text-stroke: 1px currentColor; }

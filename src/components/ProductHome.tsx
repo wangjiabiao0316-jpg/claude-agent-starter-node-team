@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import { useT } from '../i18n';
 import ParticleField from './ParticleField';
+import NiuHead from './NiuHead';
 
 /**
  * ProductHome — V4.0 大气版产品首页。
@@ -75,7 +76,7 @@ export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
           {/* —— 主题位：左上角品牌块复制（等比放大至与下方 lead 行同宽） —— */}
           <div className="hero-brand" ref={brandRef}>
             <span className="brand-mark">
-              <span className="mark-niu">牛</span>
+              <NiuHead />
               <i className="mark-ai">AI</i>
             </span>
             <span className="brand-name">

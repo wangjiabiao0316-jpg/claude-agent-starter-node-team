@@ -21,7 +21,8 @@ export interface DimLamp {
 }
 
 export interface ConclusionData {
-  isDemo: boolean;
+  /** 是否已跑通智能体（有双层决策输出或报告）；false = 模板口径（全部占位） */
+  hasRun: boolean;
   projectName: string;
   grade: string;
   gradeLamp: Lamp;
@@ -43,15 +44,6 @@ const SIX: Array<{ id: string; name: string }> = [
   { id: 'agent6-双层决策', name: '双层决策' },
 ];
 
-const DEMO_LAMPS: Record<string, Lamp> = {
-  'agent1-固有对象': 'yellow',
-  'agent2-政策应答': 'green',
-  'agent3-多元融资': 'yellow',
-  'agent4-财务模型': 'green',
-  'agent5-失败案例': 'yellow',
-  'agent6-双层决策': 'yellow',
-};
-
 /** output_json 模糊取值：键名包含任一关键词即返回其字符串值 */
 function pick(json: Record<string, unknown> | undefined, keys: string[]): string {
   if (!json) return '';
@@ -68,70 +60,75 @@ function pick(json: Record<string, unknown> | undefined, keys: string[]): string
 
 const clamp = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
-/** 从 agent6 输出的 H1-H4 提取四维灯（值形如 H2.yellow.H）；无输出回退演示值 */
-function extractDims(outputs: Record<string, AgentOutput>, isDemo: boolean): DimLamp[] {
-  const meta: Array<{ key: string; label: string; demo: Lamp }> = [
-    { key: 'H1', label: '政策合规', demo: 'yellow' },
-    { key: 'H2', label: '财务可行', demo: 'green' },
-    { key: 'H3', label: '运营可行', demo: 'green' },
-    { key: 'H4', label: '工程可行', demo: 'yellow' },
+/** 从 agent6 输出的 H1-H4 提取四维灯（值形如 H2.yellow.H）；无输出/未跑通 → null（待命） */
+function extractDims(outputs: Record<string, AgentOutput>, hasRun: boolean): DimLamp[] {
+  const meta: Array<{ key: string; label: string }> = [
+    { key: 'H1', label: '政策合规' },
+    { key: 'H2', label: '财务可行' },
+    { key: 'H3', label: '运营可行' },
+    { key: 'H4', label: '工程可行' },
   ];
   const json = outputs['agent6-双层决策']?.output_json as Record<string, unknown> | undefined;
-  return meta.map(({ key, label, demo }) => {
-    let lamp = demo;
-    if (!isDemo && json) {
+  return meta.map(({ key, label }) => {
+    let lamp: Lamp = null;
+    if (hasRun && json) {
       const raw = String(json[key] ?? '');
       if (raw.includes('green')) lamp = 'green';
       else if (raw.includes('yellow')) lamp = 'yellow';
       else if (raw.includes('red')) lamp = 'red';
-      else lamp = null;
     }
     return { key, label, lamp };
   });
 }
 
-/** 汇总结论页/导出文档共用的口径 */
+/**
+ * 汇总结论页/导出文档共用的口径。
+ *
+ * hasRun = true（项目管理页选中项目并跑通智能体，有双层决策输出或报告）→ 真实数据；
+ * hasRun = false → 模板口径：全部字段占位（'—' / 待命），不预填任何演示项目数据。
+ */
 export function collectConclusionData(
   outputs: Record<string, AgentOutput>,
   actions: SuggestAction[],
-  isDemo: boolean,
+  hasRun: boolean,
 ): ConclusionData {
   const a6 = outputs['agent6-双层决策']?.output_json as Record<string, unknown> | undefined;
-  const topLamp = isDemo ? 'yellow' : readLamp(a6);
+  const topLamp = hasRun ? readLamp(a6) : null;
 
-  const irr = pick(outputs['agent4-财务模型']?.output_json, ['IRR', 'irr']) || (isDemo ? '36.35%' : '—');
-  const npv = pick(outputs['agent4-财务模型']?.output_json, ['NPV', 'npv', '净现值']) || (isDemo ? '+2,996.6 万' : '—');
-  const payback = pick(outputs['agent4-财务模型']?.output_json, ['回收期', 'payback']) || (isDemo ? '2.75 年' : '—');
+  const irr = pick(outputs['agent4-财务模型']?.output_json, ['IRR', 'irr']) || '—';
+  const npv = pick(outputs['agent4-财务模型']?.output_json, ['NPV', 'npv', '净现值']) || '—';
+  const payback = pick(outputs['agent4-财务模型']?.output_json, ['回收期', 'payback']) || '—';
 
-  const grade =
-    !isDemo && a6
-      ? topLamp === 'green' ? 'A-' : topLamp === 'red' ? 'C+' : 'B+'
-      : 'B+';
+  const grade = hasRun && a6
+    ? topLamp === 'green' ? 'A-' : topLamp === 'red' ? 'C+' : 'B+'
+    : '—';
 
-  const verdictLine = isDemo || !a6
-    ? topLamp === 'red'
-      ? '存在阻断性风险，建议暂缓推进并补充材料。'
-      : topLamp === 'green'
-        ? '各维度核验通过，建议推进至实施深化阶段。'
-        : '建议在完成关键前置核验后，进入下一阶段深化。'
-    : clamp(pick(a6, ['建议动作', '结论', '顶层结论']), 48) || '详见双层决策输出。';
+  const verdictLine = !hasRun
+    ? '结论模板 · 等待智能体推演完成'
+    : a6
+      ? clamp(pick(a6, ['建议动作', '结论', '顶层结论']), 48) || '详见双层决策输出。'
+      : topLamp === 'red'
+        ? '存在阻断性风险，建议暂缓推进并补充材料。'
+        : topLamp === 'green'
+          ? '各维度核验通过，建议推进至实施深化阶段。'
+          : '建议在完成关键前置核验后，进入下一阶段深化。';
 
   return {
-    isDemo,
-    projectName: isDemo ? '重庆 · 嘉陵五村 26 号' : clamp(pick(a6, ['项目', '标的']) || '城市更新项目', 24),
+    hasRun,
+    projectName: clamp(pick(a6, ['项目', '标的']) || (hasRun ? '城市更新项目' : '未选择项目'), 24),
     grade,
     gradeLamp: topLamp,
     verdictLine,
-    verdictNote: isDemo
-      ? '综合政策、财务、运营、工程与风险维度的研判结果。最终判断以真实 Agent 输出、证据卷宗和人工确认结果为准。'
-      : '基于七智能体链路输出聚合，人工确认前不构成正式决策。',
+    verdictNote: hasRun
+      ? '基于七智能体链路输出聚合，人工确认前不构成正式决策。'
+      : '在项目管理页选择项目并发起推演，跑通智能体后此处显示该项目的结论数据。',
     kpis: [
       { label: 'IRR 内部收益率', value: irr, sub: 'IRR · 财务口径' },
       { label: 'NPV 净现值', value: npv, sub: 'NPV · 财务口径' },
       { label: '投资回收期', value: payback, sub: 'PAYBACK' },
-      { label: '综合评级', value: grade, sub: topLamp === 'green' ? '绿灯 · 建议推进' : topLamp === 'red' ? '红灯 · 建议暂缓' : '黄灯 · 建议上会' },
+      { label: '综合评级', value: grade, sub: !hasRun ? '待推演' : topLamp === 'green' ? '绿灯 · 建议推进' : topLamp === 'red' ? '红灯 · 建议暂缓' : '黄灯 · 建议上会' },
     ],
-    dims: extractDims(outputs, isDemo),
+    dims: extractDims(outputs, hasRun),
     actions,
     outputs,
   };
@@ -180,7 +177,7 @@ function lampTablesHtml(d: ConclusionData): string {
     .map((x) => `<tr><td>${x.key} ${x.label}</td><td style="color:${lampColor(x.lamp)};font-weight:600">${lampText(x.lamp)}</td></tr>`)
     .join('');
   const sixRows = SIX.map((a) => {
-    const lamp = d.isDemo ? DEMO_LAMPS[a.id] : readLamp(d.outputs[a.id]?.output_json);
+    const lamp = d.hasRun ? readLamp(d.outputs[a.id]?.output_json) : null;
     return `<tr><td>${a.name}</td><td style="color:${lampColor(lamp)};font-weight:600">${lampText(lamp)}</td></tr>`;
   }).join('');
   return `
@@ -299,10 +296,10 @@ export function buildScriptDoc(d: ConclusionData): string {
   for (let i = 0; i < SIX.length; i++) {
     const a = SIX[i];
     const out = d.outputs[a.id];
-    const lamp = d.isDemo ? DEMO_LAMPS[a.id] : readLamp(out?.output_json);
+    const lamp = d.hasRun ? readLamp(out?.output_json) : null;
     lines.push(`### A${i + 1} ${a.name}`, '');
     lines.push(`- 灯色：${lampText(lamp)}`);
-    lines.push(`- 状态：${out ? '已完成' : d.isDemo ? '演示口径' : '待命'}`, '');
+    lines.push(`- 状态：${out ? '已完成' : '待命'}`, '');
     if (out?.output_json) {
       lines.push('```json', JSON.stringify(out.output_json, null, 2), '```', '');
     }
