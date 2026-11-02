@@ -1125,9 +1125,12 @@ function AppInner() {
           aria-label={t('app.title')}
           title={t('app.title')}
         >
-          <span className="brand-mark"><span>问</span></span>
+          <span className="brand-mark">
+            <span className="mark-niu">牛</span>
+            <i className="mark-ai">AI</i>
+          </span>
           <span className="brand-name">
-            {t('app.title')}
+            <span className="brand-title">{t('app.title')}</span>
             <span className="brand-en">{t('app.subtitle')}</span>
           </span>
         </button>

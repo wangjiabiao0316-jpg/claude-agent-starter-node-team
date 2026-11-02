@@ -57,17 +57,33 @@ button { cursor: pointer; }
 }
 .brand { display: flex; align-items: center; gap: 12px; min-width: 230px; cursor: pointer; background: none; border: 0; text-align: left; padding: 0; }
 .brand-mark {
+  position: relative;
   width: 30px; height: 30px;
   border: 1px solid #a18b69;
   color: var(--gold);
   display: grid; place-items: center;
-  font-size: 18px;
-  transform: rotate(45deg);
-  border-radius: 5px;
+  font-size: 19px;
+  border-radius: 8px;
   flex: none;
 }
-.brand-mark span { transform: rotate(-45deg); }
-.brand-name { font-size: 16px; font-weight: 650; letter-spacing: 2px; color: var(--text); }
+.brand-mark .mark-niu { font-weight: 800; }
+/* 牛字右上角 AI 冒泡 */
+.brand-mark .mark-ai {
+  position: absolute; top: -7px; right: -10px;
+  font-style: normal; font-size: 8px; font-weight: 700; letter-spacing: .5px;
+  line-height: 1.2; padding: 1px 4px;
+  color: #1b2833;
+  background: linear-gradient(135deg, #e7c684, #c99e5f);
+  border-radius: 999px;
+}
+.brand-name { display: inline-flex; flex-direction: column; width: max-content; font-size: 16px; font-weight: 650; letter-spacing: 2px; color: var(--text); }
+/* 问牛工：斜粗黑体，三字两端对齐与下行副标题同宽 */
+.brand-title {
+  display: block;
+  font-family: 'SimHei', 'Microsoft YaHei', sans-serif;
+  font-style: italic; font-weight: 800;
+  text-align: justify; text-align-last: justify;
+}
 .brand-en { display: block; font-size: 9px; letter-spacing: 2.6px; color: #91a1b0; margin-top: 1px; }
 
 .mainnav { display: flex; align-items: center; gap: 5px; flex: 1; }
