@@ -5,6 +5,7 @@ import {
   collectConclusionData,
   buildGovDoc,
   buildInvestDoc,
+  buildFullDoc,
   buildScriptDoc,
   downloadDoc,
 } from '../lib/exportDocs';
@@ -73,13 +74,15 @@ export const ConclusionView: React.FC<Props> = ({
     return () => document.removeEventListener('mousedown', close);
   }, [menuOpen]);
 
-  const handleExport = useCallback((kind: 'gov' | 'invest' | 'script') => {
+  const handleExport = useCallback((kind: 'gov' | 'invest' | 'full' | 'script') => {
     setMenuOpen(false);
     const date = new Date().toISOString().slice(0, 10);
     if (kind === 'gov') {
       downloadDoc(`${date}-政府版上会文件-${data.projectName}.html`, buildGovDoc(data), 'text/html');
     } else if (kind === 'invest') {
       downloadDoc(`${date}-投资版上会文件-${data.projectName}.html`, buildInvestDoc(data), 'text/html');
+    } else if (kind === 'full') {
+      downloadDoc(`${date}-完整结论文件-${data.projectName}.html`, buildFullDoc(data), 'text/html');
     } else {
       downloadDoc(`${date}-详细推演脚本-${data.projectName}.md`, buildScriptDoc(data), 'text/markdown');
     }
@@ -125,6 +128,10 @@ export const ConclusionView: React.FC<Props> = ({
                   <button type="button" role="menuitem" onClick={() => handleExport('invest')}>
                     <b>📈 {zh ? '投资版上会文件' : 'Investment briefing'}</b>
                     <small>{zh ? '回报指标 · 融资测算 · 风险提示' : 'returns & risks'}</small>
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => handleExport('full')}>
+                    <b>📋 {zh ? '完整结论文件' : 'Full conclusion report'}</b>
+                    <small>{zh ? '结论 · 指标 · 维度 · 风险 · 行动全要素（易读排版）' : 'all-in-one readable report'}</small>
                   </button>
                   <button type="button" role="menuitem" onClick={() => handleExport('script')}>
                     <b>📜 {zh ? '详细推演脚本' : 'Full reasoning script'}</b>

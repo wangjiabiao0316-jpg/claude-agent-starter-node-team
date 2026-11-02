@@ -195,6 +195,24 @@ function actionsHtml(d: ConclusionData): string {
   return `<ul>${d.actions.map((a) => `<li><b>${a.title}</b> — ${a.description}</li>`).join('')}</ul>`;
 }
 
+/** 核心指标表段（投资版 / 完整版共用） */
+function kpiTableHtml(d: ConclusionData): string {
+  const kpiRows = d.kpis
+    .map((k) => `<tr><td>${k.label}</td><td style="font-weight:600">${k.value}</td><td class="note">${k.sub}</td></tr>`)
+    .join('');
+  return `<table><tr><th>指标</th><th>数值</th><th>口径</th></tr>${kpiRows}</table>`;
+}
+
+/** 黄/红灯维度提示段（风险关注，两版/完整版共用） */
+function riskHtml(d: ConclusionData): string {
+  const warnDims = d.dims.filter((x) => x.lamp === 'yellow' || x.lamp === 'red');
+  if (warnDims.length === 0) {
+    return '<p class="note">四维均为绿灯，重点转为执行节奏与成本控制。</p>';
+  }
+  const names = warnDims.map((x) => `${x.key} ${x.label}`).join('、');
+  return `<p class="note">优先关注维度：<b>${names}</b>；建议对相关假设做敏感性压力测试并补充佐证材料。</p>`;
+}
+
 const DISCLAIMER = `<p class="note">声明：本文件由七智能体决策链路自动生成，仅供内部研判与上会讨论参考；人工确认前不构成正式决策或投资承诺。</p>`;
 
 /** 政府版上会文件：政策合规、前置核验、下一步工作 */
@@ -218,9 +236,6 @@ export function buildGovDoc(d: ConclusionData): string {
 /** 投资版上会文件：回报指标、融资测算、风险提示 */
 export function buildInvestDoc(d: ConclusionData): string {
   const title = `${today()}-投资版上会文件-${d.projectName}`;
-  const kpiRows = d.kpis
-    .map((k) => `<tr><td>${k.label}</td><td style="font-weight:600">${k.value}</td><td class="note">${k.sub}</td></tr>`)
-    .join('');
   return docShell(title, `
     <h1>城市更新项目上会文件（投资版）</h1>
     <div class="meta">${d.projectName} · ${today()} · 万象更芯·智算营城 决策链路生成</div>
@@ -228,11 +243,35 @@ export function buildInvestDoc(d: ConclusionData): string {
     <p>综合评级 <span class="grade" style="color:${lampColor(d.gradeLamp)}">${d.grade}</span>（${lampText(d.gradeLamp)}）</p>
     <p><b>${d.verdictLine}</b></p>
     <h2>二、核心回报指标</h2>
-    <table><tr><th>指标</th><th>数值</th><th>口径</th></tr>${kpiRows}</table>
+    ${kpiTableHtml(d)}
     ${lampTablesHtml(d)}
     <h2>三、风险提示</h2>
-    <p class="note">黄灯/红灯维度为优先关注项；建议对租金、出租率、折现率做敏感性压力测试后再锁价。</p>
+    ${riskHtml(d)}
     <h2>四、投资建议与后续动作</h2>
+    ${actionsHtml(d)}
+    ${DISCLAIMER}`);
+}
+
+/**
+ * 完整结论文件：全要素易读版（HTML）。
+ * 概况/结论 → 核心指标 → 维度判定 → 风险关注 → 下一步行动，
+ * 面向人工通读复核，不限定政府或投资视角。
+ */
+export function buildFullDoc(d: ConclusionData): string {
+  const title = `${today()}-完整结论文件-${d.projectName}`;
+  return docShell(title, `
+    <h1>城市更新项目完整结论文件</h1>
+    <div class="meta">${d.projectName} · ${today()} · 万象更芯·智算营城 决策链路生成</div>
+    <h2>一、总体结论</h2>
+    <p>综合评级 <span class="grade" style="color:${lampColor(d.gradeLamp)}">${d.grade}</span>（${lampText(d.gradeLamp)}）</p>
+    <p><b>${d.verdictLine}</b></p>
+    <p class="note">${d.verdictNote}</p>
+    <h2>二、核心指标</h2>
+    ${kpiTableHtml(d)}
+    ${lampTablesHtml(d)}
+    <h2>三、风险与关注要点</h2>
+    ${riskHtml(d)}
+    <h2>四、下一步行动</h2>
     ${actionsHtml(d)}
     ${DISCLAIMER}`);
 }
