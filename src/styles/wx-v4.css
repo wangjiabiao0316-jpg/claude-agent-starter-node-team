@@ -192,6 +192,8 @@ button { cursor: pointer; }
 .hero-lead { font-size: 18px; letter-spacing: 3px; color: #e5e9ec; margin-bottom: 18px; }
 .hero-desc { font-size: 13px; line-height: 1.9; color: #aebbc7; max-width: 560px; }
 .hero-foot { display: flex; align-items: center; gap: 22px; margin-top: 44px; }
+/* hero 双按钮等宽（开始使用 / 产品价值） */
+.hero-foot .btn { min-width: 138px; display: inline-flex; align-items: center; justify-content: center; }
 .hero-project { padding-left: 13px; font-size: 12px; letter-spacing: 1.6px; color: #a0afbd; }
 /* —— hero 主题位：左上角品牌块复制（放大版，样式同 .brand-*） —— */
 .hero-brand { display: flex; align-items: center; gap: 24px; margin: 6px 0 26px; }

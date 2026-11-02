@@ -82,7 +82,14 @@ export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
             <button type="button" className="btn primary" onClick={onStart}>
               {t('home.cta')} →
             </button>
-            <span className="hero-project">CSCEC · EDGEONE MAKERS</span>
+            {/* 产品价值按钮：与「开始使用」等宽，点击平滑滚动到产品价值区 */}
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => document.getElementById('product-value')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            >
+              {t('home.valueTitle')}
+            </button>
           </div>
         </div>
         <span className="hero-stamp">CSCEC · URBAN RENEWAL · AI</span>
@@ -92,8 +99,8 @@ export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
         </span>
       </div>
 
-      {/* —— V4.0 product-story：粒子球 + 三原则 —— */}
-      <div className="product-story">
+      {/* —— V4.0 product-story：粒子球 + 三原则（产品价值锚点） —— */}
+      <div className="product-story" id="product-value">
         <div className="product-story-head">
           <p className="eyebrow">{t('home.eyebrow')}</p>
           <h2>{t('home.valueTitle')}</h2>
