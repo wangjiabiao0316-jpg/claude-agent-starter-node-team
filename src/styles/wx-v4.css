@@ -851,7 +851,6 @@ button { cursor: pointer; }
   .conclusion-grade { border-left: 0; padding-left: 0; border-top: 1px solid #d4b17a77; padding-top: 18px; }
   .summary-kpis { grid-template-columns: repeat(2, 1fr); }
   .conclusion-lower { grid-template-columns: 1fr; }
-  .brand-en { display: none; }
   .mainnav { gap: 0; }
   .mainnav button { padding: 9px 8px; font-size: 11px; }
   .global-search { width: 42px; padding: 0 11px; }
