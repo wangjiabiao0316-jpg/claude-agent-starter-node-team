@@ -15,6 +15,8 @@ import ParticleField from './ParticleField';
  * 评级位 pm-grade 无真实数据源，显示中性「—」，不伪造评级。
  */
 interface Props {
+  /** 页眉主题词后缀：当前选中项目名（App.tsx projectLabel） */
+  activeProjectName: string;
   conversations: ConversationSummary[];
   activeConversationId: string;
   loading: boolean;
@@ -38,7 +40,7 @@ function formatTimestamp(ts: number | undefined, lang: string): string {
 }
 
 export const ManagementView: React.FC<Props> = (props) => {
-  const { conversations, activeConversationId, disabled } = props;
+  const { conversations, activeConversationId, disabled, activeProjectName } = props;
   const { t, lang } = useT();
   const active = conversations.find((c) => c.id === activeConversationId);
 
@@ -62,7 +64,10 @@ export const ManagementView: React.FC<Props> = (props) => {
       <div className="shell">
         <div className="page-head">
           <div>
-            <h1>{t('management.title')}</h1>
+            <h1>
+              {t('management.title')}
+              <span className="page-head-proj">——{activeProjectName}</span>
+            </h1>
             <p>Project Asset Summary</p>
           </div>
         </div>

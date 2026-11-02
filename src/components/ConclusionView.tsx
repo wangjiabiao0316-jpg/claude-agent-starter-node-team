@@ -24,6 +24,8 @@ import {
  *   政府版上会文件 / 投资版上会文件 / 完整结论文件 / 详细推演脚本
  */
 interface Props {
+  /** 页眉主题词后缀：当前选中项目名（App.tsx projectLabel） */
+  activeProjectName: string;
   report: ReportReady | null;
   suggestActions: SuggestAction[];
   onSuggestAction: (action: SuggestAction) => void;
@@ -35,6 +37,7 @@ interface Props {
 }
 
 export const ConclusionView: React.FC<Props> = ({
+  activeProjectName,
   report,
   suggestActions,
   onSuggestAction,
@@ -93,7 +96,10 @@ export const ConclusionView: React.FC<Props> = ({
         {/* —— 页眉：与其他屏同构（eyebrow + 主题词 + 副题），高度与位置一致 —— */}
         <div className="page-head">
           <div style={{ minWidth: 0 }}>
-            <h1>{zh ? '综合决策结论' : 'Executive Conclusion'}</h1>
+            <h1>
+              {zh ? '综合决策结论' : 'Executive Conclusion'}
+              <span className="page-head-proj">——{activeProjectName}</span>
+            </h1>
             <p>Executive Project Conclusion</p>
           </div>
           <div className="page-head-tools">

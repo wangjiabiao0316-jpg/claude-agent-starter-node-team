@@ -20,6 +20,8 @@ import { useT } from '../i18n';
  * dockMode：'chat' 对话（默认）/ 'debug' TRACE / 'code' 代码视图。
  */
 interface Props {
+  /** 页眉主题词后缀：当前选中项目名（App.tsx projectLabel） */
+  activeProjectName: string;
   skillInUse: string | null;
   onStop: () => void;
   loading: boolean;
@@ -41,6 +43,7 @@ function agentCode(id: string, index: number): string {
 }
 
 export const AgentsView: React.FC<Props> = ({
+  activeProjectName,
   skillInUse,
   onStop,
   loading,
@@ -71,7 +74,10 @@ export const AgentsView: React.FC<Props> = ({
         {/* —— 页眉：主题词左对齐 + 功能按钮右对齐，三屏高度与位置统一 —— */}
         <div className="page-head">
           <div>
-            <h1>{t('agents.title')}</h1>
+            <h1>
+              {t('agents.title')}
+              <span className="page-head-proj">——{activeProjectName}</span>
+            </h1>
             <p>Seven-Agent Workspace</p>
           </div>
           <div className="page-head-tools">

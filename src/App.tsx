@@ -1262,6 +1262,7 @@ function AppInner() {
         )}
         {uiStage === 'management' && (
           <ManagementView
+            activeProjectName={projectLabel}
             conversations={conversations}
             activeConversationId={activeConversationId}
             loading={conversationsLoading}
@@ -1286,6 +1287,7 @@ function AppInner() {
         )}
         {uiStage === 'agents' && (
           <AgentsView
+            activeProjectName={projectLabel}
             skillInUse={skillInUse}
             onStop={handleStop}
             loading={loading}
@@ -1302,6 +1304,7 @@ function AppInner() {
         )}
         {uiStage === 'conclusion' && (
           <ConclusionView
+            activeProjectName={projectLabel}
             report={report}
             suggestActions={suggestActions}
             onSuggestAction={handleSuggestActionClick}

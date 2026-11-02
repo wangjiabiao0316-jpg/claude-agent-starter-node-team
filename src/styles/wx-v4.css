@@ -125,6 +125,8 @@ button { cursor: pointer; }
 /* 三屏统一页眉：主题词左对齐、功能按钮右对齐、固定高度（内容区起点一致） */
 .page-head { display: flex; justify-content: space-between; align-items: center; gap: 22px; min-height: 48px; margin: 0; }
 .page-head h1 { font-size: 21px; letter-spacing: -0.3px; margin: 3px 0 2px; font-weight: 620; color: #edf1f4; }
+/* 主题词后缀「——项目名称」：跟随当前选中项目，弱化于主题词 */
+.page-head-proj { font-size: 13px; font-weight: 420; color: var(--gold2); margin-left: 8px; letter-spacing: 0; }
 .page-head p { margin: 0; color: var(--muted); font-size: 10px; letter-spacing: 1.2px; }
 .page-head-tools { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .page-actions { display: flex; gap: 9px; align-items: center; }
