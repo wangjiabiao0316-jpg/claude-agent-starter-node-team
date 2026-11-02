@@ -1304,6 +1304,7 @@ function AppInner() {
             onSuggestAction={handleSuggestActionClick}
             messages={messages}
             outputs={agentOutputs}
+            onOpenAgents={() => setUiStage('agents')}
           />
         )}
       </main>

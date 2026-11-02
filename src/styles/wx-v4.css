@@ -362,7 +362,7 @@ button { cursor: pointer; }
 .screen.agent-screen .shell { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 15px; }
 .screen.agent-screen .agent-shell { flex: 1; min-height: 0; }
 
-.agent-shell { display: grid; grid-template-columns: 258px minmax(500px, 1fr) 292px; gap: 15px; align-items: stretch; }
+.agent-shell { display: grid; grid-template-columns: 258px minmax(500px, 1fr) minmax(0, 292px); gap: 15px; align-items: stretch; }
 .agent-sidebar { min-width: 0; min-height: 0; padding: 17px 14px; display: flex; flex-direction: column; }
 .agent-sidebar-title { font-size: 10px; letter-spacing: 1.8px; color: #a6b2bb; padding: 7px 9px 15px; }
 .agent-list { display: grid; grid-template-rows: none; gap: 7px; flex: 0 0 auto; }
@@ -399,7 +399,9 @@ button { cursor: pointer; }
 .agent-content { padding: 16px 24px; min-height: 0; flex: 1; display: flex; flex-direction: column; gap: 12px; }
 
 .agent-right { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(150px, 30%) minmax(0, 1fr); gap: 14px; }
-.agent-right > .panel { padding: 18px; min-height: 0; display: flex; flex-direction: column; }
+.agent-right > .panel { padding: 18px; min-height: 0; display: flex; flex-direction: column; max-width: 100%; overflow: hidden; }
+/* 右栏宽度固定:代码/trace 长行折行或面板内滚动,不允许撑破栏宽 */
+.agent-right pre, .agent-right code { max-width: 100%; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
 .agent-right .panel-head { margin-bottom: 13px; }
 .agent-right .rule { margin: 14px 0; }
 .agent-right .muted { font-size: 10px !important; line-height: 1.7; }
@@ -750,7 +752,7 @@ button { cursor: pointer; }
 
 /* ── L. 响应式（各层合并） ────────────────────────────────── */
 @media (max-width: 1380px) {
-  .agent-shell { grid-template-columns: 235px minmax(430px, 1fr) 260px; gap: 12px; }
+  .agent-shell { grid-template-columns: 235px minmax(430px, 1fr) minmax(0, 260px); gap: 12px; }
   .agent-item { min-height: 68px; padding: 9px; }
   .agent-label { font-size: 11px; }
   .agent-caption { font-size: 9px; }
@@ -897,3 +899,24 @@ button { cursor: pointer; }
 .chat-inputrow input::placeholder { color: #5f7280; }
 .chat-inputrow button { height: 34px; padding: 0 16px; border-radius: 8px; border: 1px solid #2b8f6f; background: linear-gradient(135deg, #2f9e78, #237a5c); color: #fff; font-size: 12px; cursor: pointer; flex-shrink: 0; }
 .chat-inputrow button:disabled { opacity: .45; cursor: not-allowed; }
+
+/* —— V4.1 综合结论页：整页锁视口高，浓缩看板（无瀑布流） —— */
+.screen.conclusion-screen { height: calc(100vh - 68px); min-height: 0; padding: 24px 0 18px; overflow: hidden; }
+.screen.conclusion-screen .shell { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.conclusion-topline { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex: none; }
+.conclusion-h1 { font-size: 26px; margin: 6px 0 4px; font-weight: 640; color: var(--text); }
+.conclusion-topline-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.conclusion-hero { flex: none; }
+.conclusion-hero .verdict-line { font-size: 26px; line-height: 1.45; margin: 9px 0 10px; }
+.screen.conclusion-screen .summary-kpis { margin: 0; }
+.screen.conclusion-screen .summary-kpi b { font-size: 21px; }
+.conclusion-lower { flex: 1; min-height: 0; }
+.conclusion-lower > .panel { min-height: 0; overflow: hidden; }
+
+/* —— 「导出结论」下拉菜单 —— */
+.export-wrap { position: relative; }
+.export-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; min-width: 280px; background: #16232e; border: 1px solid #2d4052; border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, .45); padding: 6px; display: flex; flex-direction: column; }
+.export-menu button { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; background: none; border: 0; border-radius: 8px; cursor: pointer; text-align: left; color: #d5dfe6; font: inherit; }
+.export-menu button:hover { background: #1d2f3f; }
+.export-menu b { font-size: 12px; font-weight: 600; }
+.export-menu small { font-size: 10px; color: #7d919f; }

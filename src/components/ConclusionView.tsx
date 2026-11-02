@@ -1,20 +1,15 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReportReady, SuggestAction, Message, AgentOutput } from '../types';
 import { useT } from '../i18n';
-import ChatWindow from './ChatWindow';
-import { AGENT_TABS } from './AgentPane';
-import { readLamp } from '../lib/pipeline';
+import {
+  collectConclusionData,
+  buildGovDoc,
+  buildInvestDoc,
+  buildScriptDoc,
+  downloadDoc,
+} from '../lib/exportDocs';
 
 // ── 演示数据（决赛路演：未跑 agent 时预填，对齐大气版 V4.0 设计稿）──
-// 六维子灯演示值（A1-A6，对应综合评级 B+ · 黄灯 · 建议上会）
-const DEMO_LAMPS: Record<string, 'green' | 'yellow' | 'red'> = {
-  'agent1-固有对象': 'yellow',
-  'agent2-政策应答': 'green',
-  'agent3-多元融资': 'yellow',
-  'agent4-财务模型': 'green',
-  'agent5-失败案例': 'yellow',
-  'agent6-双层决策': 'yellow',
-};
 
 // 演示下一步行动（对齐设计稿 action-row 4 步）
 const DEMO_ACTIONS: SuggestAction[] = [
@@ -24,120 +19,143 @@ const DEMO_ACTIONS: SuggestAction[] = [
   { id: 'demo-04', emoji: '④', title: '组织人工复核并形成上会材料', description: '人工确认关键判定后输出正式上会报告' },
 ];
 
-// 演示决策报告 HTML（内部决策版，含评级 / KPI / 维度子灯）
-const DEMO_REPORT_HTML = `<div style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:#d6dee8;line-height:1.7">
-<h2 style="font-size:16px;margin:0 0 12px;color:#dfb878">综合决策结论 · 重庆嘉陵五村 26 号</h2>
-<div style="background:#12202e;border:1px solid #2a3e50;border-radius:6px;padding:12px 14px;margin-bottom:12px">
-  <div style="font-size:11px;color:#718395">综合评级</div>
-  <div style="font-size:28px;color:#dfb878;font-weight:700">B+ <span style="font-size:12px;color:#b6c2cf;font-weight:400">· 建议上会 · 黄灯</span></div>
-  <div style="font-size:11px;color:#718395;margin-top:6px">人工确认前不构成正式决策</div>
-</div>
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px">
-  <div style="background:#0e1a26;border-radius:6px;padding:10px"><div style="font-size:10px;color:#718395">IRR 内部收益率</div><div style="font-size:18px;color:#dfb878">36.35%</div></div>
-  <div style="background:#0e1a26;border-radius:6px;padding:10px"><div style="font-size:10px;color:#718395">NPV 净现值</div><div style="font-size:18px;color:#dfb878">+2,996.6 万</div></div>
-  <div style="background:#0e1a26;border-radius:6px;padding:10px"><div style="font-size:10px;color:#718395">投资回收期</div><div style="font-size:18px;color:#dfb878">2.75 年</div></div>
-  <div style="background:#0e1a26;border-radius:6px;padding:10px"><div style="font-size:10px;color:#718395">决策维度</div><div style="font-size:18px;color:#dfb878">六维判定</div></div>
-</div>
-<div style="font-size:11px;color:#b6c2cf">
-  <div style="color:#718395;margin-bottom:6px">维度子灯</div>
-  <div style="display:flex;flex-wrap:wrap;gap:6px">
-    <span style="padding:2px 8px;border-radius:3px;background:#3a2f1f;color:#dfb878">前置闸门 · 黄</span>
-    <span style="padding:2px 8px;border-radius:3px;background:#16311f;color:#7fd6a0">政策应答 · 绿</span>
-    <span style="padding:2px 8px;border-radius:3px;background:#3a2f1f;color:#dfb878">多元融资 · 黄</span>
-    <span style="padding:2px 8px;border-radius:3px;background:#16311f;color:#7fd6a0">通用财务 · 绿</span>
-    <span style="padding:2px 8px;border-radius:3px;background:#3a2f1f;color:#dfb878">失败校验 · 黄</span>
-    <span style="padding:2px 8px;border-radius:3px;background:#3a2f1f;color:#dfb878">双层决策 · 黄</span>
-  </div>
-</div>
-</div>`;
-
 /**
- * ConclusionView — V4.0 大气版综合结论屏。
+ * ConclusionView — V4.1 综合结论屏：高度浓缩的结论看板（整页锁视口高，无瀑布流）。
  *
- * 结构与设计稿 1:1：
- *   .conclusion-hero  —— 地图背景 + 左深右透渐变 + 金色大评级
- *   .summary-kpis     —— 四格核心指标（前三格为决赛演示口径 K3 原值：
- *                        IRR 36.35% / NPV +2996.6万 / 回收期 2.75年，
- *                        与决赛故事稿一致；第四格动态反映报告生成状态）
- *   .conclusion-lower —— 六维子灯（真实 agentOutputs 的 readLamp，无输出显示待命）
- *                        + 下一步行动（SuggestActions → action-row）
- *   .report-paper     —— 后端 report_ready 的真实 HTML 报告（可下载）
- *   ChatWindow        —— 分析过程回放
+ *   .conclusion-topline — eyebrow + 标题 | 演示 tag + 「导出结论」下拉
+ *   .conclusion-hero    — 一句话结论 + 说明 | 金色大评级
+ *   .summary-kpis       — 四格核心指标（IRR / NPV / 回收期 / 综合评级）
+ *   .conclusion-lower   — 左：双层决策四维子灯；右：下一步行动
+ *
+ * 「导出结论」下拉三件套（lib/exportDocs）：
+ *   政府版上会文件 / 投资版上会文件 / 详细推演脚本
  */
 interface Props {
   report: ReportReady | null;
   suggestActions: SuggestAction[];
   onSuggestAction: (action: SuggestAction) => void;
   messages: Message[];
-  /** 七 agent 结构化输出（维度子灯数据源，App.tsx 传入；agent7 为成果交付） */
+  /** 七 agent 结构化输出（评级/四维灯/KPI 数据源，App.tsx 传入） */
   outputs: Record<string, AgentOutput>;
+  /** 「查看双层决策依据」→ 跳回智能体页 */
+  onOpenAgents?: () => void;
 }
 
 export const ConclusionView: React.FC<Props> = ({
   report,
   suggestActions,
   onSuggestAction,
-  messages,
   outputs,
+  onOpenAgents,
 }) => {
-  const { t, lang } = useT();
-
-  const handleDownload = useCallback(() => {
-    if (!report) return;
-    const blob = new Blob([report.html_content], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const date = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `${date}-${report.report_type}-报告.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [report]);
+  const { lang } = useT();
+  const zh = lang === 'zh';
 
   // 演示态：未跑 agent（outputs 空且无 report）时预填演示数据
   const isDemo = Object.keys(outputs).length === 0 && !report;
-  const hasReport = Boolean(report) || isDemo;
   const actions = isDemo ? DEMO_ACTIONS : suggestActions;
 
-  // 决赛演示口径（K3 原值，与故事稿一致）
-  const kpis = [
-    { label: 'IRR 内部收益率', value: '36.35%', sub: 'IRR · 10Y' },
-    { label: 'NPV 净现值', value: '+2,996.6', sub: '万元 · NPV @8%' },
-    { label: '投资回收期', value: '2.75', sub: '年 · PAYBACK' },
-    hasReport
-      ? report
-        ? { label: t('conclusion.download'), value: report.report_type, sub: 'REPORT READY' }
-        : { label: lang === 'zh' ? '决策报告' : 'Report', value: lang === 'zh' ? '内部决策版' : 'Internal', sub: 'REPORT READY' }
-      : { label: lang === 'zh' ? '决策报告' : 'Report', value: '—', sub: 'PENDING' },
-  ];
+  // 结论看板口径（真实输出优先，演示回退）——导出文档共用同一份数据
+  const data = useMemo(
+    () => collectConclusionData(outputs, actions, isDemo),
+    [outputs, actions, isDemo],
+  );
+
+  // —— 导出下拉：外点关闭 ——
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [menuOpen]);
+
+  const handleExport = useCallback((kind: 'gov' | 'invest' | 'script') => {
+    setMenuOpen(false);
+    const date = new Date().toISOString().slice(0, 10);
+    if (kind === 'gov') {
+      downloadDoc(`${date}-政府版上会文件-${data.projectName}.html`, buildGovDoc(data), 'text/html');
+    } else if (kind === 'invest') {
+      downloadDoc(`${date}-投资版上会文件-${data.projectName}.html`, buildInvestDoc(data), 'text/html');
+    } else {
+      downloadDoc(`${date}-详细推演脚本-${data.projectName}.md`, buildScriptDoc(data), 'text/markdown');
+    }
+  }, [data]);
 
   const lampText = (lamp: 'green' | 'yellow' | 'red' | null) =>
-    lamp === 'green' ? (lang === 'zh' ? '通过' : 'PASS')
-    : lamp === 'yellow' ? (lang === 'zh' ? '有条件' : 'COND')
-    : lamp === 'red' ? (lang === 'zh' ? '不通过' : 'BLOCK')
-    : (lang === 'zh' ? '待命' : '—');
+    lamp === 'green' ? (zh ? '通过' : 'PASS')
+    : lamp === 'yellow' ? (zh ? '有条件' : 'COND')
+    : lamp === 'red' ? (zh ? '不通过' : 'BLOCK')
+    : (zh ? '待命' : '—');
 
+  // conclusion-screen：整页锁视口高，内容浓缩不滚动
   return (
-    <section className="screen active">
+    <section className="screen active conclusion-screen">
       <div className="shell">
-        {/* —— V4.0 hero：地图底 + 金色评级 —— */}
+        {/* —— 顶行：标题 | 演示 tag + 导出结论下拉 —— */}
+        <div className="conclusion-topline">
+          <div style={{ minWidth: 0 }}>
+            <p className="eyebrow">06 / EXECUTIVE CONCLUSION</p>
+            <h1 className="conclusion-h1">{zh ? '项目综合决策结论' : 'Executive Conclusion'}</h1>
+            <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+              {zh ? '先呈现项目判断，再提供指标、维度依据与待办事项。' : 'Verdict first, then metrics, dimensions and actions.'}
+            </p>
+          </div>
+          <div className="conclusion-topline-right">
+            {isDemo && <span className="tag warn">{zh ? '演示数据 · 非正式投资意见' : 'DEMO DATA'}</span>}
+            <div className="export-wrap" ref={menuRef}>
+              <button
+                type="button"
+                className="btn primary export-btn"
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-expanded={menuOpen}
+                aria-haspopup="menu"
+              >
+                {zh ? '导出结论' : 'EXPORT'} <span aria-hidden="true">▾</span>
+              </button>
+              {menuOpen && (
+                <div className="export-menu" role="menu">
+                  <button type="button" role="menuitem" onClick={() => handleExport('gov')}>
+                    <b>🏛 {zh ? '政府版上会文件' : 'Government briefing'}</b>
+                    <small>{zh ? '政策合规 · 前置核验 · 下一步工作' : 'policy & compliance'}</small>
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => handleExport('invest')}>
+                    <b>📈 {zh ? '投资版上会文件' : 'Investment briefing'}</b>
+                    <small>{zh ? '回报指标 · 融资测算 · 风险提示' : 'returns & risks'}</small>
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => handleExport('script')}>
+                    <b>📜 {zh ? '详细推演脚本' : 'Full reasoning script'}</b>
+                    <small>{zh ? '七智能体完整输出与推演过程（Markdown）' : 'full agent outputs'}</small>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* —— hero：一句话结论 + 金色大评级 —— */}
         <div className="conclusion-hero">
           <div style={{ minWidth: 0 }}>
-            <p className="eyebrow">{t('conclusion.eyebrow')}</p>
-            <h2>{t('conclusion.title')}</h2>
-            <p className="muted" style={{ fontSize: 12, margin: 0 }}>{t('app.subtitle')}</p>
+            <p className="eyebrow">DECISION SUMMARY / {data.projectName}</p>
+            <h2 className="verdict-line">{data.verdictLine}</h2>
+            <p className="muted" style={{ fontSize: 12, margin: '0 0 14px', maxWidth: 520 }}>{data.verdictNote}</p>
+            <button type="button" className="btn ghost" onClick={onOpenAgents} disabled={!onOpenAgents}>
+              {zh ? '查看双层决策依据 →' : 'View dual-layer basis →'}
+            </button>
           </div>
           <div className="conclusion-grade">
-            <strong>B+</strong>
-            <small>{lang === 'zh' ? '综合评级 · 建议上会' : 'OVERALL GRADE'}</small>
+            <strong>{data.grade}</strong>
+            <small>{zh ? '投资建设评级 · 原型示意' : 'OVERALL GRADE'}</small>
+            <small>{zh ? `建议口径：${data.gradeLamp === 'green' ? '有序推进' : data.gradeLamp === 'red' ? '暂缓推进' : '有条件推进'}` : ''}</small>
           </div>
         </div>
 
         {/* —— 四格核心指标 —— */}
         <div className="summary-kpis">
-          {kpis.map((k) => (
+          {data.kpis.map((k) => (
             <div key={k.label} className="summary-kpi">
               <b>{k.value}</b>
               <small>{k.label}</small>
@@ -147,46 +165,45 @@ export const ConclusionView: React.FC<Props> = ({
         </div>
 
         <div className="conclusion-lower">
-          {/* —— 左：六维子灯（真实 agent 输出） —— */}
+          {/* —— 左：双层决策 · 维度子灯 —— */}
           <div className="panel decision-summary">
             <div className="panel-head">
               <div>
-                <div className="panel-title">{lang === 'zh' ? '决策维度 · 六维判定' : 'DECISION DIMENSIONS'}</div>
-                <div className="panel-sub">{lang === 'zh' ? 'readLamp 三色灯实时判定' : 'traffic-light verdicts'}</div>
+                <div className="panel-title">{zh ? '双层决策 · 维度子灯' : 'DUAL-LAYER DIMENSIONS'}</div>
+                <div className="panel-sub">{zh ? '大能力评分权重在 Agent 决策链路中保留' : 'weighted sub-lamps'}</div>
               </div>
+              {report && <span className="tag neutral">{report.report_type}</span>}
             </div>
-            <div className="decision-dims" style={{ gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' }}>
-              {AGENT_TABS.filter((a) => a.id !== 'agent6-双层决策' && a.id !== 'agent7-成果交付').concat(
-                AGENT_TABS.filter((a) => a.id === 'agent6-双层决策'),
-              ).map((a) => {
-                const lamp = isDemo ? DEMO_LAMPS[a.id] : readLamp(outputs[a.id]?.output_json);
-                const done = isDemo || Boolean(outputs[a.id]);
-                const strongCls = lamp === 'green' ? '' : lamp === 'yellow' ? 'warn' : lamp === 'red' ? 'bad' : '';
-                return (
-                  <div key={a.id} className="decision-dim">
-                    <b>{a.name}</b>
-                    <strong className={done ? strongCls : ''} style={done ? undefined : { color: '#718395' }}>
-                      {lampText(done ? lamp : null)}
-                    </strong>
-                  </div>
-                );
-              })}
+            <div className="decision-dims" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+              {data.dims.map((dim) => (
+                <div key={dim.key} className="decision-dim">
+                  <b>{dim.label}</b>
+                  <strong
+                    className={dim.lamp === 'green' ? '' : dim.lamp === 'yellow' ? 'warn' : dim.lamp === 'red' ? 'bad' : ''}
+                    style={dim.lamp ? undefined : { color: '#718395' }}
+                  >
+                    {lampText(dim.lamp)}
+                  </strong>
+                </div>
+              ))}
             </div>
+            <p className="muted" style={{ fontSize: 10, margin: '10px 0 0' }}>
+              {zh
+                ? '采用四维灯展示：大能力评分权重在 Agent 决策链路中保留，总投资等级 B+ 与维度状态真灯分维度走势不同判断。'
+                : 'Four-dimension lamps; the overall grade aggregates all agent verdicts.'}
+            </p>
+          </div>
 
-            <hr className="rule" />
-
-            <div className="panel-head" style={{ marginBottom: 6 }}>
+          {/* —— 右：下一步行动 —— */}
+          <div className="panel decision-summary">
+            <div className="panel-head">
               <div>
-                <div className="panel-title">{lang === 'zh' ? '下一步行动' : 'NEXT ACTIONS'}</div>
+                <div className="panel-title">{zh ? '下一步行动' : 'NEXT ACTIONS'}</div>
               </div>
-              {report && (
-                <button type="button" className="btn primary" onClick={handleDownload}>
-                  ⬇ {t('conclusion.download')}
-                </button>
-              )}
+              <span className="tag neutral">{zh ? '建议事项' : 'SUGGESTED'}</span>
             </div>
             {actions.length > 0 ? (
-              actions.map((action) => (
+              actions.map((action, i) => (
                 <button
                   key={action.id}
                   type="button"
@@ -195,58 +212,18 @@ export const ConclusionView: React.FC<Props> = ({
                   onClick={() => onSuggestAction(action)}
                   title={action.description}
                 >
-                  <b>{action.emoji} {action.title}</b>
-                  <span style={{ flex: 1 }}>{action.description}</span>
+                  <b>0{i + 1}</b>
+                  <span style={{ flex: 1 }}>{action.title}</span>
                   <span aria-hidden="true">→</span>
                 </button>
               ))
             ) : (
               <p className="muted" style={{ fontSize: 10 }}>
-                {lang === 'zh' ? '报告生成后将给出重新运行、导出等建议动作。' : 'Suggested actions appear after the report is ready.'}
+                {zh ? '报告生成后将给出重新运行、导出等建议动作。' : 'Suggested actions appear after the report is ready.'}
               </p>
             )}
           </div>
-
-          {/* —— 右：报告 —— */}
-          <div className="panel decision-summary">
-            <div className="panel-head">
-              <div>
-                <div className="panel-title">{lang === 'zh' ? '决策报告' : 'REPORT'}</div>
-                <div className="panel-sub">{hasReport ? (report?.report_type ?? (lang === 'zh' ? '内部决策版' : 'Internal Decision')) : t('conclusion.emptyHint')}</div>
-              </div>
-              {hasReport && <span className="tag good">READY</span>}
-            </div>
-            {hasReport ? (
-              <div
-                className="report-paper"
-                dangerouslySetInnerHTML={{ __html: report?.html_content ?? DEMO_REPORT_HTML }}
-                style={{ maxHeight: 420 }}
-              />
-            ) : (
-              <div className="wx-empty" style={{ minHeight: 200 }}>
-                <p className="eyebrow">PENDING</p>
-                <h3>{t('conclusion.emptyTitle')}</h3>
-                <p>{t('conclusion.emptyHint')}</p>
-              </div>
-            )}
-          </div>
         </div>
-
-        {/* —— 分析过程回放 —— */}
-        {messages.length > 0 && (
-          <div className="panel" style={{ marginTop: 13, padding: 18, display: 'flex', flexDirection: 'column', maxHeight: 460 }}>
-            <div className="panel-head">
-              <div>
-                <div className="panel-title">{t('conclusion.chatTitle')}</div>
-              </div>
-            </div>
-            <div style={{ minHeight: 0, flex: 1, display: 'flex' }}>
-              <ChatWindow messages={messages} loading={false} />
-            </div>
-          </div>
-        )}
-
-        <p className="footer-note">{t('welcome.foot')}</p>
       </div>
     </section>
   );
