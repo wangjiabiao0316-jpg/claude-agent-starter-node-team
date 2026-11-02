@@ -2,27 +2,25 @@ import React, { useMemo } from 'react';
 import type { ToolLampState, Message, AgentOutput } from '../types';
 import type { RawSseEvent } from '../api';
 import PipelineBar from './PipelineBar';
-import ChatWindow from './ChatWindow';
-import { AgentPane, AGENT_TABS } from './AgentPane';
+import AgentBoard from './AgentBoard';
+import ChatDock from './ChatDock';
+import { AGENT_TABS } from './AgentPane';
 import { readLamp } from '../lib/pipeline';
-import DebugPanel from './DebugPanel';
-import CodeViewer from './CodeViewer';
 import { useT } from '../i18n';
 
 /**
- * AgentsView — V4.0 大气版七 agent 工作台（agent-shell 三栏）。
+ * AgentsView — V4.1 七 agent 工作台（agent-shell 三栏）。
  *
  *   顶 .agent-topline —— 编排流水线（.pipeline）+ 工具灯 / skill / 停止按钮
  *   左 .agent-sidebar —— 七 agent-item（A1~A7 金码块，完成态灯点）
- *   中 .agent-main    —— agent-banner（选中 agent 大标题+灯）+ agent-content
- *                        （上：选中 agent 结构化输出 .agent-body（限高滚动）；
- *                         下：ChatWindow 实时 SSE 流 .stream-feed）
- *   右 .agent-right   —— EVIDENCE（非 text_delta 事件证据链）
- *                        + TRACE/代码 双 tab（DebugPanel / CodeViewer）
+ *   中 .agent-main    —— agent-banner（选中 agent 大标题+灯）
+ *                        + AgentBoard 结论看板（输入/输出/判定三段，不滚动；
+ *                          运行中显示 per-agent 小动效）
+ *   右 .agent-right   —— EVIDENCE（缩高）+ ChatDock 对话框
+ *                        （对话流 + 底部输入行追问；TRACE/代码为附属 tab）
  *
  * 业务逻辑（SSE 回调、agentOutputs、readLamp）全由 App.tsx 驱动。
- * dockMode 语义：'code' = 右栏代码视图；'agents'/'debug' = 右栏 Trace 视图
- * （座舱职能已分布到左栏列表与中栏详情，'agents' 保留为默认值兼容 App.tsx）。
+ * dockMode：'chat' 对话（默认）/ 'debug' TRACE / 'code' 代码视图。
  */
 interface Props {
   lamps: ToolLampState[];
@@ -35,8 +33,9 @@ interface Props {
   onAgentSelect: (id: string) => void;
   debugEvents: RawSseEvent[];
   onClearDebug: () => void;
-  dockMode: 'agents' | 'code' | 'debug';
-  onDockModeChange: (mode: 'agents' | 'code' | 'debug') => void;
+  dockMode: 'chat' | 'code' | 'debug';
+  onDockModeChange: (mode: 'chat' | 'code' | 'debug') => void;
+  onSend: (text: string) => void;
 }
 
 /** agent 序号 → 展示码（agent1-固有对象 → A1） */
@@ -57,6 +56,7 @@ export const AgentsView: React.FC<Props> = ({
   onClearDebug,
   dockMode,
   onDockModeChange,
+  onSend,
 }) => {
   const { t, lang } = useT();
 
@@ -72,8 +72,9 @@ export const AgentsView: React.FC<Props> = ({
       .reverse();
   }, [debugEvents]);
 
+  // agent-screen：锁定视口高度，内容只在面板内滚动，页面本身不延伸
   return (
-    <section className="screen active">
+    <section className="screen active agent-screen">
       <div className="shell">
         {/* —— 顶：编排流水线 + 工具状态 —— */}
         <div className="agent-topline">
@@ -83,7 +84,7 @@ export const AgentsView: React.FC<Props> = ({
             streaming={loading}
             onSelect={(agentId) => {
               onAgentSelect(agentId);
-              onDockModeChange('agents');
+              onDockModeChange('chat');
             }}
           />
           <div className="tool-lamps">
@@ -146,7 +147,7 @@ export const AgentsView: React.FC<Props> = ({
             </p>
           </div>
 
-          {/* —— 中：选中 agent banner + 实时流 —— */}
+          {/* —— 中：选中 agent banner + 结论看板 —— */}
           <div className="agent-main">
             <div className="panel agent-banner">
               <div style={{ minWidth: 0 }}>
@@ -162,20 +163,16 @@ export const AgentsView: React.FC<Props> = ({
             </div>
 
             <div className="panel agent-content">
-              {/* 选中 agent 已有输出：结构化详情（限高滚动） */}
-              {activeOutput && (
-                <div style={{ maxHeight: '44%', minHeight: 0, overflowY: 'auto', flex: 'none', display: 'flex', flexDirection: 'column' }}>
-                  <AgentPane outputs={outputs} activeTab={activeAgentId} />
-                </div>
-              )}
-              {/* 实时 SSE 流（常驻） */}
-              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', marginTop: activeOutput ? 12 : 0 }}>
-                <ChatWindow messages={messages} loading={loading} />
-              </div>
+              <AgentBoard
+                outputs={outputs}
+                messages={messages}
+                loading={loading}
+                activeAgentId={activeAgentId}
+              />
             </div>
           </div>
 
-          {/* —— 右：证据链 + Trace/代码 —— */}
+          {/* —— 右：证据链（缩高）+ 对话框 —— */}
           <div className="agent-right">
             <div className="panel">
               <div className="panel-head">
@@ -206,23 +203,15 @@ export const AgentsView: React.FC<Props> = ({
             </div>
 
             <div className="panel">
-              <div className="tabs" style={{ marginBottom: 12 }}>
-                <button
-                  type="button"
-                  className={dockMode !== 'code' ? 'active' : ''}
-                  onClick={() => onDockModeChange('debug')}
-                >
-                  TRACE
-                </button>
-                <button
-                  type="button"
-                  className={dockMode === 'code' ? 'active' : ''}
-                  onClick={() => onDockModeChange('code')}
-                >
-                  {lang === 'zh' ? '代码' : 'CODE'}
-                </button>
-              </div>
-              {dockMode === 'code' ? <CodeViewer /> : <DebugPanel events={debugEvents} onClear={onClearDebug} />}
+              <ChatDock
+                messages={messages}
+                loading={loading}
+                onSend={onSend}
+                dockMode={dockMode}
+                onDockModeChange={onDockModeChange}
+                debugEvents={debugEvents}
+                onClearDebug={onClearDebug}
+              />
             </div>
           </div>
         </div>

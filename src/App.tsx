@@ -175,7 +175,7 @@ function AppInner() {
    * available — it shows the 6-agent standby view before any output arrives.
    * 'debug' (SSE trace) and 'code' (architecture viewer) are manual tabs.
    */
-  const [dockMode, setDockMode] = useState<'agents' | 'code' | 'debug'>('agents');
+  const [dockMode, setDockMode] = useState<'chat' | 'code' | 'debug'>('chat');
 
   // === Phase 4 Task 10: super-skill orchestrator state ===
   // suggest_actions: button group rendered under chat input after super-skill completes
@@ -516,7 +516,7 @@ function AppInner() {
 
   const handleSend = useCallback(async (text: string) => {
     initDoneRef.current = true;
-    setDockMode('agents');
+    setDockMode('chat');
     setSuggestActions([]); // previous turn's follow-ups are stale the moment a new run starts
     // Reset the per-agent text accumulator at the start of each turn —
     // the next agent_output SSE event will re-bind text_delta to the
@@ -697,7 +697,7 @@ function AppInner() {
         setSuggestActions(actions);
         // Bring the cockpit into focus when the orchestrator offers follow-ups
         if (actions.some(a => a.id.startsWith('view_agent'))) {
-          setDockMode('agents');
+          setDockMode('chat');
         }
       },
 
@@ -740,7 +740,7 @@ function AppInner() {
             },
           };
         });
-        setDockMode('agents');
+        setDockMode('chat');
       },
 
       onReportReady(nextReport) {
@@ -907,7 +907,7 @@ function AppInner() {
     localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, id);
     conversationIdRef.current = id;
     setActiveConversationId(id);
-    setDockMode('agents');
+    setDockMode('chat');
     // === 切到旧会话跳结论屏,查看历史消息与结论 ===
     setUiStage('conclusion');
     void loadConversation(id);
@@ -926,7 +926,7 @@ function AppInner() {
     setActiveConversationId(newId);
     setMessages([]);
     setDebugEvents([]);
-    setDockMode('agents');
+    setDockMode('chat');
     initDoneRef.current = false;
     setHistoryLoading(false);
     // === 新建会话先进过渡页(transition),再进 22 字段采集 ===
@@ -956,7 +956,7 @@ function AppInner() {
       // Strip "view_" prefix to get the agent_id (e.g. "agent1-固有对象")
       const agentId = action.id.replace(/^view_/, '');
       setActiveAgentTab(agentId);
-      setDockMode('agents');
+      setDockMode('chat');
       return;
     }
 
@@ -1009,7 +1009,7 @@ function AppInner() {
       setActiveConversationId(newId);
       setMessages([]);
       setDebugEvents([]);
-      setDockMode('agents');
+      setDockMode('chat');
       initDoneRef.current = false;
       setHistoryLoading(false);
     }
@@ -1125,10 +1125,10 @@ function AppInner() {
           aria-label={t('app.title')}
           title={t('app.title')}
         >
-          <span className="brand-mark"><span>W</span></span>
+          <span className="brand-mark"><span>问</span></span>
           <span className="brand-name">
             {t('app.title')}
-            <span className="brand-en">WANXIANG CORE · CSCEC</span>
+            <span className="brand-en">{t('app.subtitle')}</span>
           </span>
         </button>
 
@@ -1294,6 +1294,7 @@ function AppInner() {
             onClearDebug={() => setDebugEvents([])}
             dockMode={dockMode}
             onDockModeChange={setDockMode}
+            onSend={handleSend}
           />
         )}
         {uiStage === 'conclusion' && (
