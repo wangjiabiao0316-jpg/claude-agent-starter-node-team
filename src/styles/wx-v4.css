@@ -432,10 +432,8 @@ button { cursor: pointer; }
 .agent-caption { display: block; font-size: 10px; line-height: 1.5; color: #a9b5bd; margin-top: 3px; white-space: normal; overflow-wrap: anywhere; }
 .agent-sidebar > .rule { margin: 15px 2px; }
 
-.agent-main { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
-.agent-banner { min-height: 134px; padding: 21px 24px; margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
-.agent-title { font-size: 25px; line-height: 1.25; font-weight: 650; letter-spacing: -0.6px; margin: 7px 0; color: #edf1f4; }
-.agent-description { font-size: 12px; line-height: 1.7; color: #b5c0c6; max-width: 760px; }
+.agent-main { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+/* 选中 agent 信息由看板内状态条承载，banner 面板已删 */
 .agent-content { padding: 16px 24px; min-height: 0; flex: 1; display: flex; flex-direction: column; gap: 12px; }
 
 .agent-right { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(150px, 30%) minmax(0, 1fr); gap: 14px; }

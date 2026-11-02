@@ -12,9 +12,7 @@ import { useT } from '../i18n';
  *
  *   页眉 .page-head —— 主题词左对齐 + skill/停止按钮右对齐（.page-head-tools）
  *   左 .agent-sidebar —— 七 agent-item（A1~A7 金码块 + 名称前状态灯点）
- *   中 .agent-main    —— agent-banner（选中 agent 大标题+灯）
- *                        + AgentBoard 结论看板（输入/输出/判定三段，不滚动；
- *                          运行中显示 per-agent 小动效）
+ *   中 .agent-main    —— AgentBoard 结论看板撑满（固定模板三态 + 迷你图表）
  *   右 .agent-right   —— EVIDENCE（缩高）+ ChatDock 对话框
  *                        （对话流 + 底部输入行追问；TRACE/代码为附属 tab）
  *
@@ -57,10 +55,6 @@ export const AgentsView: React.FC<Props> = ({
   onSend,
 }) => {
   const { t, lang } = useT();
-
-  const activeMeta = AGENT_TABS.find((a) => a.id === activeAgentId) ?? AGENT_TABS[0];
-  const activeOutput = outputs[activeAgentId];
-  const activeLamp = readLamp(activeOutput?.output_json);
 
   // 证据链 = 排除 text_delta 噪音后的最近 30 条事件（倒序展示最新在上）
   const evidenceEvents = useMemo(() => {
@@ -138,21 +132,8 @@ export const AgentsView: React.FC<Props> = ({
             </p>
           </div>
 
-          {/* —— 中：选中 agent banner + 结论看板 —— */}
+          {/* —— 中：结论看板（撑满，agent 信息由看板状态条承载） —— */}
           <div className="agent-main">
-            <div className="panel agent-banner">
-              <div style={{ minWidth: 0 }}>
-                <p className="eyebrow">AGENT WORKSPACE · {agentCode(activeAgentId, AGENT_TABS.findIndex((a) => a.id === activeAgentId))}</p>
-                <h2 className="agent-title">{activeMeta.emoji} {activeMeta.name}</h2>
-                <p className="agent-description">{activeMeta.role}</p>
-              </div>
-              {activeLamp && (
-                <span className={`lamp-badge ${activeLamp}`}>
-                  {activeLamp === 'green' ? (lang === 'zh' ? '绿灯 · 通过' : 'Pass') : activeLamp === 'yellow' ? (lang === 'zh' ? '黄灯 · 有条件通过' : 'Conditional') : (lang === 'zh' ? '红灯 · 不通过' : 'Blocked')}
-                </span>
-              )}
-            </div>
-
             <div className="panel agent-content">
               <AgentBoard
                 outputs={outputs}
