@@ -195,8 +195,9 @@ button { cursor: pointer; }
 /* hero 双按钮等宽（开始使用 / 产品价值） */
 .hero-foot .btn { min-width: 138px; display: inline-flex; align-items: center; justify-content: center; }
 .hero-project { padding-left: 13px; font-size: 12px; letter-spacing: 1.6px; color: #a0afbd; }
-/* —— hero 主题位：左上角品牌块复制（放大版，样式同 .brand-*） —— */
-.hero-brand { display: flex; align-items: center; gap: 24px; margin: 6px 0 26px; }
+/* —— hero 主题位：左上角品牌块复制（等比放大至与 lead 行同宽，样式同 .brand-*） —— */
+/* width:max-content —— 收缩到内容自然宽，ref 测量 offsetWidth 才是组合真实宽度 */
+.hero-brand { display: flex; align-items: center; gap: 24px; margin: 6px 0 26px; width: max-content; }
 .hero-brand .brand-mark { width: 76px; height: 76px; font-size: 46px; border-radius: 14px; border-width: 1.5px; }
 .hero-brand .brand-mark .mark-ai { top: -10px; right: -14px; font-size: 11px; padding: 2px 6px; }
 .hero-brand .brand-name { font-size: 44px; letter-spacing: 4px; }

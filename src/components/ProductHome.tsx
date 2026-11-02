@@ -25,9 +25,9 @@ interface ProductHomeProps {
 export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
   const { t, lang } = useT();
 
-  // 主题位品牌组合等比放大：宽度对齐下方 lead 行（zoom 等比缩放整组，布局占位同步）
+  // 主题位品牌组合等比放大：宽度对齐下方 lead 文本行（zoom 等比缩放整组，布局占位同步）
   const brandRef = useRef<HTMLDivElement | null>(null);
-  const leadRef = useRef<HTMLParagraphElement | null>(null);
+  const leadRef = useRef<HTMLSpanElement | null>(null);
   const baseWidthRef = useRef(0);
   useLayoutEffect(() => {
     const fit = () => {
@@ -37,7 +37,8 @@ export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
       // 基准宽 = zoom=1 时的自然宽度（此后 offsetWidth 已含 zoom，需除回）
       const zoomNow = Number(brand.style.zoom) || 1;
       if (!baseWidthRef.current) baseWidthRef.current = brand.offsetWidth / zoomNow;
-      const target = lead.clientWidth;
+      // 内联 span 的宽度 = 文本自然宽（折行时≈块宽），比块级 clientWidth 精确
+      const target = lead.offsetWidth;
       if (target > 0 && baseWidthRef.current > 0) {
         brand.style.zoom = String(target / baseWidthRef.current);
       }
@@ -76,7 +77,9 @@ export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
               <span className="brand-en">{t('app.subtitle')}</span>
             </span>
           </div>
-          <p className="hero-lead" ref={leadRef}>{t('welcome.subtitle')}</p>
+          <p className="hero-lead">
+            <span ref={leadRef}>{t('welcome.subtitle')}</span>
+          </p>
           <p className="hero-desc">{t('home.intro')}</p>
           <div className="hero-foot">
             <button type="button" className="btn primary" onClick={onStart}>
