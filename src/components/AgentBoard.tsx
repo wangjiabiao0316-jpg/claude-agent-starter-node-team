@@ -1,13 +1,17 @@
 import React, { useMemo } from 'react';
 import type { AgentOutput, Message } from '../types';
 import { readLamp } from '../lib/pipeline';
+import { buildConclusionMatrix } from '../lib/conclusionMatrix';
 import { AGENT_TABS } from './AgentPane';
+import ConclusionMatrix from './ConclusionMatrix';
 import { useT } from '../i18n';
 
 /**
- * AgentBoard —— 中栏结论看板（V4.1）。
+ * AgentBoard —— 中栏结论看板（V4.2）。
  *
- * 选中 agent 的三段式固定版式（不滚动，内容随板块裁切）：
+ * 有结构化结论数据时优先渲染核心结论模块（ConclusionMatrix，
+ * 对齐设计稿红框形式：清单主表 + 选中条目详情）；凑不出矩阵时
+ * 回退 V4.1 三段式固定版式：
  *   输入重点 —— 从首条用户消息解析出的项目采集字段 chips
  *   输出重点 —— 该 agent output_json 的优先关键字段（最多 6 条）
  *   判定结论 —— 灯色徽章 + 该 agent 自身的结论/建议字段
@@ -162,6 +166,13 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
   const outRows = useMemo(() => pickFields(pool, spec.outputKeys, 6), [pool, spec]);
   const verdictRows = useMemo(() => pickFields(pool, spec.verdictKeys, 2), [pool, spec]);
 
+  // 核心结论矩阵（V4.2）：output_json 优先，缺失时从 summary 的结论 JSON /
+  // markdown 表格提取；凑不出矩阵（返回 null）走三段式回退版式
+  const matrix = useMemo(
+    () => buildConclusionMatrix(activeAgentId, output?.output_json, output?.summary),
+    [activeAgentId, output],
+  );
+
   const running = loading && !output;
 
   // —— 运行态：per-agent 小动效 ——
@@ -214,7 +225,16 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
     );
   }
 
-  // —— 结论看板态：三段固定版式 ——
+  // —— 核心结论模块态：矩阵优先（对齐设计稿红框呈现） ——
+  if (matrix) {
+    return (
+      <div className="agent-board">
+        <ConclusionMatrix model={matrix} />
+      </div>
+    );
+  }
+
+  // —— 回退：三段固定版式 ——
   const inputChips = spec.inputKeys.filter((k) => intake[k]);
   return (
     <div className="agent-board">
