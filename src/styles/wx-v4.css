@@ -77,18 +77,18 @@ button { cursor: pointer; }
   border-radius: 999px;
 }
 .brand-name { display: inline-flex; flex-direction: column; width: max-content; font-size: 16px; font-weight: 650; letter-spacing: 2px; color: var(--text); }
-/* 问牛工：斜粗黑体（900 + 描边加粗 + scaleY 压扁），三字紧凑两端对齐与副标题同宽 */
+/* 问牛工：斜粗黑体（900 + 描边加粗 + scaleY 压扁），大字号零字距，两端对齐仅补极小空隙 */
 .brand-title {
   display: block;
   font-family: 'SimHei', 'Microsoft YaHei', sans-serif;
   font-style: italic; font-weight: 900;
-  font-size: 21px; letter-spacing: 1px; line-height: 1.15;
+  font-size: 25px; letter-spacing: 0; line-height: 1.1;
   -webkit-text-stroke: 0.5px currentColor;
   transform: scaleY(.8);
   transform-origin: left bottom;
   text-align: justify; text-align-last: justify;
 }
-.brand-en { display: block; font-size: 9px; letter-spacing: 1.8px; color: #91a1b0; margin-top: 1px; }
+.brand-en { display: block; font-size: 8.5px; letter-spacing: 1.2px; color: #91a1b0; margin-top: 1px; }
 
 .mainnav { display: flex; align-items: center; gap: 5px; flex: 1; }
 .mainnav button {
