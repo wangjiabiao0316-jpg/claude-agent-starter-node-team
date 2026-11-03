@@ -173,10 +173,11 @@ export const AgentsView: React.FC<Props> = ({
                       <span className="agent-label">
                         <i className={`agent-dot ${lamp ?? ''} ${running ? 'running' : ''}`} aria-hidden="true" />
                         {a.name}
+                        {out && lamp && !running && <i className={`agent-lampdot ${lamp}`} aria-hidden="true" />}
                       </span>
                       <span className="agent-caption">
                         {running
-                          ? (lang === 'zh' ? '执行中…' : 'running…')
+                          ? (lang === 'zh' ? '正在输入' : 'typing')
                           : out
                             ? lamp === 'green'
                               ? (lang === 'zh' ? '已完成 · 通过' : 'done · pass')
