@@ -5,6 +5,8 @@ import AgentBoard from './AgentBoard';
 import ChatDock from './ChatDock';
 import { AGENT_TABS } from './AgentPane';
 import { readLamp, resolveNodeState } from '../lib/pipeline';
+import { extractConclusionJson } from '../lib/conclusionMatrix';
+import { detectCurrentAgent } from '../lib/agentSections';
 import { useT } from '../i18n';
 
 /**
@@ -72,13 +74,23 @@ export const AgentsView: React.FC<Props> = ({
   // 自动跟随（V4.4.9）：运行中展板自动切到正在执行的 agent。
   // runningId = DAG 判定的首个 running 环节；用户手动点选某 agent 后本轮
   // 不再抢跳（视口交还给用户），下一轮流水线启动时自动恢复跟随。
+  // 完成判定用段落文本语义（summary 非空）：流式期间 outputs 槽就已存在，
+  // 按整个对象判 done 会让「正在运行」永远判不出来。
   const runningId = useMemo(() => {
     if (!loading) return null;
     for (const a of AGENT_TABS) {
-      if (resolveNodeState(a.id, (id) => Boolean(outputs[id]), loading) === 'running') return a.id;
+      if (resolveNodeState(a.id, (id) => Boolean(outputs[id]?.summary?.trim()), loading) === 'running') return a.id;
     }
     return null;
   }, [outputs, loading]);
+
+  // 正在输入判定：流式中按全文最后一个段落 header 归属当前打字环节
+  //（与 App.tsx currentAgentIdRef 同源逻辑，但走 state 可触发重渲）
+  const typingId = useMemo(() => {
+    if (!loading) return null;
+    const last = [...messages].reverse().find((m) => m.role === 'assistant');
+    return last?.streaming ? detectCurrentAgent(last.content) : null;
+  }, [messages, loading]);
 
   const autoFollowRef = useRef(true);
   const wasLoadingRef = useRef(false);
@@ -155,30 +167,39 @@ export const AgentsView: React.FC<Props> = ({
             <div className="agent-list">
               {AGENT_TABS.map((a, i) => {
                 const out = outputs[a.id];
-                const lamp = readLamp(out?.output_json);
-                // 运行态由 DAG 判定：loading 中 + 本环节无输出 + 上游全部完成
-                const state = resolveNodeState(a.id, (id) => Boolean(outputs[id]), loading);
-                const running = state === 'running';
+                const summaryText = out?.summary?.trim() ?? '';
+                // 灯源：output_json 优先（后端目前只发空对象），summary 里的 ```json 结论块兜底
+                const lampJson = out?.output_json && Object.keys(out.output_json).length > 0
+                  ? out.output_json
+                  : extractConclusionJson(out?.summary);
+                const lamp = readLamp(lampJson);
+                // 四态（V4.4.9）：待命 → 正在运行 → 正在输入 → 已完成。
+                // done = 该 agent 的面板段落编辑完成且正文可见（summary 非空）；
+                // typing = 当前段落 header 归属本环节（正在打字）；running = 已调度、段落未开始。
+                const state = resolveNodeState(a.id, (id) => Boolean(outputs[id]?.summary?.trim()), loading);
+                const typing = typingId === a.id;
+                const running = !typing && state === 'running';
+                const done = !typing && Boolean(summaryText);
                 return (
                   <button
                     key={a.id}
                     type="button"
-                    className={`agent-item ${activeAgentId === a.id ? 'active' : ''} ${running ? 'running' : ''}`}
+                    className={`agent-item ${activeAgentId === a.id ? 'active' : ''} ${running || typing ? 'running' : ''}`}
                     onClick={() => handleAgentSelect(a.id)}
                     aria-pressed={activeAgentId === a.id}
-                    title={out ? `${a.name} · 已完成` : running ? `${a.name} · 执行中` : `${a.name} · 待命`}
+                    title={`${a.name} · ${typing ? '正在输入' : done ? '已完成' : running ? '正在运行' : '待命'}`}
                   >
                     <span className={`agent-code ${lamp === 'green' ? 'done' : ''}`}>{agentCode(i)}</span>
                     <span style={{ minWidth: 0 }}>
                       <span className="agent-label">
-                        <i className={`agent-dot ${lamp ?? ''} ${running ? 'running' : ''}`} aria-hidden="true" />
+                        <i className={`agent-dot ${lamp ?? ''} ${running || typing ? 'running' : ''}`} aria-hidden="true" />
                         {a.name}
-                        {out && lamp && !running && <i className={`agent-lampdot ${lamp}`} aria-hidden="true" />}
+                        {done && lamp && <i className={`agent-lampdot ${lamp}`} aria-hidden="true" />}
                       </span>
                       <span className="agent-caption">
-                        {running
+                        {typing
                           ? (lang === 'zh' ? '正在输入' : 'typing')
-                          : out
+                          : done
                             ? lamp === 'green'
                               ? (lang === 'zh' ? '已完成 · 通过' : 'done · pass')
                               : lamp === 'yellow'
@@ -186,7 +207,9 @@ export const AgentsView: React.FC<Props> = ({
                                 : lamp === 'red'
                                   ? (lang === 'zh' ? '已完成 · 不通过' : 'done · blocked')
                                   : (lang === 'zh' ? '已完成' : 'done')
-                            : (lang === 'zh' ? '待命' : 'standby')}
+                            : running
+                              ? (lang === 'zh' ? '正在运行' : 'running')
+                              : (lang === 'zh' ? '待命' : 'standby')}
                       </span>
                     </span>
                   </button>

@@ -1467,3 +1467,14 @@ button { cursor: pointer; }
 .bd-duo.bd-duo-tall > .bd-section.is-scroll .bd-section-body { border: 0; background: none; padding: 0; }
 /* 半宽下单列纵排（政策卡 minmax 250 在 ~440px 半宽内自然单列），保证瀑布流感 */
 .bd-duo.bd-duo-tall .bd-policygrid { grid-template-columns: 1fr; }
+
+/* —— 展板模板态结论正文（V4.4.9）：无展板数据时兜底渲染段落 markdown —— */
+.ab-summary-body { max-height: 240px; overflow-y: auto; border: 1px solid #223140; border-radius: 9px; background: #101c27; padding: 10px 12px; }
+.agent-board .md { font-size: 11.5px; line-height: 1.8; color: #d4dde3; overflow-wrap: anywhere; }
+.agent-board .md h1, .agent-board .md h2, .agent-board .md h3 { color: var(--text); font-size: 12.5px; margin: 10px 0 6px; }
+.agent-board .md table { width: 100%; border-collapse: collapse; font-size: 10.5px; margin: 8px 0; }
+.agent-board .md th { text-align: left; color: #aab6bf; font-weight: 550; padding: 6px 8px; border-bottom: 1px solid #3a4c59; background: #0d1926; }
+.agent-board .md td { padding: 6px 8px; border-bottom: 1px solid #26333d; color: #e1e6e8; }
+.agent-board .md code { font: 10.5px "IBM Plex Mono", Consolas, monospace; background: #0b1723; border-radius: 4px; padding: 1px 5px; color: #d9c29e; }
+.agent-board .md pre { background: #0b1723; border: 1px solid #2d4255; border-radius: 7px; padding: 11px; overflow-x: auto; }
+.agent-board .md pre code { background: none; padding: 0; }

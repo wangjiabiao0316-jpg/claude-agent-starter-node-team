@@ -1,4 +1,6 @@
 import React, { useMemo } from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { AgentOutput, Message } from '../types';
 import { readLamp } from '../lib/pipeline';
 import { buildConclusionMatrix, extractConclusionJson } from '../lib/conclusionMatrix';
@@ -341,6 +343,16 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
           </div>
         </div>
       </div>
+
+      {/* 结论正文（V4.4.9）：无展板数据时兜底渲染段落 markdown——保证「完成必可见结果」 */}
+      {output?.summary?.trim() && (
+        <div className="ab-row ab-summary">
+          <div className="ab-head">{zh ? '结论正文' : 'DETAIL'}</div>
+          <div className="md ab-summary-body">
+            <Markdown remarkPlugins={[remarkGfm]}>{output.summary}</Markdown>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
