@@ -1179,15 +1179,6 @@ button { cursor: pointer; }
 .bd-stat.red .bd-stat-value { color: #e2a29b; }
 .bd-stat-sub { font-size: 10px; color: #718395; line-height: 1.5; }
 
-/* —— IRR 门槛带（A4）：区间带 + 指针 —— */
-.bd-irrband { position: relative; height: 28px; margin: 14px 6px 12px; }
-.bd-irr-zone { position: absolute; top: 9px; height: 8px; border: 1px solid #416c5e; background: rgba(120, 173, 152, 0.16); border-radius: 3px; }
-.bd-irr-ptr { position: absolute; top: 0; width: 2px; height: 20px; background: var(--gold2); transform: translateX(-1px); }
-.bd-irr-ptr i { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 2px; font-style: normal; font-size: 10px; font-weight: 700; color: var(--gold2); white-space: nowrap; }
-.bd-irr-ptr i.green { color: #9bcab6; }
-.bd-irr-ptr i.red { color: #e2a29b; }
-.bd-irr-lab { position: absolute; top: 21px; transform: translateX(-50%); font-style: normal; font-size: 9px; color: #718395; }
-
 /* —— 现金流柱图（A4）：中线 0 值，正值上伸金绿、负值下垂红 —— */
 .bd-cash { border: 1px solid #2d3d4a; border-radius: 9px; background: #16232e; padding: 12px 14px 8px; min-width: 0; }
 .bd-cashchart { position: relative; height: 108px; margin: 16px 2px 0; }
@@ -1367,7 +1358,7 @@ button { cursor: pointer; }
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: 22px;
+  font-size: 26px;
 }
 
 /* —— IRR 0-1 全量程细线（V4.4.3）：窗口尺之下补一条 0-100% 完整量程，
@@ -1406,16 +1397,16 @@ button { cursor: pointer; }
 .bd-trace {
   border: 1px solid #223140;
   border-radius: 8px;
-  padding: 6px 12px 7px;
+  padding: 9px 12px 10px;
   background: rgba(21, 35, 48, 0.5);
   flex-shrink: 0;
 }
-.bd-trace-title { font-size: 9px; letter-spacing: 1.5px; color: #5d7181; font-weight: 650; margin-bottom: 4px; }
-/* 单行四列竖排（label 上 / value 下）——压缩版面高度，把空间让给滚动区 */
-.bd-trace-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 14px; }
-.bd-trace-grid > div { display: flex; flex-direction: column; gap: 1px; font-size: 10px; min-width: 0; }
-.bd-trace-grid span { color: #64788a; white-space: nowrap; font-size: 9px; letter-spacing: 0.5px; }
-.bd-trace-grid b { color: #b8c7d2; font-weight: 550; font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bd-trace-title { font-size: 9.5px; letter-spacing: 1.5px; color: #5d7181; font-weight: 650; margin-bottom: 7px; }
+/* 2×2 双行四格——审计信息保持可读高度 */
+.bd-trace-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; }
+.bd-trace-grid > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 11px; min-width: 0; }
+.bd-trace-grid span { color: #7d919f; white-space: nowrap; font-size: 10.5px; }
+.bd-trace-grid b { color: #b8c7d2; font-weight: 550; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* —— 敏感性分析条目化（参考 demo 双组结构）：收入侧 / 成本侧归组呈现 —— */
 .bd-sens { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1435,11 +1426,21 @@ button { cursor: pointer; }
 .bd-cash-legend .lg-cum { width: 16px; height: 0; border-radius: 0; border-top: 2px solid var(--gold); }
 .bd-cash-legend .lg-pb { width: 16px; height: 0; border-radius: 0; border-top: 2px dashed var(--gold2); }
 
-/* —— A4 现金流 × 敏感性并排（V4.4.5）：两块纵向都高，并排后互不挤压 ——
-   左现金流（宽 1.15 份）右敏感性；敏感性内容多时在自身 215px 上限内滚动，
+/* —— A4 现金流 × 敏感性并排（V4.4.6）：左右各半，与上方指标卡两列对齐 ——
+   敏感性整体加框（与现金流区同款卡片底），内容多时在 215px 上限内滚动；
    单块缺位时占满整行。 */
-.bd-duo { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; }
+.bd-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .bd-duo > .bd-section { min-width: 0; }
 .bd-duo > .bd-section:only-child { grid-column: 1 / -1; }
-.bd-duo > .bd-section.is-scroll { max-height: 215px; min-height: 140px; }
+.bd-duo > .bd-section.is-scroll {
+  max-height: 215px;
+  min-height: 140px;
+  border: 1px solid #2d3d4a;
+  border-radius: 9px;
+  background: #16232e;
+  padding: 10px 12px;
+}
 .bd-duo .bd-sens { grid-template-columns: 1fr; }
+
+/* —— 结论模块钉底行：口径待核验脚注永远收尾（内容不足时贴展板底） —— */
+.bd > .bd-footnote:last-child { margin-top: auto; }

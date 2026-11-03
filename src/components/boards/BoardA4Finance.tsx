@@ -81,13 +81,9 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
     }
   }
 
-  // IRR 门槛带窗口：区间两侧各留 70% 跨度余量，指针按窗口内相对位置摆放
+  // IRR 量程线（V4.4.6）：0-100% 全量程单线，门槛绿段重叠绘制其上，
+  // 指针按真实比例落位（irr% 即 left 百分比）
   const bandOk = irr !== null && lo !== null && hi !== null && hi > lo;
-  const span = bandOk ? hi - lo : 1;
-  const wLo = bandOk ? lo - span * 0.7 : 0;
-  const wHi = bandOk ? hi + span * 0.7 : 100;
-  const posOf = (v: number) => ((v - wLo) / (wHi - wLo)) * 100;
-  const irrPos = bandOk ? Math.min(98, Math.max(2, posOf(irr))) : null;
   const irrTone: Tone | undefined = bandOk ? (irr >= lo && irr <= hi ? 'green' : 'red') : undefined;
 
   // 敏感性条目化（参考 demo 双组结构）：文字按行/分号切分，能同时归出
@@ -127,23 +123,7 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
           </span>
           <b className={`bd-stat-value ${irrTone ?? ''}`}>{irr !== null ? `${irr}%` : '—'}</b>
           {bandOk && (
-            <>
-            {/* 0-1 全量程细线说明：窗口尺看门槛细节，全量程线看 IRR 在 0-100% 的真实比例 */}
-            <div className="bd-irrband">
-              <span
-                className="bd-irr-zone"
-                style={{ left: `${posOf(lo)}%`, width: `${posOf(hi) - posOf(lo)}%` }}
-                title={`${zh ? '门槛带' : 'threshold'} ${lo}-${hi}%`}
-              />
-              {irrPos !== null && (
-                <span className="bd-irr-ptr" style={{ left: `${irrPos}%` }}>
-                  <i className={irrTone}>{irr}%</i>
-                </span>
-              )}
-              <em className="bd-irr-lab" style={{ left: `${posOf(lo)}%` }}>{lo}%</em>
-              <em className="bd-irr-lab" style={{ left: `${posOf(hi)}%` }}>{hi}%</em>
-            </div>
-            <div className="bd-irr-full" title={zh ? '全量程 0-100% · 绿段为门槛区间' : 'full scale 0-100%'}>
+            <div className="bd-irr-full" title={zh ? '量程 0-100% · 绿段为业态门槛区间' : 'scale 0-100% · green = threshold'}>
               <span className="bd-irr-full-track" aria-hidden="true" />
               <span className="bd-irr-full-zone" style={{ left: `${lo}%`, width: `${hi - lo}%` }} />
               {irr !== null && (
@@ -156,7 +136,6 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
               <em className="bd-irr-full-lab l">0</em>
               <em className="bd-irr-full-lab r">100%</em>
             </div>
-            </>
           )}
           <small className="bd-stat-sub">
             {bandOk
