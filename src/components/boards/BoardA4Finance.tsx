@@ -105,6 +105,8 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
           <span className="bd-stat-label">IRR · 内部收益率（年化）</span>
           <b className={`bd-stat-value ${irrTone ?? ''}`}>{irr !== null ? `${irr}%` : '—'}</b>
           {bandOk && (
+            <>
+            {/* 0-1 全量程细线说明：窗口尺看门槛细节，全量程线看 IRR 在 0-100% 的真实比例 */}
             <div className="bd-irrband">
               <span
                 className="bd-irr-zone"
@@ -119,6 +121,20 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
               <em className="bd-irr-lab" style={{ left: `${posOf(lo)}%` }}>{lo}%</em>
               <em className="bd-irr-lab" style={{ left: `${posOf(hi)}%` }}>{hi}%</em>
             </div>
+            <div className="bd-irr-full" title={zh ? '全量程 0-100% · 绿段为门槛区间' : 'full scale 0-100%'}>
+              <span className="bd-irr-full-track" aria-hidden="true" />
+              <span className="bd-irr-full-zone" style={{ left: `${lo}%`, width: `${hi - lo}%` }} />
+              {irr !== null && (
+                <span
+                  className={`bd-irr-full-ptr ${irrTone ?? ''}`}
+                  style={{ left: `${Math.min(100, Math.max(0, irr))}%` }}
+                  title={`${irr}%`}
+                />
+              )}
+              <em className="bd-irr-full-lab l">0</em>
+              <em className="bd-irr-full-lab r">100%</em>
+            </div>
+            </>
           )}
           <small className="bd-stat-sub">
             {bandOk

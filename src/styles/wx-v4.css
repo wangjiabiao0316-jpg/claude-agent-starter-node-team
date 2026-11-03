@@ -1358,3 +1358,29 @@ button { cursor: pointer; }
 .bd-cash-pbline { position: absolute; top: -2px; bottom: 0; width: 0; border-left: 1px dashed var(--gold2); opacity: 0.85; }
 .bd-cash-pbdot { position: absolute; top: 50%; width: 7px; height: 7px; border-radius: 50%; background: var(--gold2); transform: translate(-50%, -50%); box-shadow: 0 0 6px rgba(198, 167, 122, 0.65); }
 .bd-cash-pblab { position: absolute; top: -6px; transform: translateX(-50%); font-size: 9.5px; font-weight: 700; color: var(--gold2); white-space: nowrap; background: #1d2a36; border: 1px solid #6b5a41; border-radius: 4px; padding: 1px 7px; pointer-events: none; }
+
+/* —— 大数字卡 solo 态：纯文字结论放大居中，不留底部空白（V4.4.3） —— */
+.bd-stat.solo .bd-stat-value {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 26px;
+}
+
+/* —— IRR 0-1 全量程细线（V4.4.3）：窗口尺之下补一条 0-100% 完整量程，
+   指针按真实比例落位；绿段为门槛区间在整体量程中的位置 —— */
+.bd-irr-full { position: relative; height: 18px; margin: 20px 2px 6px; }
+.bd-irr-full-track { position: absolute; left: 0; right: 0; top: 7px; height: 2px; border-radius: 1px; background: #223140; }
+.bd-irr-full-zone { position: absolute; top: 5px; height: 6px; background: rgba(120, 173, 152, 0.4); border-radius: 2px; min-width: 2px; }
+.bd-irr-full-ptr { position: absolute; top: 1px; width: 2px; height: 13px; background: var(--gold2); transform: translateX(-1px); }
+.bd-irr-full-ptr.green { background: var(--green); }
+.bd-irr-full-ptr.red { background: var(--red); }
+.bd-irr-full-lab { position: absolute; top: 100%; margin-top: 2px; font-style: normal; font-size: 9px; color: #718395; }
+.bd-irr-full-lab.l { left: 0; }
+.bd-irr-full-lab.r { right: 0; }
+
+/* —— 风险清单紧凑态（A3 剔除与审批风险）：压缩版面高度 —— */
+.bd-risklist.tight { gap: 4px; }
+.bd-risklist.tight .bd-risk { padding: 4px 10px; font-size: 10.5px; line-height: 1.5; }
