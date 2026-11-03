@@ -29,6 +29,8 @@ export const BoardA2Policy: React.FC<{ json: Record<string, unknown> }> = ({ jso
         </div>
       )}
 
+      {(applicable.length > 0 || inapplicable.length > 0) && (
+      <div className="bd-duo bd-duo-tall">
       {applicable.length > 0 && (
         <BDSection title={zh ? `可适用政策 · ${applicable.length} 条（按综合分降序）` : 'APPLICABLE POLICIES'} scroll>
           <div className="bd-policygrid">
@@ -68,7 +70,7 @@ export const BoardA2Policy: React.FC<{ json: Record<string, unknown> }> = ({ jso
       )}
 
       {inapplicable.length > 0 && (
-        <BDSection title={zh ? '未适用政策 · 缺口提示' : 'INAPPLICABLE'}>
+        <BDSection title={zh ? `未适用政策 · ${inapplicable.length} 条（缺口提示）` : 'INAPPLICABLE'} scroll>
           <div className="bd-inapplist">
             {inapplicable.map((p, i) => {
               const name = str(p['政策名称']);
@@ -83,6 +85,8 @@ export const BoardA2Policy: React.FC<{ json: Record<string, unknown> }> = ({ jso
             })}
           </div>
         </BDSection>
+      )}
+      </div>
       )}
 
       {action && (

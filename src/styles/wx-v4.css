@@ -1452,3 +1452,18 @@ button { cursor: pointer; }
 
 /* —— 结论模块钉底行：口径待核验脚注永远收尾（内容不足时贴展板底） —— */
 .bd > .bd-footnote:last-child { margin-top: auto; }
+
+/* —— 左栏 agent 结论灯（V4.4.9）：完成后名字后跟结论色点 —— */
+.agent-lampdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.agent-lampdot.green { background: var(--green); box-shadow: 0 0 5px rgba(120, 173, 152, 0.55); }
+.agent-lampdot.yellow { background: var(--amber); box-shadow: 0 0 5px rgba(201, 158, 102, 0.55); }
+.agent-lampdot.red { background: var(--red); box-shadow: 0 0 5px rgba(189, 119, 113, 0.55); }
+
+/* —— A2 政策双栏（V4.4.9）：可适用 / 未适用左右分栏，各自瀑布流 —— */
+/* tall 变体：duo 伸展撑满展板剩余高度（区别于 A4 敏感性的 215px 限高） */
+.bd-duo.bd-duo-tall { flex: 1 1 auto; min-height: 200px; }
+.bd-duo.bd-duo-tall > .bd-section.is-scroll { max-height: none; min-height: 0; }
+/* 政策卡 / 缺口红卡自带卡框，body 不再套框避免框中框 */
+.bd-duo.bd-duo-tall > .bd-section.is-scroll .bd-section-body { border: 0; background: none; padding: 0; }
+/* 半宽下单列纵排（政策卡 minmax 250 在 ~440px 半宽内自然单列），保证瀑布流感 */
+.bd-duo.bd-duo-tall .bd-policygrid { grid-template-columns: 1fr; }
