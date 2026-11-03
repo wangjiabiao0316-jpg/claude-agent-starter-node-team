@@ -185,8 +185,8 @@ function buildBars(agentId: string, pool: Record<string, unknown>): BarSpec[] {
   });
 }
 
-/** 首条用户消息 →「- 城市:重庆」行解析（composeProjectPrompt 的行格式） */
-function parseIntake(messages: Message[]): Record<string, string> {
+/** 首条用户消息 →「- 城市:重庆」行解析（composeProjectPrompt 的行格式）；管理页中栏档案复用 */
+export function parseIntake(messages: Message[]): Record<string, string> {
   const first = messages.find((m) => m.role === 'user');
   const content = first?.content;
   if (!content || typeof content !== 'string') return {};

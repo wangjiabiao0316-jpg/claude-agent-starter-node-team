@@ -243,7 +243,8 @@ button { cursor: pointer; }
 .product-story-action { display: flex; justify-content: center; margin-top: 28px; }
 
 /* ── E. 项目管理（pm-layout） ────────────────────────────── */
-.pm-layout { display: grid; grid-template-columns: 196px minmax(420px, 1fr) minmax(390px, 0.92fr); gap: 14px; align-items: stretch; }
+/* 中栏加宽展示输入信息、右栏新建卡收窄（V4.4.9c）：1.5fr : 0.6fr */
+.pm-layout { display: grid; grid-template-columns: 196px minmax(440px, 1.5fr) minmax(300px, 0.6fr); gap: 14px; align-items: stretch; }
 
 .pm-history { padding: 15px; min-height: 490px; display: flex; flex-direction: column; }
 .pm-history-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; align-content: start; }
@@ -340,6 +341,16 @@ button { cursor: pointer; }
   color: var(--text); font-size: 11px; padding: 7px 9px; outline: none;
 }
 .pm-newgroup-row input:focus { border-color: #9c8159; }
+
+/* 中栏输入信息网格（V4.4.9c）：选中项目展示建档字段（label 固定宽 + 值自适应） */
+.pm-intake { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 14px; margin-bottom: 12px; max-height: 230px; overflow-y: auto; }
+.pm-intake-row {
+  display: flex; align-items: baseline; gap: 8px; min-width: 0;
+  border: 1px solid #2a3b4d; border-radius: 7px;
+  background: #101e2d; padding: 8px 10px;
+}
+.pm-intake-key { flex: none; min-width: 56px; font-size: 10px; letter-spacing: 1px; color: var(--gold2); }
+.pm-intake-val { flex: 1; min-width: 0; font-size: 12px; color: #e1e6e8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pm-group { border: 1px solid #2a3b4d; border-radius: 8px; padding: 6px; margin-bottom: 9px; background: rgba(20, 30, 42, 0.5); min-width: 0; max-width: 100%; }
 .pm-group-head { display: flex; align-items: center; gap: 6px; padding: 4px 6px; cursor: pointer; border-radius: 5px; }
 .pm-group-head:hover { background: #1a2c3e; }

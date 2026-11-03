@@ -1,7 +1,8 @@
 import React, { MouseEvent, useMemo, useState } from 'react';
-import type { ConversationSummary } from '../types';
+import type { ConversationSummary, Message } from '../types';
 import { useT } from '../i18n';
 import ParticleField from './ParticleField';
+import { parseIntake } from './AgentBoard';
 
 /**
  * ManagementView — V4.0 大气版项目管理屏（pm-layout 三栏）。
@@ -35,6 +36,10 @@ interface Props {
   hasMore: boolean;
   disabled: boolean;
   onSelect: (id: string) => void;
+  /** 左栏点击项目：仅选中 + 加载会话（中栏展示输入信息），不跳转页面；跳转走 onSelect */
+  onPreview: (id: string) => void;
+  /** 当前选中会话的完整消息（中栏解析建档输入信息用） */
+  activeMessages: Message[];
   /** 点击空白处/再次点击选中项：取消选中，回到未选中模板态 */
   onDeselect: () => void;
   onCreate: () => void;
@@ -66,6 +71,9 @@ export const ManagementView: React.FC<Props> = (props) => {
   const { conversations, activeConversationId, disabled, activeProjectName } = props;
   const { t, lang } = useT();
   const active = conversations.find((c) => c.id === activeConversationId);
+
+  // 中栏输入信息：当前选中会话首条用户消息的建档字段（- 城市:重庆 行格式）
+  const intake = useMemo(() => parseIntake(props.activeMessages), [props.activeMessages]);
 
   // 项目组本地交互态：新建组输入框、组折叠状态
   const [showGroupInput, setShowGroupInput] = useState(false);
@@ -120,17 +128,18 @@ export const ManagementView: React.FC<Props> = (props) => {
         aria-current={isActive ? 'true' : 'false'}
         onClick={() => {
           if (disabled) return;
-          // 再次点击已选中项 = 取消选中（与空白处点击等效）
+          // 再次点击已选中项 = 取消选中（与空白处点击等效）；
+          // 选中只做预览（中栏展示输入信息），不跳转页面
           if (isActive) {
             props.onDeselect();
             return;
           }
-          props.onSelect(c.id);
+          props.onPreview(c.id);
         }}
         onKeyDown={(e) => {
           if ((e.key === 'Enter' || e.key === ' ') && !disabled && !isActive) {
             e.preventDefault();
-            props.onSelect(c.id);
+            props.onPreview(c.id);
           }
         }}
         onMouseLeave={(e) => {
@@ -378,7 +387,22 @@ export const ManagementView: React.FC<Props> = (props) => {
                   </div>
                 </div>
                 <div className="pm-decision">
-                  <p className="eyebrow" style={{ marginBottom: 8 }}>PREVIEW</p>
+                  <p className="eyebrow" style={{ marginBottom: 8 }}>{lang === 'zh' ? '输入信息 · INPUT' : 'INPUT'}</p>
+                  {/* 输入信息网格（V4.4.9c）：选中项目即展示建档输入字段 */}
+                  {Object.keys(intake).length > 0 ? (
+                    <div className="pm-intake">
+                      {Object.entries(intake).map(([k, v]) => (
+                        <div key={k} className="pm-intake-row">
+                          <span className="pm-intake-key">{k}</span>
+                          <span className="pm-intake-val" title={v}>{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted" style={{ fontSize: 11, margin: '0 0 10px' }}>
+                      {lang === 'zh' ? '该档案没有结构化输入信息记录' : 'No structured intake fields'}
+                    </p>
+                  )}
                   <p style={{ fontSize: 12, lineHeight: 1.9, color: '#c2ced7', margin: 0 }}>
                     {active.preview || t('management.summaryHint')}
                   </p>

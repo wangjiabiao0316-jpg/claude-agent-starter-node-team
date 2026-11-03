@@ -1066,6 +1066,19 @@ function AppInner() {
     setUiStage(allDone ? 'conclusion' : 'agents');
   }, [loading, loadConversation, resetAgentState]);
 
+  /** 管理页左栏点击项目：仅选中 + 加载会话（中栏展示输入信息），不跳转页面；
+   *  进入结论/智能体页走 handleSelectConversation（中栏「打开档案」按钮） */
+  const handlePreviewConversation = useCallback(async (id: string) => {
+    if (loading) return;
+    if (id === conversationIdRef.current) return;
+    resetAgentState();
+    localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, id);
+    conversationIdRef.current = id;
+    setActiveConversationId(id);
+    await loadConversation(id);
+    // 故意不按数据完备度分流——留在管理页展示该项目输入信息
+  }, [loading, loadConversation, resetAgentState]);
+
   /** 项目管理页点击空白处：取消选中，回到未选中模板态（结论页/智能体页随之显示模板口径） */
   const handleDeselectConversation = useCallback(() => {
     if (loading) return;
@@ -1473,6 +1486,8 @@ function AppInner() {
             hasMore={sidebarHasMore}
             disabled={loading}
             onSelect={handleSelectConversation}
+            onPreview={handlePreviewConversation}
+            activeMessages={messages}
             onCreate={handleCreateConversation}
             onLoadMore={handleLoadMoreConversations}
             onDelete={handleDeleteConversation}
