@@ -246,9 +246,9 @@ button { cursor: pointer; }
 .pm-layout { display: grid; grid-template-columns: 196px minmax(420px, 1fr) minmax(390px, 0.92fr); gap: 14px; align-items: stretch; }
 
 .pm-history { padding: 15px; min-height: 490px; display: flex; flex-direction: column; }
-.pm-history-list { display: grid; gap: 9px; align-content: start; }
+.pm-history-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; align-content: start; }
 .pm-history-item {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 7px;
   padding: 12px 11px;
   border: 1px solid var(--line);
   background: #101e2d;
@@ -257,11 +257,14 @@ button { cursor: pointer; }
   transition: 0.18s;
   text-align: left;
   width: 100%;
+  /* grid item 默认 min-width:auto，nowrap 内容会把轨道撑出面板——允许收缩 */
+  min-width: 0;
+  max-width: 100%;
 }
 .pm-history-item:hover, .pm-history-item.active { border-color: #9c8159; background: #1a2c3e; }
 .pm-history-item b { display: block; font-size: 11px; color: var(--text); font-weight: 600; }
 .pm-history-item small { display: block; color: var(--muted); font-size: 9px; margin-top: 4px; }
-.pm-grade { font-size: 17px; color: var(--gold2); font-weight: 700; min-width: 34px; text-align: center; }
+.pm-grade { font-size: 17px; color: var(--gold2); font-weight: 700; min-width: 20px; text-align: center; }
 .pm-history-foot { margin-top: auto; padding-top: 12px; }
 
 .pm-main { padding: 18px; display: flex; flex-direction: column; gap: 13px; min-height: 490px; }
@@ -323,7 +326,7 @@ button { cursor: pointer; }
   color: var(--text); font-size: 11px; padding: 7px 9px; outline: none;
 }
 .pm-newgroup-row input:focus { border-color: #9c8159; }
-.pm-group { border: 1px solid #2a3b4d; border-radius: 8px; padding: 6px; margin-bottom: 9px; background: rgba(20, 30, 42, 0.5); }
+.pm-group { border: 1px solid #2a3b4d; border-radius: 8px; padding: 6px; margin-bottom: 9px; background: rgba(20, 30, 42, 0.5); min-width: 0; max-width: 100%; }
 .pm-group-head { display: flex; align-items: center; gap: 6px; padding: 4px 6px; cursor: pointer; border-radius: 5px; }
 .pm-group-head:hover { background: #1a2c3e; }
 .pm-group-head.plain, .pm-group-head.plain:hover { cursor: default; background: transparent; }
@@ -332,7 +335,7 @@ button { cursor: pointer; }
 .pm-group-count { font-size: 9px; color: var(--muted); border: 1px solid #33404d; border-radius: 8px; padding: 1px 6px; flex: none; }
 .pm-group-del { border: 0; background: transparent; color: #6d7f8f; cursor: pointer; font-size: 10px; padding: 2px 4px; flex: none; }
 .pm-group-del:hover { color: #e2a29b; }
-.pm-group-list { display: grid; gap: 6px; margin-top: 6px; }
+.pm-group-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 6px; }
 .pm-group-empty { font-size: 9px; color: #6d7f8f; padding: 4px 6px; }
 
 /* 会话项归组菜单（details 浮层） */
