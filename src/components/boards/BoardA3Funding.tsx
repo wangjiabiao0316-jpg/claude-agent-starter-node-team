@@ -140,7 +140,7 @@ export const BoardA3Funding: React.FC<{ json: Record<string, unknown> }> = ({ js
       )}
 
       {risks.length > 0 && (
-        <BDSection title={zh ? '剔除与审批风险' : 'RISKS'}>
+        <BDSection title={zh ? '剔除与审批风险' : 'RISKS'} scroll>
           <div className="bd-risklist tight">
             {risks.map((r, i) => (
               <div key={i} className="bd-risk">{r}</div>
