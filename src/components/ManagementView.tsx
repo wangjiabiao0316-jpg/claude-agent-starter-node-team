@@ -139,62 +139,64 @@ export const ManagementView: React.FC<Props> = (props) => {
           if (menu?.hasAttribute('open')) menu.removeAttribute('open');
         }}
       >
-        <div style={{ minWidth: 0 }}>
-          {/* 块级 + maxWidth 才能让长项目名在左栏卡片内截断，不超出模块框 */}
+        <div className="pm-item-main" style={{ minWidth: 0 }}>
+          {/* 块级 + maxWidth 才能让长项目名在左栏卡片内截断，不超出模块框；名称行独占整卡宽度 */}
           <b style={{ display: 'block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</b>
           <small style={{ display: 'block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.preview || c.timeText}</small>
         </div>
-        <span className="pm-grade" title={t('sidebar.delete')} style={{ cursor: 'default' }}>—</span>
+        {/* 操作浮层：不占名称行的宽度，hover 时弹出在名字下方 */}
         {!disabled && (
-          <details
-            className="pm-assign"
-            onClick={(e) => e.stopPropagation() /* 展开/选择归组时不触发卡片选中 */}
-          >
-            <summary className="pm-assign-btn" title={lang === 'zh' ? '归入项目组' : 'Assign to group'} aria-label={lang === 'zh' ? '归入项目组' : 'Assign to group'}>▦</summary>
-            <div
-              className="pm-assign-pop"
-              onClick={(e) => {
-                // 选中即收起
-                const menu = (e.target as HTMLElement).closest('details');
-                if (menu) menu.removeAttribute('open');
-              }}
+          <div className="pm-item-actions">
+            <span className="pm-grade" style={{ cursor: 'default' }}>—</span>
+            <details
+              className="pm-assign"
+              onClick={(e) => e.stopPropagation() /* 展开/选择归组时不触发卡片选中 */}
             >
-              {props.groups.length === 0 && (
-                <div className="pm-assign-empty">{lang === 'zh' ? '先「新建项目组」' : 'Create a group first'}</div>
-              )}
-              {props.groups.map((g) => (
-                <button
-                  key={g.id}
-                  type="button"
-                  className="pm-assign-item"
-                  onClick={() => props.onAssignGroup(c.id, g.id)}
-                >
-                  {props.convGroup[c.id] === g.id ? '● ' : ''}{g.name}
-                </button>
-              ))}
-              {props.convGroup[c.id] && (
-                <button
-                  type="button"
-                  className="pm-assign-item bad"
-                  onClick={() => props.onAssignGroup(c.id, null)}
-                >
-                  {lang === 'zh' ? '移出组' : 'Remove from group'}
-                </button>
-              )}
-            </div>
-          </details>
+              <summary className="pm-assign-btn" title={lang === 'zh' ? '归入项目组' : 'Assign to group'} aria-label={lang === 'zh' ? '归入项目组' : 'Assign to group'}>▦</summary>
+              <div
+                className="pm-assign-pop"
+                onClick={(e) => {
+                  // 选中即收起
+                  const menu = (e.target as HTMLElement).closest('details');
+                  if (menu) menu.removeAttribute('open');
+                }}
+              >
+                {props.groups.length === 0 && (
+                  <div className="pm-assign-empty">{lang === 'zh' ? '先「新建项目组」' : 'Create a group first'}</div>
+                )}
+                {props.groups.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className="pm-assign-item"
+                    onClick={() => props.onAssignGroup(c.id, g.id)}
+                  >
+                    {props.convGroup[c.id] === g.id ? '● ' : ''}{g.name}
+                  </button>
+                ))}
+                {props.convGroup[c.id] && (
+                  <button
+                    type="button"
+                    className="pm-assign-item bad"
+                    onClick={() => props.onAssignGroup(c.id, null)}
+                  >
+                    {lang === 'zh' ? '移出组' : 'Remove from group'}
+                  </button>
+                )}
+              </div>
+            </details>
+            <button
+              type="button"
+              className="tag bad"
+              onClick={(e) => handleDeleteClick(e, c.id)}
+              aria-label={t('sidebar.delete')}
+              title={t('sidebar.delete')}
+              style={{ padding: '3px 6px', flex: 'none' }}
+            >
+              ✕
+            </button>
+          </div>
         )}
-        <button
-          type="button"
-          className="tag bad"
-          onClick={(e) => handleDeleteClick(e, c.id)}
-          disabled={disabled}
-          aria-label={t('sidebar.delete')}
-          title={t('sidebar.delete')}
-          style={{ padding: '3px 6px', flex: 'none' }}
-        >
-          ✕
-        </button>
       </div>
     );
   };

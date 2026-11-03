@@ -260,18 +260,24 @@ button { cursor: pointer; }
   /* grid item 默认 min-width:auto，nowrap 内容会把轨道撑出面板——允许收缩 */
   min-width: 0;
   max-width: 100%;
+  position: relative; /* 操作浮层（.pm-item-actions）的定位锚点 */
 }
 .pm-history-item:hover, .pm-history-item.active { border-color: #9c8159; background: #1a2c3e; }
 .pm-history-item b { display: block; font-size: 11px; color: var(--text); font-weight: 600; }
 .pm-history-item small { display: block; color: var(--muted); font-size: 9px; margin-top: 4px; }
 .pm-grade { font-size: 17px; color: var(--gold2); font-weight: 700; min-width: 20px; text-align: center; }
-/* 归组/删除按钮：鼠标划过卡片（或键盘聚焦）时才浮现 */
-.pm-history-item .pm-assign,
-.pm-history-item .tag.bad { opacity: 0; visibility: hidden; transition: opacity 0.15s, visibility 0.15s; }
-.pm-history-item:hover .pm-assign,
-.pm-history-item:hover .tag.bad,
-.pm-history-item:focus-within .pm-assign,
-.pm-history-item:focus-within .tag.bad { opacity: 1; visibility: visible; }
+/* 操作浮层（评级/归组/删除）：绝对定位在卡片右下（名字下方），不占名称行宽度，hover 弹出 */
+.pm-item-actions {
+  position: absolute; right: 10px; bottom: 9px; z-index: 5;
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 6px; border-radius: 6px;
+  background: rgba(26, 44, 62, 0.92);
+  border: 1px solid #33404d;
+  opacity: 0; visibility: hidden; transition: opacity 0.15s, visibility 0.15s;
+}
+.pm-history-item:hover .pm-item-actions,
+.pm-history-item:focus-within .pm-item-actions { opacity: 1; visibility: visible; }
+.pm-item-actions .pm-grade { font-size: 12px; min-width: 14px; }
 .pm-history-foot { margin-top: auto; padding-top: 12px; }
 
 .pm-main { padding: 18px; display: flex; flex-direction: column; gap: 13px; min-height: 490px; }
