@@ -51,6 +51,27 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
   const assume = str(json['关键假设']);
   const cash = parseCash(json['现金流时序']);
 
+  // 复合主图（V4.4.2）：净额柱之上叠加累计净额折线。累计量纲独立缩放
+  // （0 点恒在中线），穿零点即静态回收期——与回收期指标卡互相印证。
+  const cum: number[] = [];
+  let cumAcc = 0;
+  for (const v of cash) { cumAcc += v; cum.push(cumAcc); }
+  const cumMax = Math.max(...cum.map(Math.abs), 1);
+  const cumW = 100 / Math.max(cash.length, 1);
+  const cumPts = cash.length >= 2
+    ? cum.map((v, i) => `${((i + 0.5) * cumW).toFixed(2)},${(50 - (v / cumMax) * 46).toFixed(2)}`).join(' ')
+    : '';
+  let pbZero: { xPct: number; yrs: number } | null = null;
+  for (let i = 1; i < cum.length; i++) {
+    if (cum[i - 1] < 0 && cum[i] >= 0) {
+      const t = -cum[i - 1] / (cum[i] - cum[i - 1]);
+      // 回收时刻 = i + t 年（期 i 口径「第 i+1 年」，区间 [i, i+1]）；穿零点
+      // 画在相邻两柱中心连线上（视觉位置 = (i-0.5+t) * 柱距）
+      pbZero = { xPct: (i - 0.5 + t) * cumW, yrs: i + t };
+      break;
+    }
+  }
+
   // IRR 门槛带窗口：区间两侧各留 70% 跨度余量，指针按窗口内相对位置摆放
   const bandOk = irr !== null && lo !== null && hi !== null && hi > lo;
   const span = bandOk ? hi - lo : 1;
@@ -138,9 +159,29 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
               })}
               <span className="bd-cash-lab" style={{ left: 0 }}>Y1</span>
               <span className="bd-cash-lab" style={{ right: 0 }}>Y{cash.length}</span>
+              {cumPts && (
+                <svg className="bd-cash-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                  <polyline className="bd-cash-cumline" points={cumPts} />
+                </svg>
+              )}
+              {pbZero && (
+                <>
+                  <span className="bd-cash-pbline" style={{ left: `${pbZero.xPct}%` }} aria-hidden="true" />
+                  <span
+                    className="bd-cash-pbdot"
+                    style={{ left: `${pbZero.xPct}%` }}
+                    title={`${zh ? '静态回收期' : 'payback'} ≈ ${pbZero.yrs.toFixed(1)}${zh ? ' 年' : 'y'}`}
+                  />
+                  <span className="bd-cash-pblab" style={{ left: `${Math.min(86, Math.max(14, pbZero.xPct))}%` }}>
+                    {zh ? `回收期 ≈ ${pbZero.yrs.toFixed(1)} 年` : `payback ≈ ${pbZero.yrs.toFixed(1)}y`}
+                  </span>
+                </>
+              )}
             </div>
             <p className="bd-cash-note">
-              {zh ? '金绿 = 净流入 · 红 = 净流出 · 中线为 0' : 'green = inflow · red = outflow'}
+              {zh
+                ? '金绿 = 净流入 · 红 = 净流出 · 中线为 0 · 金线 = 累计净额（独立标尺）· 虚线 = 回收期'
+                : 'green = inflow · red = outflow · gold line = cumulative'}
             </p>
           </div>
         </BDSection>
