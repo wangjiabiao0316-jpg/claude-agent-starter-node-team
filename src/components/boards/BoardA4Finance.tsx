@@ -36,6 +36,27 @@ function srcBadge(v: string, zh: boolean) {
   );
 }
 
+/**
+ * 敏感行（参考 demo 行式布局）：变量名 + 示意条带 + 关键数值。
+ * 变量名取条目开头连续中/英文段；数值取条目末个带符号百分数（如 ↑5.02%）；
+ * 条带长度由该数值示意映射（24+8n，clamp 92%），无数值统一 45%——
+ * 仅为布局示意，不代表真实敏感度，脚注已声明。
+ */
+function sensRow(s: string, zh: boolean, i: number) {
+  const name = (s.match(/^[一-龥A-Za-z/（）()]+/)?.[0] ?? '').slice(0, 10) || clampStr(s, 10);
+  const m = [...s.matchAll(/[↑↓+\-−]?\d+(?:\.\d+)?\s*%/g)].pop();
+  const val = m ? m[0].replace(/\s+/g, '').replace('−', '-') : zh ? '待计算' : 'pending';
+  const n = m ? Math.abs(parseFloat(m[0].replace(/[↑↓]/, ''))) : null;
+  const w = n !== null ? Math.min(92, 24 + n * 8) : 45;
+  return (
+    <div className="bd-sensrow" key={i} title={s}>
+      <span className="bd-sens-name">{name}</span>
+      <span className="bd-sens-track" aria-hidden="true"><i style={{ width: `${w}%` }} /></span>
+      <em className="bd-sens-val">{val}</em>
+    </div>
+  );
+}
+
 export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ json }) => {
   const { lang } = useT();
   const zh = lang === 'zh';
@@ -209,40 +230,35 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
 
       {sensitivity && (
         <BDSection title={zh ? '敏感性分析' : 'SENSITIVITY'} scroll>
-          {sensGrouped ? (
-            <div className="bd-sens">
-              <div className="bd-sens-group">
-                <p>{zh ? '经营收入侧' : 'REVENUE SIDE'}</p>
-                <div className="bd-senslist">
-                  {revItems.map((s, i) => (
-                    <div key={i} className="bd-sens-item"><i aria-hidden="true" /><span>{s}</span></div>
-                  ))}
+          {sensItems.length > 1 ? (
+            <>
+            {sensGrouped ? (
+              <div className="bd-sens">
+                <div className="bd-sens-group">
+                  <b>{zh ? '经营收入敏感性' : 'REVENUE SENSITIVITY'}</b>
+                  <small>{zh ? '关键假设变化对投资指标的影响' : 'impact on investment metrics'}</small>
+                  <div className="bd-sensrows">{revItems.map((s, i) => sensRow(s, zh, i))}</div>
+                </div>
+                <div className="bd-sens-group">
+                  <b>{zh ? '投资成本敏感性' : 'COST SENSITIVITY'}</b>
+                  <small>{zh ? '改造投入及持有期假设' : 'capex & holding assumptions'}</small>
+                  <div className="bd-sensrows">{costItems.map((s, i) => sensRow(s, zh, i))}</div>
                 </div>
               </div>
-              <div className="bd-sens-group">
-                <p>{zh ? '投资成本侧' : 'COST SIDE'}</p>
-                <div className="bd-senslist">
-                  {costItems.map((s, i) => (
-                    <div key={i} className="bd-sens-item"><i aria-hidden="true" /><span>{s}</span></div>
-                  ))}
-                </div>
+            ) : (
+              <div className="bd-sensrows">{sensItems.map((s, i) => sensRow(s, zh, i))}</div>
+            )}
+            {restItems.length > 0 && (
+              <div className="bd-sensrows" style={{ marginTop: 2 }}>
+                {restItems.map((s, i) => sensRow(s, zh, i))}
               </div>
-            </div>
-          ) : sensItems.length > 1 ? (
-            <div className="bd-senslist">
-              {sensItems.map((s, i) => (
-                <div key={i} className="bd-sens-item"><i aria-hidden="true" /><span>{s}</span></div>
-              ))}
-            </div>
+            )}
+            <p className="bd-sens-note">
+              {zh ? '条带长度仅为布局示意，不代表敏感性大小；以沙箱测算输出为准。' : 'bar length is illustrative only.'}
+            </p>
+            </>
           ) : (
             <p className="bd-note" style={{ whiteSpace: 'pre-line' }}>{clampStr(sensitivity, 300)}</p>
-          )}
-          {sensGrouped && restItems.length > 0 && (
-            <div className="bd-senslist" style={{ marginTop: 8 }}>
-              {restItems.map((s, i) => (
-                <div key={i} className="bd-sens-item"><i aria-hidden="true" /><span>{s}</span></div>
-              ))}
-            </div>
           )}
         </BDSection>
       )}
