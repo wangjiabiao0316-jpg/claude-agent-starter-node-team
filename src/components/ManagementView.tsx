@@ -131,8 +131,9 @@ export const ManagementView: React.FC<Props> = (props) => {
                       }}
                     >
                       <div style={{ minWidth: 0 }}>
-                        <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</b>
-                        <small>{c.preview || c.timeText}</small>
+                        {/* 块级 + maxWidth 才能让长项目名在左栏卡片内截断，不超出模块框 */}
+                        <b style={{ display: 'block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</b>
+                        <small style={{ display: 'block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.preview || c.timeText}</small>
                       </div>
                       <span className="pm-grade" title={t('sidebar.delete')} style={{ cursor: 'default' }}>—</span>
                       <button
