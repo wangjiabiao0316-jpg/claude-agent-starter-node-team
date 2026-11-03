@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
 import type { AgentOutput, Message } from '../types';
 import { readLamp } from '../lib/pipeline';
-import { buildConclusionMatrix } from '../lib/conclusionMatrix';
+import { buildConclusionMatrix, extractConclusionJson } from '../lib/conclusionMatrix';
 import { AGENT_TABS } from './AgentPane';
 import ConclusionMatrix from './ConclusionMatrix';
+import { AGENT_BOARDS, hasBoardData } from './boards';
 import BoardChart, { type BarSpec } from './BoardChart';
 import { useT } from '../i18n';
 
@@ -235,6 +236,22 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
     () => buildConclusionMatrix(activeAgentId, output?.output_json, output?.summary),
     [activeAgentId, output],
   );
+
+  // —— 专属展板优先（V4.4）：结论层 JSON 足够时渲染该 agent 的海报式看板 ——
+  // 数据源同矩阵：output_json → summary 里的 ```json 结论块（历史会话兜底）
+  const rawJson = useMemo(() => {
+    const oj = output?.output_json;
+    if (oj && Object.keys(oj).length > 0) return oj;
+    return extractConclusionJson(output?.summary) ?? null;
+  }, [output]);
+  const Board = rawJson ? AGENT_BOARDS[activeAgentId] : undefined;
+  if (output && rawJson && Board && hasBoardData(activeAgentId, rawJson)) {
+    return (
+      <div className="agent-board">
+        <Board json={rawJson} />
+      </div>
+    );
+  }
 
   const running = loading && !output;
   // 图表三态：有输出=固定结论数据；运行中=随机跳动；待命=空图表

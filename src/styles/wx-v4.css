@@ -1106,3 +1106,235 @@ button { cursor: pointer; }
   .cm-grid { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
   .cm-detail { max-height: 300px; }
 }
+
+/* ============================================================
+   X. 智能体结论展板（bd- 体系）+ 左栏运行态（V4.4 展板海报式）
+   原则：不要统一字段排版——每个 agent 结合自身业务语义出展板；
+   有数据的用图示化语言；缺字段占位不塌版。
+   ============================================================ */
+
+.agent-board > .bd { flex: 1 1 auto; height: 100%; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 4px; }
+
+/* —— 分区头：金色小标题 + 渐隐分隔线 —— */
+.bd-section { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.bd-section-head { display: flex; align-items: center; gap: 10px; }
+.bd-section-head b { font-size: 11px; letter-spacing: 2px; color: #c9aa7e; font-weight: 650; white-space: nowrap; }
+.bd-section-right { font-size: 10px; color: #7d919f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bd-section-line { flex: 1; height: 1px; background: linear-gradient(90deg, #2c3a45, transparent); }
+.bd-note { margin: 0; font-size: 11.5px; color: #8fa3b0; line-height: 1.7; }
+.bd-footnote { margin: 0; font-size: 10px; color: #718395; line-height: 1.6; }
+
+/* —— 判定横幅（hero）：展板第一屏，tone 随灯色 —— */
+.bd-hero {
+  display: flex; align-items: center; gap: 14px; padding: 13px 16px;
+  border: 1px solid #2d3d4a; border-radius: 10px;
+  background: linear-gradient(135deg, #182633, #141f2a);
+}
+.bd-hero.green { border-color: #416c5e; background: linear-gradient(135deg, #16281f, #141f2a); }
+.bd-hero.yellow { border-color: #725b3d; background: linear-gradient(135deg, #2a241a, #141f2a); }
+.bd-hero.red { border-color: #77504b; background: linear-gradient(135deg, #2c1e1c, #141f2a); }
+.bd-hero.xl { padding: 18px 20px; gap: 16px; }
+.bd-hero-main { flex: 1; min-width: 0; }
+.bd-hero-main .eyebrow { margin: 0 0 4px; }
+.bd-hero-title { font-size: 19px; font-weight: 700; letter-spacing: 0.5px; color: #edf0ef; line-height: 1.3; overflow-wrap: anywhere; }
+.bd-hero.green .bd-hero-title { color: #9bcab6; }
+.bd-hero.yellow .bd-hero-title { color: #e0c18f; }
+.bd-hero.red .bd-hero-title { color: #e2a29b; }
+.bd-hero-title.big { font-size: 26px; letter-spacing: 2px; }
+.bd-hero-sub { font-size: 11px; color: #8fa3b0; margin-top: 4px; line-height: 1.6; overflow-wrap: anywhere; }
+.bd-lamp-big { font-size: 12.5px; padding: 7px 14px; border-radius: 6px; flex: none; }
+
+/* —— 闸门卡（A1）：H 硬闸门双列 —— */
+.bd-gategrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.bd-gate { border: 1px solid #2d3d4a; border-radius: 9px; background: #16232e; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.bd-gate.lamp-red { border-color: #77504b; }
+.bd-gate.lamp-yellow { border-color: #725b3d; }
+.bd-gate.lamp-green { border-color: #416c5e; }
+.bd-gate-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.bd-gate-name { font-size: 13px; font-weight: 650; color: #e8eef3; line-height: 1.4; }
+.bd-gate-sub { display: block; font-size: 10px; color: #718395; margin-top: 2px; }
+.bd-code { font-family: Consolas, "JetBrains Mono", monospace; font-size: 11px; color: var(--gold2); background: #1d2a36; border: 1px solid #2d3d4a; border-radius: 4px; padding: 2px 8px; width: max-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bd-code-pending { color: #5f7280; border-style: dashed; }
+.bd-gate-basis { margin: 0; font-size: 11px; color: #8fa3b0; line-height: 1.65; overflow-wrap: anywhere; }
+
+/* —— 量表条：fill + 阈值刻度 + 跟随数值 —— */
+.bd-bar { min-width: 0; }
+.bd-bar-track { position: relative; height: 9px; border-radius: 5px; background: #223140; min-width: 0; margin: 16px 0 14px; }
+.bd-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: var(--gold); min-width: 2px; transition: width 0.4s ease; }
+.bd-bar-fill.green { background: var(--green); }
+.bd-bar-fill.yellow { background: var(--amber); }
+.bd-bar-fill.red { background: var(--red); }
+.bd-bar-mark { position: absolute; top: -4px; bottom: -4px; width: 1px; background: #6b7f8f; }
+.bd-bar-mark i { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 3px; font-style: normal; font-size: 9px; color: #718395; white-space: nowrap; }
+.bd-bar-num { position: absolute; top: -17px; transform: translateX(-50%); font-size: 10.5px; color: var(--gold2); font-weight: 650; white-space: nowrap; }
+
+/* —— 大数字卡（A4 指标） —— */
+.bd-statgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.bd-stat { border: 1px solid #2d3d4a; border-radius: 9px; background: #16232e; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.bd-stat.wide { min-height: 148px; }
+.bd-stat-label { font-size: 10px; letter-spacing: 1px; color: #7d919f; }
+.bd-stat-value { font-size: 24px; font-weight: 700; color: var(--gold2); line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bd-stat.green .bd-stat-value { color: #9bcab6; }
+.bd-stat.yellow .bd-stat-value { color: #e0c18f; }
+.bd-stat.red .bd-stat-value { color: #e2a29b; }
+.bd-stat-sub { font-size: 10px; color: #718395; line-height: 1.5; }
+
+/* —— IRR 门槛带（A4）：区间带 + 指针 —— */
+.bd-irrband { position: relative; height: 34px; margin: 26px 6px 20px; }
+.bd-irr-zone { position: absolute; top: 12px; height: 8px; border: 1px solid #416c5e; background: rgba(120, 173, 152, 0.16); border-radius: 3px; }
+.bd-irr-ptr { position: absolute; top: 2px; width: 2px; height: 26px; background: var(--gold2); transform: translateX(-1px); }
+.bd-irr-ptr i { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 2px; font-style: normal; font-size: 10px; font-weight: 700; color: var(--gold2); white-space: nowrap; }
+.bd-irr-ptr i.green { color: #9bcab6; }
+.bd-irr-ptr i.red { color: #e2a29b; }
+.bd-irr-lab { position: absolute; top: 24px; transform: translateX(-50%); font-style: normal; font-size: 9px; color: #718395; }
+
+/* —— 现金流柱图（A4）：中线 0 值，正值上伸金绿、负值下垂红 —— */
+.bd-cash { border: 1px solid #2d3d4a; border-radius: 9px; background: #16232e; padding: 12px 14px 8px; min-width: 0; }
+.bd-cashchart { position: relative; height: 108px; margin: 16px 2px 0; }
+.bd-cash-base { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #33465a; }
+.bd-cbar { position: absolute; border-radius: 2px 2px 0 0; min-height: 2px; }
+.bd-cbar.pos { background: linear-gradient(180deg, var(--gold2), var(--green)); border-radius: 2px 2px 0 0; }
+.bd-cbar.neg { background: var(--red); border-radius: 0 0 2px 2px; }
+.bd-cash-lab { position: absolute; top: 100%; margin-top: 4px; font-size: 9px; color: #718395; }
+.bd-cash-note { margin: 22px 0 4px; font-size: 10px; color: #718395; }
+
+/* —— 政策卡流（A2） —— */
+.bd-qbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; padding: 10px 14px; border: 1px dashed #33465a; border-radius: 9px; background: #16232e; }
+.bd-qbar-label { font-size: 10px; letter-spacing: 2px; color: #c9aa7e; font-weight: 650; flex: none; }
+.bd-qbar p { flex: 1 1 260px; min-width: 0; margin: 0; font-size: 12px; color: #d5dfe6; line-height: 1.6; }
+.bd-policygrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+.bd-policy { border: 1px solid #2d3d4a; border-left: 3px solid var(--gold); border-radius: 9px; background: #16232e; padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.bd-policy-name { font-size: 13px; font-weight: 650; color: #e8eef3; line-height: 1.5; overflow-wrap: anywhere; }
+.bd-policy-score { display: flex; align-items: center; gap: 10px; }
+.bd-policy-score > b { font-size: 20px; font-weight: 700; color: var(--gold2); min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
+.bd-policy-score > b.green { color: #9bcab6; }
+.bd-policy-score > b.yellow { color: #e0c18f; }
+.bd-policy-score > b.red { color: #e2a29b; }
+.bd-policy-scorebar { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.bd-policy-scorebar small { font-size: 9px; color: #718395; }
+.bd-policy-line { margin: 0; font-size: 11px; color: #aeb8bf; line-height: 1.65; overflow-wrap: anywhere; }
+.bd-policy-line b { color: #d5dfe6; font-weight: 600; margin-right: 6px; }
+.bd-policy-foot { margin: 0; font-size: 10px; color: #718395; line-height: 1.6; border-top: 1px dashed #2c3a45; padding-top: 7px; overflow-wrap: anywhere; }
+
+/* —— 未适用缺口红卡（A2） —— */
+.bd-inapplist { display: flex; flex-direction: column; gap: 7px; }
+.bd-inapp { border: 1px solid #4a3330; border-left: 3px solid var(--red); border-radius: 8px; background: #221d1c; padding: 9px 12px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.bd-inapp b { font-size: 12px; color: #e2a29b; overflow-wrap: anywhere; }
+.bd-inapp span { font-size: 11px; color: #aeb8bf; line-height: 1.6; overflow-wrap: anywhere; }
+
+/* —— 资金结构堆叠条（A3） —— */
+.bd-stack { display: flex; height: 26px; border-radius: 6px; overflow: hidden; border: 1px solid #2d3d4a; background: #223140; }
+.bd-seg { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #141c24; white-space: nowrap; overflow: hidden; min-width: 0; }
+.bd-seg.c0 { background: #c6a77a; }
+.bd-seg.c1 { background: #78ad98; }
+.bd-seg.c2 { background: #8daebe; }
+.bd-seg.c3 { background: #c99e66; }
+.bd-seg.c4 { background: #bd7771; }
+.bd-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.bd-legend span { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #aeb8bf; }
+.bd-legend i { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.bd-legend i.c0 { background: #c6a77a; }
+.bd-legend i.c1 { background: #78ad98; }
+.bd-legend i.c2 { background: #8daebe; }
+.bd-legend i.c3 { background: #c99e66; }
+.bd-legend i.c4 { background: #bd7771; }
+
+/* —— 融资工具对比表（A3） —— */
+.bd-tools { border: 1px solid #2d3d4a; border-radius: 9px; overflow: hidden; background: #16232e; }
+.bd-tools-row { display: grid; grid-template-columns: minmax(96px, 1.25fr) minmax(80px, 1fr) 58px minmax(90px, 1fr); gap: 10px; align-items: center; padding: 8px 12px; border-top: 1px solid #263543; font-size: 11.5px; color: #c2ced7; min-width: 0; }
+.bd-tools-row:first-child { border-top: 0; }
+.bd-tools-row.head { font-size: 9.5px; letter-spacing: 1px; color: #7d919f; background: #1a2936; }
+.bd-tools-row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bd-tools-name { color: #e8eef3; font-weight: 600; }
+.bd-tools-score { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bd-tools-score > small { font-size: 11px; color: var(--gold2); min-width: 26px; text-align: right; font-variant-numeric: tabular-nums; }
+.bd-tools-score .bd-bar { flex: 1; min-width: 0; }
+.bd-tools-score .bd-bar-track { margin: 8px 0 10px; }
+
+/* —— 失败案例卡（A5） —— */
+.bd-casegrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.bd-case { border: 1px solid #2d3d4a; border-radius: 9px; background: #16232e; padding: 11px 13px; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.bd-case-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.bd-tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; border: 1px solid #725b3d; color: #e0c18f; background: #352d22; white-space: nowrap; flex: none; }
+.bd-case-cause { margin: 0; font-size: 11px; color: #aeb8bf; line-height: 1.65; overflow-wrap: anywhere; }
+
+/* —— JEV 五连判检查行（A6） —— */
+.bd-check { display: flex; flex-direction: column; gap: 8px; }
+.bd-checkrow { display: grid; grid-template-columns: 26px minmax(96px, 128px) 74px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; background: #16232e; border: 1px solid #2d3d4a; border-radius: 8px; min-width: 0; }
+.bd-check-ico { font-size: 15px; line-height: 1.4; }
+.bd-check-name { font-size: 12.5px; font-weight: 650; color: #e8eef3; line-height: 1.5; overflow-wrap: anywhere; }
+.bd-checkrow .lamp-badge { margin-top: 1px; }
+.bd-check-text { font-size: 11px; color: #aeb8bf; line-height: 1.65; min-width: 0; overflow-wrap: anywhere; }
+.bd-check-evi { display: block; font-size: 10px; color: #718395; margin-top: 4px; }
+
+/* —— 四维子灯格（A7） —— */
+.bd-dims { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.bd-dim { border: 1px solid #2d3d4a; border-radius: 9px; background: #16232e; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.bd-dim.green { border-color: #416c5e; }
+.bd-dim.yellow { border-color: #725b3d; }
+.bd-dim.red { border-color: #77504b; }
+.bd-dim-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.bd-dim-name { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 650; color: #e8eef3; }
+.bd-dim-name i { font-style: normal; font-size: 13px; }
+.bd-dim-weight { display: flex; align-items: center; gap: 8px; }
+.bd-dim-weight span { display: block; height: 4px; border-radius: 2px; background: var(--gold); opacity: 0.75; flex: none; max-width: 60%; }
+.bd-dim-weight small { font-size: 9px; color: #718395; white-space: nowrap; }
+.bd-dim-basis { margin: 0; font-size: 11px; color: #aeb8bf; line-height: 1.65; overflow-wrap: anywhere; }
+.bd-dim-note { font-size: 9.5px; color: #718395; border-top: 1px dashed #2c3a45; padding-top: 5px; line-height: 1.5; }
+
+/* —— 条件推进待办（A7） —— */
+.bd-todo { display: flex; flex-direction: column; gap: 6px; }
+.bd-todo-item { display: flex; gap: 9px; align-items: flex-start; padding: 8px 12px; background: #1d2a36; border: 1px solid #293845; border-radius: 7px; font-size: 12px; color: #d5dfe6; line-height: 1.6; min-width: 0; }
+.bd-todo-item > span { color: #6b7f8f; flex: none; }
+.bd-todo-item p { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.bd-todo.warn .bd-todo-item { border-color: #725b3d; background: #2a241a; }
+.bd-todo.warn .bd-todo-item > span { color: var(--gold); }
+
+/* —— 横幅 / 行动卡 / 芯片 / 风险清单（通用） —— */
+.bd-banner { display: flex; gap: 9px; align-items: flex-start; padding: 10px 14px; border-radius: 8px; font-size: 12px; line-height: 1.6; min-width: 0; overflow-wrap: anywhere; }
+.bd-banner.red { border: 1px solid #77504b; background: #382725; color: #e2a29b; }
+.bd-banner.gold { border: 1px solid #725b3d; background: #2f2a20; color: #e0c18f; }
+.bd-banner.blue { border: 1px solid #3d566b; background: #1d2f3d; color: #a8c6d8; }
+.bd-action { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid #6b5a41; border-radius: 9px; background: linear-gradient(135deg, #2b261d, #241f18); min-width: 0; }
+.bd-action-icon { color: var(--gold); font-size: 14px; flex: none; line-height: 1.5; }
+.bd-action-body { min-width: 0; }
+.bd-action-body b { display: block; font-size: 10px; letter-spacing: 2px; color: #c9aa7e; margin-bottom: 3px; }
+.bd-action p { margin: 0; font-size: 12px; color: #e3d9c8; line-height: 1.7; overflow-wrap: anywhere; }
+.bd-chiplist { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.bd-chip { font-size: 10.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid #34485c; background: #1d2a36; color: #c2ced7; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.bd-chip.gold { border-color: #6b5a41; color: var(--gold2); background: #2b261d; }
+.bd-chip.green { border-color: #416c5e; color: #9bcab6; background: #19342e; }
+.bd-chip.red { border-color: #77504b; color: #e2a29b; background: #382725; }
+.bd-risklist { display: flex; flex-direction: column; gap: 6px; }
+.bd-risk { padding: 8px 12px; border-left: 3px solid var(--amber); background: #241f18; border-radius: 0 8px 8px 0; font-size: 11.5px; color: #d5dfe6; line-height: 1.65; min-width: 0; overflow-wrap: anywhere; }
+
+/* —— 左栏运行态：正在运行的智能体状态灯呼吸 + 名称呼吸放大 —— */
+.agent-item.running { border-color: #3f5a74; }
+.agent-item.running .agent-dot.running {
+  background: var(--gold);
+  border-color: var(--gold2);
+  animation: agent-dot-pulse 1.1s ease-in-out infinite;
+}
+@keyframes agent-dot-pulse {
+  0%, 100% { opacity: 0.35; box-shadow: 0 0 0 0 rgba(198, 167, 122, 0); }
+  50% { opacity: 1; box-shadow: 0 0 7px 2px rgba(198, 167, 122, 0.5); }
+}
+.agent-item.running .agent-label {
+  color: var(--gold2);
+  transform-origin: left center;
+  animation: agent-label-breathe 1.7s ease-in-out infinite;
+}
+@keyframes agent-label-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+.agent-item.running .agent-caption { color: var(--gold); }
+
+/* —— 展板响应式：窄屏 hero 堆叠、五连判两行化 —— */
+@media (max-width: 760px) {
+  .bd-hero { flex-wrap: wrap; }
+  .bd-hero-title.big { font-size: 22px; }
+  .bd-checkrow { grid-template-columns: 26px 1fr 74px; }
+  .bd-check-text { grid-column: 2 / -1; }
+  .bd-tools-row { grid-template-columns: minmax(90px, 1.2fr) minmax(70px, 1fr) 52px minmax(80px, 1fr); padding: 8px 9px; gap: 7px; }
+}
