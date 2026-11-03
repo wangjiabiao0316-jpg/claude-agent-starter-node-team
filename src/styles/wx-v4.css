@@ -1330,13 +1330,13 @@ button { cursor: pointer; }
   .bd-tools-row { grid-template-columns: minmax(90px, 1.2fr) minmax(70px, 1fr) 52px minmax(80px, 1fr); padding: 8px 9px; gap: 7px; }
 }
 
-/* —— 局部瀑布流（V4.4.3）：展板整体不出滚动条，长内容分区块内下滑 ——
-   规则：hero/量表/行动卡等固定区始终可见；标了 scroll 的分区是「小块」——
-   不伸展吃掉剩余空间，按内容自然高展示，内容超过展板 42% 高度时在
-   .bd-section-body 内滚动（用户规则：滚动区是小块，不是半块瀑布区）。
-   外层 .bd 的 overflow-y:auto 仅作小屏兜底（固定区自身超屏时才触发）。 */
+/* —— 局部瀑布流（V4.4.8）：展板整体不出滚动条，滚动区伸展撑满展板 ——
+   规则：hero/量表/行动卡等固定区始终可见不缩；标了 scroll 的分区伸展
+   吃掉剩余高度（板满无留白），内容超出区高时在 .bd-section-body 内
+   滚动（96px 保底）。区自身无框无底色，内容少时区内空白不可见。
+   外层 .bd 的 overflow-y:auto 仅作极端兜底。 */
 .bd > * { flex-shrink: 0; }
-.bd > .bd-section.is-scroll { flex: 0 1 auto; min-height: 96px; max-height: 42%; }
+.bd > .bd-section.is-scroll { flex: 1 1 auto; min-height: 96px; }
 .bd-section-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 4px; }
 .bd-section-body::-webkit-scrollbar { width: 6px; }
 .bd-section-body::-webkit-scrollbar-thumb { background: #2e4053; border-radius: 3px; }

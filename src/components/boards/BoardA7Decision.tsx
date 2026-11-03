@@ -107,7 +107,7 @@ export const BoardA7Decision: React.FC<{ json: Record<string, unknown> }> = ({ j
       )}
 
       {template && (
-        <BDSection title={zh ? '触发报告模板' : 'REPORT TEMPLATES'}>
+        <BDSection title={zh ? '触发报告模板' : 'REPORT TEMPLATES'} scroll>
           <div className="bd-chiplist">
             {template.split(/[+＋]/).map((s) => s.trim()).filter(Boolean).map((s) => (
               <span key={s} className="bd-chip gold">📄 {s}</span>

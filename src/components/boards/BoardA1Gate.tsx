@@ -113,6 +113,7 @@ export const BoardA1Gate: React.FC<{ json: Record<string, unknown> }> = ({ json 
       <BDSection
         title={zh ? 'S 资产条件评分' : 'S SCORE'}
         right={sCode ? <span className="bd-code">{sCode}</span> : undefined}
+        scroll
       >
         <ScoreBar
           value={sTotal}
