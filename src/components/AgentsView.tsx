@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import type { Message, AgentOutput } from '../types';
 import type { RawSseEvent } from '../api';
 import AgentBoard from './AgentBoard';
@@ -69,6 +69,35 @@ export const AgentsView: React.FC<Props> = ({
       .reverse();
   }, [debugEvents]);
 
+  // 自动跟随（V4.4.9）：运行中展板自动切到正在执行的 agent。
+  // runningId = DAG 判定的首个 running 环节；用户手动点选某 agent 后本轮
+  // 不再抢跳（视口交还给用户），下一轮流水线启动时自动恢复跟随。
+  const runningId = useMemo(() => {
+    if (!loading) return null;
+    for (const a of AGENT_TABS) {
+      if (resolveNodeState(a.id, (id) => Boolean(outputs[id]), loading) === 'running') return a.id;
+    }
+    return null;
+  }, [outputs, loading]);
+
+  const autoFollowRef = useRef(true);
+  const wasLoadingRef = useRef(false);
+  useEffect(() => {
+    if (loading && !wasLoadingRef.current) autoFollowRef.current = true;
+    wasLoadingRef.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
+    if (loading && autoFollowRef.current && runningId && runningId !== activeAgentId) {
+      onAgentSelect(runningId);
+    }
+  }, [loading, runningId, activeAgentId, onAgentSelect]);
+
+  const handleAgentSelect = (id: string) => {
+    if (loading) autoFollowRef.current = false;
+    onAgentSelect(id);
+  };
+
   // agent-screen：锁定视口高度，内容只在面板内滚动，页面本身不延伸
   return (
     <section className="screen active agent-screen">
@@ -135,7 +164,7 @@ export const AgentsView: React.FC<Props> = ({
                     key={a.id}
                     type="button"
                     className={`agent-item ${activeAgentId === a.id ? 'active' : ''} ${running ? 'running' : ''}`}
-                    onClick={() => onAgentSelect(a.id)}
+                    onClick={() => handleAgentSelect(a.id)}
                     aria-pressed={activeAgentId === a.id}
                     title={out ? `${a.name} · 已完成` : running ? `${a.name} · 执行中` : `${a.name} · 待命`}
                   >
