@@ -246,8 +246,8 @@ button { cursor: pointer; }
 /* 中栏加宽展示输入信息、右栏新建卡收窄（V4.4.9c）：1.5fr : 0.6fr */
 .pm-layout { display: grid; grid-template-columns: 196px minmax(440px, 1.5fr) minmax(300px, 0.6fr); gap: 14px; align-items: stretch; }
 
-.pm-history { padding: 15px; min-height: 490px; display: flex; flex-direction: column; }
-.pm-history-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; align-content: start; }
+.pm-history { padding: 15px; min-height: 0; display: flex; flex-direction: column; }
+.pm-history-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; align-content: start; flex: 1; min-height: 0; overflow-y: auto; }
 .pm-history-item {
   display: flex; align-items: center; justify-content: space-between; gap: 7px;
   padding: 12px 11px;
@@ -281,7 +281,7 @@ button { cursor: pointer; }
 .pm-item-actions .pm-grade { font-size: 12px; min-width: 14px; }
 .pm-history-foot { margin-top: auto; padding-top: 12px; }
 
-.pm-main { padding: 18px; display: flex; flex-direction: column; gap: 13px; min-height: 490px; }
+.pm-main { padding: 18px; display: flex; flex-direction: column; gap: 13px; min-height: 0; overflow-y: auto; }
 .pm-main-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 .pm-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .pm-stat { padding: 12px; background: #17283a; border: 1px solid #2d4358; border-radius: 7px; }
@@ -293,7 +293,7 @@ button { cursor: pointer; }
 
 .pm-create {
   position: relative; overflow: hidden;
-  min-height: 620px; padding: 28px;
+  min-height: 0; padding: 28px;
   background: radial-gradient(ellipse at 50% 50%, #1b3449 0%, #112235 48%, #0a1522 100%);
   display: flex; align-items: center; justify-content: center;
   text-align: center;
@@ -473,6 +473,10 @@ button { cursor: pointer; }
 /* agents 屏锁定视口高度：页面不滚动，所有面板内部滚动（瀑布流向下） */
 .screen.agent-screen { height: calc(100vh - 68px); min-height: 0; padding: 28px 0 24px; overflow: hidden; }
 .screen.agent-screen .agent-shell { flex: 1; min-height: 0; }
+
+/* management 屏同口径锁定（V4.4.9d）：三屏（管理/智能体/结论）下边缘高度统一 */
+.screen.management-screen { height: calc(100vh - 68px); min-height: 0; padding: 28px 0 24px; overflow: hidden; }
+.screen.management-screen .pm-layout { flex: 1; min-height: 0; }
 
 .agent-shell { display: grid; grid-template-columns: 196px minmax(500px, 1fr) minmax(0, 292px); gap: 15px; align-items: stretch; }
 .agent-sidebar { min-width: 0; min-height: 0; padding: 17px 14px; display: flex; flex-direction: column; }
@@ -939,7 +943,9 @@ button { cursor: pointer; }
   .screen { padding: 18px 0 40px; }
   .page-head { flex-direction: column; align-items: flex-start; }
   .pm-layout { grid-template-columns: 1fr; }
-  .pm-history { min-height: unset; }
+  /* 窄屏解除三屏视口锁定：恢复页面自然滚动（桌面端才锁下边缘） */
+  .screen.agent-screen, .screen.management-screen, .screen.conclusion-screen { height: auto; min-height: calc(100vh - 68px); overflow: visible; }
+  .pm-history, .pm-main { min-height: unset; }
   .pm-create { min-height: 460px; grid-column: auto; }
   .transition-steps { grid-template-columns: 1fr; }
   .product-principles { grid-template-columns: 1fr; }
@@ -1055,7 +1061,7 @@ button { cursor: pointer; }
 .chat-inputrow button:disabled { opacity: .45; cursor: not-allowed; }
 
 /* —— V4.1 综合结论页：整页锁视口高，浓缩看板（无瀑布流）；页眉复用全局 .page-head —— */
-.screen.conclusion-screen { height: calc(100vh - 68px); min-height: 0; padding: 28px 0 14px; overflow: hidden; }
+.screen.conclusion-screen { height: calc(100vh - 68px); min-height: 0; padding: 28px 0 24px; overflow: hidden; }
 .screen.conclusion-screen .shell { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
 .conclusion-hero { flex: none; }
 .conclusion-hero .verdict-line { font-size: 26px; line-height: 1.45; margin: 9px 0 10px; }
