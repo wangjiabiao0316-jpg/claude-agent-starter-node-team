@@ -27,6 +27,15 @@ function parseCash(raw: unknown): number[] {
     .filter((n): n is number => n !== null);
 }
 
+/** 指标来源角标（参考 demo 数据可信度分层）：有值 = 已测算，缺 = 待补全 */
+function srcBadge(v: string, zh: boolean) {
+  return (
+    <i className={`bd-src ${v ? 'ok' : 'pending'}`}>
+      {v ? (zh ? '已测算' : 'measured') : zh ? '待补全' : 'pending'}
+    </i>
+  );
+}
+
 export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ json }) => {
   const { lang } = useT();
   const zh = lang === 'zh';
@@ -81,6 +90,16 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
   const irrPos = bandOk ? Math.min(98, Math.max(2, posOf(irr))) : null;
   const irrTone: Tone | undefined = bandOk ? (irr >= lo && irr <= hi ? 'green' : 'red') : undefined;
 
+  // 敏感性条目化（参考 demo 双组结构）：文字按行/分号切分，能同时归出
+  // 收入侧与成本侧则双组呈现，否则平铺条目；单条回退原文。
+  const sensItems = sensitivity.split(/\n+|；|;/).map((s) => s.trim()).filter((s) => s.length > 3);
+  const REV_KW = /收入|租金|出租|运营|招商|价格/;
+  const COST_KW = /成本|改造|融资|持有|资本|贷款|利率/;
+  const revItems = sensItems.filter((s) => REV_KW.test(s) && !COST_KW.test(s));
+  const costItems = sensItems.filter((s) => COST_KW.test(s) && !REV_KW.test(s));
+  const sensGrouped = revItems.length > 0 && costItems.length > 0;
+  const restItems = sensGrouped ? sensItems.filter((s) => !revItems.includes(s) && !costItems.includes(s)) : [];
+
   return (
     <div className="bd">
       <div className={`bd-hero ${passTone === 'red' ? 'red' : passTone === 'green' ? 'green' : ''}`}>
@@ -102,7 +121,10 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
 
       <div className="bd-statgrid">
         <div className="bd-stat wide">
-          <span className="bd-stat-label">IRR · 内部收益率（年化）</span>
+          <span className="bd-stat-label">
+            IRR · 内部收益率（年化）
+            {srcBadge(irr !== null ? String(irr) : '', zh)}
+          </span>
           <b className={`bd-stat-value ${irrTone ?? ''}`}>{irr !== null ? `${irr}%` : '—'}</b>
           {bandOk && (
             <>
@@ -144,9 +166,9 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
               : passText || undefined}
           </small>
         </div>
-        <StatNum label="NPV · 净现值" value={npv} />
-        <StatNum label={zh ? '回收期' : 'PAYBACK'} value={payback} />
-        {mode && <StatNum label={zh ? '改造模式' : 'MODE'} value={mode} />}
+        <StatNum label="NPV · 净现值" value={npv} badge={srcBadge(npv, zh)} />
+        <StatNum label={zh ? '回收期' : 'PAYBACK'} value={payback} badge={srcBadge(payback, zh)} />
+        {mode && <StatNum label={zh ? '改造模式' : 'MODE'} value={mode} badge={srcBadge(mode, zh)} />}
       </div>
 
       {cash.length > 0 && (
@@ -194,26 +216,74 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
                 </>
               )}
             </div>
-            <p className="bd-cash-note">
-              {zh
-                ? '金绿 = 净流入 · 红 = 净流出 · 中线为 0 · 金线 = 累计净额（独立标尺）· 虚线 = 回收期'
-                : 'green = inflow · red = outflow · gold line = cumulative'}
-            </p>
+            <div className="bd-cash-legend">
+              <span><i className="lg-pos" aria-hidden="true" />{zh ? '净流入' : 'inflow'}</span>
+              <span><i className="lg-neg" aria-hidden="true" />{zh ? '净流出' : 'outflow'}</span>
+              <span><i className="lg-cum" aria-hidden="true" />{zh ? '累计净额（独立标尺）' : 'cumulative'}</span>
+              {pbZero && <span><i className="lg-pb" aria-hidden="true" />{zh ? '虚线穿零 = 回收期' : 'payback'}</span>}
+            </div>
           </div>
         </BDSection>
       )}
 
       {sensitivity && (
         <BDSection title={zh ? '敏感性分析' : 'SENSITIVITY'} scroll>
-          <p className="bd-note" style={{ whiteSpace: 'pre-line' }}>{clampStr(sensitivity, 300)}</p>
+          {sensGrouped ? (
+            <div className="bd-sens">
+              <div className="bd-sens-group">
+                <p>{zh ? '经营收入侧' : 'REVENUE SIDE'}</p>
+                <div className="bd-senslist">
+                  {revItems.map((s, i) => (
+                    <div key={i} className="bd-sens-item"><i aria-hidden="true" /><span>{s}</span></div>
+                  ))}
+                </div>
+              </div>
+              <div className="bd-sens-group">
+                <p>{zh ? '投资成本侧' : 'COST SIDE'}</p>
+                <div className="bd-senslist">
+                  {costItems.map((s, i) => (
+                    <div key={i} className="bd-sens-item"><i aria-hidden="true" /><span>{s}</span></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : sensItems.length > 1 ? (
+            <div className="bd-senslist">
+              {sensItems.map((s, i) => (
+                <div key={i} className="bd-sens-item"><i aria-hidden="true" /><span>{s}</span></div>
+              ))}
+            </div>
+          ) : (
+            <p className="bd-note" style={{ whiteSpace: 'pre-line' }}>{clampStr(sensitivity, 300)}</p>
+          )}
+          {sensGrouped && restItems.length > 0 && (
+            <div className="bd-senslist" style={{ marginTop: 8 }}>
+              {restItems.map((s, i) => (
+                <div key={i} className="bd-sens-item"><i aria-hidden="true" /><span>{s}</span></div>
+              ))}
+            </div>
+          )}
         </BDSection>
       )}
 
       {passTone === 'red' && (
         <Banner tone="red">⛔ {zh ? `IRR 未达 ${industry || '业态'}门槛下限：调整租金假设 / 业态方向或融资结构后重跑` : 'below industry threshold'}</Banner>
       )}
+      {/* 测算链路（参考 demo Financial Calculation Inspector）：引擎→输入→核验→快照，审批可追溯 */}
+      <div className="bd-trace">
+        <p className="bd-trace-title">FINANCIAL CALCULATION INSPECTOR · {zh ? '测算链路' : 'TRACEABILITY'}</p>
+        <div className="bd-trace-grid">
+          <div><span>{zh ? '测算引擎' : 'ENGINE'}</span><b>{zh ? '沙箱 Python · 禁止心算' : 'sandboxed Python'}</b></div>
+          <div><span>{zh ? '输入假设' : 'INPUTS'}</span><b>{assume ? clampStr(assume, 30) : zh ? '待提供' : 'pending'}</b></div>
+          <div><span>{zh ? '业态门槛核验' : 'THRESHOLD'}</span><b>{bandOk ? `${industry ? `${industry} ` : ''}${lo}-${hi}% ${zh ? '已对照' : 'checked'}` : zh ? '未对照' : 'n/a'}</b></div>
+          <div><span>{zh ? '结果快照' : 'SNAPSHOT'}</span><b>{cash.length > 0 ? (zh ? 'output_json 已生成' : 'emitted') : zh ? '待生成' : 'pending'}</b></div>
+        </div>
+      </div>
       {assume && (
-        <p className="bd-footnote">关键假设 · {clampStr(assume, 160)}</p>
+        <p className="bd-footnote">
+          <i className="bd-src pending">{zh ? '口径待核验' : 'to verify'}</i>
+          {zh ? '关键假设' : 'ASSUMPTIONS'} · {clampStr(assume, 160)}
+        </p>
       )}
     </div>
   );

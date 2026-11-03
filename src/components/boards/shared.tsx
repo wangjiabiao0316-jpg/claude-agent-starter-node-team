@@ -144,23 +144,29 @@ export function ScoreBar({
  * 大数字卡：label 小字 + value 大字 + 可选副注。
  * 无副注（solo）时 value 大字水平垂直居中撑满卡片——纯文字结论不留底部空白。
  * 纯数字值自动千分位（253859519.17 → 253,859,519.17）。
+ * badge = label 后追加的来源角标（数据可信度分层，如「已测算 / 待补全」）。
  */
 export function StatNum({
   label,
   value,
   sub,
   tone,
+  badge,
 }: {
   label: string;
   value: string;
   sub?: string;
   tone?: Tone;
+  badge?: React.ReactNode;
 }) {
   const numeric = /^-?\d+(\.\d+)?$/.test(value.trim());
   const shown = numeric ? Number(value).toLocaleString('zh', { maximumFractionDigits: 2 }) : value;
   return (
     <div className={`bd-stat${tone && tone !== 'neutral' ? ` ${tone}` : ''}${sub ? '' : ' solo'}`}>
-      <span className="bd-stat-label">{label}</span>
+      <span className="bd-stat-label">
+        {label}
+        {badge}
+      </span>
       <b className="bd-stat-value">{shown || '—'}</b>
       {sub && <small className="bd-stat-sub">{sub}</small>}
     </div>

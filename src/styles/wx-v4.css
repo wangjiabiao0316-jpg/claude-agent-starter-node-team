@@ -1385,3 +1385,51 @@ button { cursor: pointer; }
 /* —— 风险清单紧凑态（A3 剔除与审批风险）：压缩版面高度 —— */
 .bd-risklist.tight { gap: 4px; }
 .bd-risklist.tight .bd-risk { padding: 4px 10px; font-size: 10.5px; line-height: 1.5; }
+
+/* —— A4 参考 demo 优化（V4.4.4）：数据可信度角标 + 测算链路追溯条 ——
+   思想：不是所有数字同等可信——有值标「已测算」，缺失标「待补全」，
+   假设标「口径待核验」；测算链路 = 引擎→输入→门槛核验→结果快照。 */
+.bd-src {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 550;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 6px;
+  vertical-align: 1px;
+  font-style: normal;
+}
+.bd-src.ok { color: #78ad98; background: rgba(120, 173, 152, 0.13); }
+.bd-src.pending { color: #c99e66; background: rgba(201, 158, 102, 0.14); }
+
+.bd-trace {
+  border: 1px solid #223140;
+  border-radius: 8px;
+  padding: 8px 12px 9px;
+  background: rgba(21, 35, 48, 0.5);
+  flex-shrink: 0;
+}
+.bd-trace-title { font-size: 9.5px; letter-spacing: 1.5px; color: #5d7181; font-weight: 650; margin-bottom: 6px; }
+.bd-trace-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 18px; }
+.bd-trace-grid > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 10.5px; min-width: 0; }
+.bd-trace-grid span { color: #7d919f; white-space: nowrap; }
+.bd-trace-grid b { color: #b8c7d2; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* —— 敏感性分析条目化（参考 demo 双组结构）：收入侧 / 成本侧归组呈现 —— */
+.bd-sens { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bd-sens-group { border: 1px solid #223140; border-radius: 8px; padding: 8px 10px; background: rgba(21, 35, 48, 0.35); }
+.bd-sens-group > p { font-size: 10px; letter-spacing: 1.5px; color: #c9aa7e; font-weight: 650; margin-bottom: 6px; }
+.bd-senslist { display: flex; flex-direction: column; gap: 5px; }
+.bd-sens-item { display: flex; gap: 8px; align-items: baseline; font-size: 11px; line-height: 1.55; color: #b8c7d2; }
+.bd-sens-item i { flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); opacity: 0.75; }
+.bd-sens-item span { min-width: 0; }
+
+/* —— 现金流图例色点化：色块/线段与图中元素一一对应 —— */
+.bd-cash-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 16px; font-size: 10px; color: #8fa3b2; }
+.bd-cash-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.bd-cash-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.bd-cash-legend .lg-pos { background: linear-gradient(180deg, var(--gold2), var(--green)); }
+.bd-cash-legend .lg-neg { background: var(--red); }
+.bd-cash-legend .lg-cum { width: 16px; height: 0; border-radius: 0; border-top: 2px solid var(--gold); }
+.bd-cash-legend .lg-pb { width: 16px; height: 0; border-radius: 0; border-top: 2px dashed var(--gold2); }
