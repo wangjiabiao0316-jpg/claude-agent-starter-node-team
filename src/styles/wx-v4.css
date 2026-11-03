@@ -1170,8 +1170,8 @@ button { cursor: pointer; }
 
 /* —— 大数字卡（A4 指标） —— */
 .bd-statgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.bd-stat { border: 1px solid #2d3d4a; border-radius: 9px; background: #16232e; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.bd-stat.wide { min-height: 148px; }
+.bd-stat { border: 1px solid #2d3d4a; border-radius: 9px; background: #16232e; padding: 10px 13px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.bd-stat.wide { min-height: 112px; }
 .bd-stat-label { font-size: 10px; letter-spacing: 1px; color: #7d919f; }
 .bd-stat-value { font-size: 24px; font-weight: 700; color: var(--gold2); line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .bd-stat.green .bd-stat-value { color: #9bcab6; }
@@ -1180,13 +1180,13 @@ button { cursor: pointer; }
 .bd-stat-sub { font-size: 10px; color: #718395; line-height: 1.5; }
 
 /* —— IRR 门槛带（A4）：区间带 + 指针 —— */
-.bd-irrband { position: relative; height: 34px; margin: 26px 6px 20px; }
-.bd-irr-zone { position: absolute; top: 12px; height: 8px; border: 1px solid #416c5e; background: rgba(120, 173, 152, 0.16); border-radius: 3px; }
-.bd-irr-ptr { position: absolute; top: 2px; width: 2px; height: 26px; background: var(--gold2); transform: translateX(-1px); }
+.bd-irrband { position: relative; height: 28px; margin: 14px 6px 12px; }
+.bd-irr-zone { position: absolute; top: 9px; height: 8px; border: 1px solid #416c5e; background: rgba(120, 173, 152, 0.16); border-radius: 3px; }
+.bd-irr-ptr { position: absolute; top: 0; width: 2px; height: 20px; background: var(--gold2); transform: translateX(-1px); }
 .bd-irr-ptr i { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 2px; font-style: normal; font-size: 10px; font-weight: 700; color: var(--gold2); white-space: nowrap; }
 .bd-irr-ptr i.green { color: #9bcab6; }
 .bd-irr-ptr i.red { color: #e2a29b; }
-.bd-irr-lab { position: absolute; top: 24px; transform: translateX(-50%); font-style: normal; font-size: 9px; color: #718395; }
+.bd-irr-lab { position: absolute; top: 21px; transform: translateX(-50%); font-style: normal; font-size: 9px; color: #718395; }
 
 /* —— 现金流柱图（A4）：中线 0 值，正值上伸金绿、负值下垂红 —— */
 .bd-cash { border: 1px solid #2d3d4a; border-radius: 9px; background: #16232e; padding: 12px 14px 8px; min-width: 0; }
@@ -1345,7 +1345,7 @@ button { cursor: pointer; }
    .bd-section-body 内滚动（用户规则：滚动区是小块，不是半块瀑布区）。
    外层 .bd 的 overflow-y:auto 仅作小屏兜底（固定区自身超屏时才触发）。 */
 .bd > * { flex-shrink: 0; }
-.bd > .bd-section.is-scroll { flex: 0 1 auto; min-height: 0; max-height: 42%; }
+.bd > .bd-section.is-scroll { flex: 0 1 auto; min-height: 96px; max-height: 42%; }
 .bd-section-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 4px; }
 .bd-section-body::-webkit-scrollbar { width: 6px; }
 .bd-section-body::-webkit-scrollbar-thumb { background: #2e4053; border-radius: 3px; }
@@ -1367,18 +1367,18 @@ button { cursor: pointer; }
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: 26px;
+  font-size: 22px;
 }
 
 /* —— IRR 0-1 全量程细线（V4.4.3）：窗口尺之下补一条 0-100% 完整量程，
    指针按真实比例落位；绿段为门槛区间在整体量程中的位置 —— */
-.bd-irr-full { position: relative; height: 18px; margin: 20px 2px 6px; }
-.bd-irr-full-track { position: absolute; left: 0; right: 0; top: 7px; height: 2px; border-radius: 1px; background: #223140; }
-.bd-irr-full-zone { position: absolute; top: 5px; height: 6px; background: rgba(120, 173, 152, 0.4); border-radius: 2px; min-width: 2px; }
-.bd-irr-full-ptr { position: absolute; top: 1px; width: 2px; height: 13px; background: var(--gold2); transform: translateX(-1px); }
+.bd-irr-full { position: relative; height: 14px; margin: 10px 2px 8px; }
+.bd-irr-full-track { position: absolute; left: 0; right: 0; top: 5px; height: 2px; border-radius: 1px; background: #223140; }
+.bd-irr-full-zone { position: absolute; top: 3px; height: 6px; background: rgba(120, 173, 152, 0.4); border-radius: 2px; min-width: 2px; }
+.bd-irr-full-ptr { position: absolute; top: 0; width: 2px; height: 10px; background: var(--gold2); transform: translateX(-1px); }
 .bd-irr-full-ptr.green { background: var(--green); }
 .bd-irr-full-ptr.red { background: var(--red); }
-.bd-irr-full-lab { position: absolute; top: 100%; margin-top: 2px; font-style: normal; font-size: 9px; color: #718395; }
+.bd-irr-full-lab { position: absolute; top: 100%; margin-top: 1px; font-style: normal; font-size: 9px; color: #718395; }
 .bd-irr-full-lab.l { left: 0; }
 .bd-irr-full-lab.r { right: 0; }
 
@@ -1406,15 +1406,16 @@ button { cursor: pointer; }
 .bd-trace {
   border: 1px solid #223140;
   border-radius: 8px;
-  padding: 8px 12px 9px;
+  padding: 6px 12px 7px;
   background: rgba(21, 35, 48, 0.5);
   flex-shrink: 0;
 }
-.bd-trace-title { font-size: 9.5px; letter-spacing: 1.5px; color: #5d7181; font-weight: 650; margin-bottom: 6px; }
-.bd-trace-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 18px; }
-.bd-trace-grid > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 10.5px; min-width: 0; }
-.bd-trace-grid span { color: #7d919f; white-space: nowrap; }
-.bd-trace-grid b { color: #b8c7d2; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bd-trace-title { font-size: 9px; letter-spacing: 1.5px; color: #5d7181; font-weight: 650; margin-bottom: 4px; }
+/* 单行四列竖排（label 上 / value 下）——压缩版面高度，把空间让给滚动区 */
+.bd-trace-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 14px; }
+.bd-trace-grid > div { display: flex; flex-direction: column; gap: 1px; font-size: 10px; min-width: 0; }
+.bd-trace-grid span { color: #64788a; white-space: nowrap; font-size: 9px; letter-spacing: 0.5px; }
+.bd-trace-grid b { color: #b8c7d2; font-weight: 550; font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* —— 敏感性分析条目化（参考 demo 双组结构）：收入侧 / 成本侧归组呈现 —— */
 .bd-sens { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1433,3 +1434,12 @@ button { cursor: pointer; }
 .bd-cash-legend .lg-neg { background: var(--red); }
 .bd-cash-legend .lg-cum { width: 16px; height: 0; border-radius: 0; border-top: 2px solid var(--gold); }
 .bd-cash-legend .lg-pb { width: 16px; height: 0; border-radius: 0; border-top: 2px dashed var(--gold2); }
+
+/* —— A4 现金流 × 敏感性并排（V4.4.5）：两块纵向都高，并排后互不挤压 ——
+   左现金流（宽 1.15 份）右敏感性；敏感性内容多时在自身 215px 上限内滚动，
+   单块缺位时占满整行。 */
+.bd-duo { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; }
+.bd-duo > .bd-section { min-width: 0; }
+.bd-duo > .bd-section:only-child { grid-column: 1 / -1; }
+.bd-duo > .bd-section.is-scroll { max-height: 215px; min-height: 140px; }
+.bd-duo .bd-sens { grid-template-columns: 1fr; }

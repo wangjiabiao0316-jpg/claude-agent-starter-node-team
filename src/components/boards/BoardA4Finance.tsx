@@ -171,6 +171,8 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
         {mode && <StatNum label={zh ? '改造模式' : 'MODE'} value={mode} badge={srcBadge(mode, zh)} />}
       </div>
 
+      {(cash.length > 0 || sensitivity !== '') && (
+      <div className="bd-duo">
       {cash.length > 0 && (
         <BDSection
           title={zh ? '现金流时序' : 'CASHFLOW'}
@@ -264,6 +266,8 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
             </div>
           )}
         </BDSection>
+      )}
+      </div>
       )}
 
       {passTone === 'red' && (
