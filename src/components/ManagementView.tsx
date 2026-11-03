@@ -24,6 +24,8 @@ interface Props {
   hasMore: boolean;
   disabled: boolean;
   onSelect: (id: string) => void;
+  /** 点击空白处/再次点击选中项：取消选中，回到未选中模板态 */
+  onDeselect: () => void;
   onCreate: () => void;
   onLoadMore: () => void;
   onDelete: (id: string) => void;
@@ -59,8 +61,14 @@ export const ManagementView: React.FC<Props> = (props) => {
     props.onDelete(id);
   };
 
+  // 空白处（页眉/左右面板/新建卡以外）点击 → 取消项目选中
+  const handleBlankClick = (event: MouseEvent<HTMLElement>) => {
+    if ((event.target as HTMLElement).closest('.panel, .pm-create, .page-head')) return;
+    props.onDeselect();
+  };
+
   return (
-    <section className="screen active management-screen">
+    <section className="screen active management-screen" onClick={handleBlankClick}>
       <div className="shell">
         <div className="page-head">
           <div>
@@ -106,7 +114,15 @@ export const ManagementView: React.FC<Props> = (props) => {
                       role="button"
                       tabIndex={0}
                       aria-current={isActive ? 'true' : 'false'}
-                      onClick={() => !disabled && !isActive && props.onSelect(c.id)}
+                      onClick={() => {
+                        if (disabled) return;
+                        // 再次点击已选中项 = 取消选中（与空白处点击等效）
+                        if (isActive) {
+                          props.onDeselect();
+                          return;
+                        }
+                        props.onSelect(c.id);
+                      }}
                       onKeyDown={(e) => {
                         if ((e.key === 'Enter' || e.key === ' ') && !disabled && !isActive) {
                           e.preventDefault();

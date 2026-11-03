@@ -60,6 +60,31 @@ function pick(json: Record<string, unknown> | undefined, keys: string[]): string
 
 const clamp = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
+/** 项目名称候选字段（按优先级排列，配合 pick 的「键名包含」匹配） */
+const PROJECT_NAME_KEYS = ['项目名称', '项目名', '项目', '标的名称', '标的'];
+
+/** 清理模型给出的名称：去首尾引号/书名号/括号与空白 */
+function cleanName(s: string): string {
+  return s.replace(/^["'「『《（(【]+|["'」』》）)】]+$/g, '').trim();
+}
+
+/**
+ * 模型提炼项目名：从智能体结构化输出提取项目名称
+ * （agent1 固有对象优先——它做产权/资产筛查、项目身份最先确定；agent6 双层决策兜底）。
+ * 结构化字段缺失时回退到输出文本中的「项目名称：xxx」行；两者皆无 → null。
+ */
+export function extractProjectName(outputs: Record<string, AgentOutput>): string | null {
+  for (const agentId of ['agent1-固有对象', 'agent6-双层决策']) {
+    const output = outputs[agentId];
+    if (!output) continue;
+    const fromJson = pick(output.output_json, PROJECT_NAME_KEYS);
+    if (fromJson) return clamp(cleanName(fromJson), 20);
+    const fromText = /项目(?:名称|名)?[：:]\s*([^\n|，。；]+)/.exec(output.summary || '');
+    if (fromText?.[1]) return clamp(cleanName(fromText[1]), 20);
+  }
+  return null;
+}
+
 /** 从 agent6 输出的 H1-H4 提取四维灯（值形如 H2.yellow.H）；无输出/未跑通 → null（待命） */
 function extractDims(outputs: Record<string, AgentOutput>, hasRun: boolean): DimLamp[] {
   const meta: Array<{ key: string; label: string }> = [

@@ -31,6 +31,7 @@ import {
 } from './lib/imageStore';
 import { saveSnapshot, loadSnapshot, deleteSnapshot } from './lib/chatUiStore';
 import { detectCurrentAgent, parseAgentOutputs } from './lib/agentSections';
+import { extractProjectName } from './lib/exportDocs';
 import IntakeWizard from './components/IntakeWizard';
 import ProductHome from './components/ProductHome';
 import NiuHead from './components/NiuHead';
@@ -90,6 +91,12 @@ function toolToLampId(toolName: string): LampId | null {
 const CONVERSATION_ID_STORAGE_KEY = 'eo_conversation_id';
 const EO_USER_ID_STORAGE_KEY = 'eo-uuid';
 const CONVERSATIONS_PAGE_SIZE = 20;
+/**
+ * 模型提炼的项目名（会话 id → 名称）localStorage 持久化键。
+ * 后端 /conversations 的标题取自输入首字截断，仅作兜底；智能体输出到达后
+ * 由 extractProjectName 提炼真实项目名并在前端覆盖显示，此键保证刷新后仍生效。
+ */
+const DISTILLED_TITLES_STORAGE_KEY = 'eo_distilled_titles';
 
 /**
  * 模块加载时（早于 React 首渲染的 getOrCreateConversationId 写入）记录
@@ -217,6 +224,15 @@ function AppInner() {
   const [activeConversationId, setActiveConversationId] = useState<string>(() =>
     getOrCreateConversationId(),
   );
+  /** 模型提炼的项目名映射（会话 id → 名称），覆盖列表/顶栏/页眉显示的会话标题 */
+  const [distilledTitles, setDistilledTitles] = useState<Record<string, string>>(() => {
+    try {
+      const raw = localStorage.getItem(DISTILLED_TITLES_STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+    } catch {
+      return {};
+    }
+  });
 
   // Stable user identifier — derived once, never changes for the lifetime of this browser
   const eoUuidRef = useRef<string>(getOrCreateEoUuid());
@@ -349,6 +365,11 @@ function AppInner() {
     }
   }, [resetAgentState]);
 
+  /** 用模型提炼名覆盖会话标题（后端标题为输入首字截断，仅作兜底显示） */
+  const withDistilledTitle = useCallback((c: ConversationSummary): ConversationSummary =>
+    distilledTitles[c.id] ? { ...c, title: distilledTitles[c.id] } : c
+  , [distilledTitles]);
+
   /** Refresh the sidebar conversation list — usually after sending or switching. */
   const refreshConversations = useCallback(async (mode: 'replace' | 'append' = 'replace', cursor?: string) => {
     if (mode === 'append') {
@@ -371,12 +392,12 @@ function AppInner() {
           const seen = new Set(prev.map(c => c.id));
           const merged = [...prev];
           for (const c of res.conversations) {
-            if (!seen.has(c.id)) merged.push(c);
+            if (!seen.has(c.id)) merged.push(withDistilledTitle(c));
           }
           return merged;
         });
       } else {
-        setConversations(res.conversations);
+        setConversations(res.conversations.map(withDistilledTitle));
       }
     } finally {
       if (mode === 'append') {
@@ -385,7 +406,33 @@ function AppInner() {
         setConversationsLoading(false);
       }
     }
-  }, []);
+  }, [withDistilledTitle]);
+
+  // 模型提炼项目名：智能体结构化输出（含刷新恢复的历史输出）到达后，提取项目名称
+  // 覆盖会话标题（列表/顶栏/三屏页眉），并持久化到 localStorage 供刷新后继续生效
+  useEffect(() => {
+    const convId = conversationIdRef.current;
+    if (!convId) return;
+    const name = extractProjectName(agentOutputs);
+    if (!name) return;
+    setConversations(prev => {
+      const idx = prev.findIndex(c => c.id === convId);
+      if (idx === -1 || prev[idx].title === name) return prev;
+      const next = [...prev];
+      next[idx] = { ...next[idx], title: name };
+      return next;
+    });
+    setDistilledTitles(prev => {
+      if (prev[convId] === name) return prev;
+      const next = { ...prev, [convId]: name };
+      try {
+        localStorage.setItem(DISTILLED_TITLES_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // 存储不可用（隐私模式等）时仅在当前会话内生效
+      }
+      return next;
+    });
+  }, [agentOutputs]);
 
   // Initial load: history (only if previously visited) + conversations list
   useEffect(() => {
@@ -517,6 +564,13 @@ function AppInner() {
 
   const handleSend = useCallback(async (text: string) => {
     initDoneRef.current = true;
+    // 取消选中状态下直接发消息：现造一个新会话 id，避免空 id 混入列表与 SSE 头
+    if (!conversationIdRef.current) {
+      const newId = crypto.randomUUID();
+      localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, newId);
+      conversationIdRef.current = newId;
+      setActiveConversationId(newId);
+    }
     setDockMode('chat');
     setSuggestActions([]); // previous turn's follow-ups are stale the moment a new run starts
     // Reset the per-agent text accumulator at the start of each turn —
@@ -557,11 +611,9 @@ function AppInner() {
      * which can correct the title if the runtime later overrides it.
      */
     let sidebarPrimed = false;
-    const cleanedText = text.replace(/\s+/g, ' ').trim();
-    const optimisticTitle =
-      cleanedText.length === 0 ? 'New chat'
-        : cleanedText.length <= 8 ? cleanedText
-          : `${cleanedText.slice(0, 8)}...`;
+    // 占位名不截取输入前几个字（用户要求）：统一用「未命名项目」占位，
+    // 待智能体结构化输出到达后由 extractProjectName 提炼真实项目名覆盖
+    const optimisticTitle = lang === 'zh' ? '未命名项目' : 'Untitled Project';
 
     const primeSidebar = () => {
       if (sidebarPrimed) return;
@@ -914,6 +966,22 @@ function AppInner() {
     void loadConversation(id);
   }, [loading, loadConversation, resetAgentState]);
 
+  /** 项目管理页点击空白处：取消选中，回到未选中模板态（结论页/智能体页随之显示模板口径） */
+  const handleDeselectConversation = useCallback(() => {
+    if (loading) return;
+    if (!conversationIdRef.current) return;
+    revokeAllObjectUrls();
+    resetAgentState();
+    localStorage.removeItem(CONVERSATION_ID_STORAGE_KEY);
+    conversationIdRef.current = '';
+    setActiveConversationId('');
+    setMessages([]);
+    setDebugEvents([]);
+    setDockMode('chat');
+    initDoneRef.current = false;
+    setHistoryLoading(false);
+  }, [loading, resetAgentState]);
+
   /** User clicked "New chat" in the sidebar. */
   const handleCreateConversation = useCallback(() => {
     if (loading) return;
@@ -1263,6 +1331,7 @@ function AppInner() {
         {uiStage === 'management' && (
           <ManagementView
             activeProjectName={projectLabel}
+            onDeselect={handleDeselectConversation}
             conversations={conversations}
             activeConversationId={activeConversationId}
             loading={conversationsLoading}
