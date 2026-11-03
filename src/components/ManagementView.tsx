@@ -412,8 +412,11 @@ export const ManagementView: React.FC<Props> = (props) => {
                   className="btn primary"
                   onClick={() => props.onSelect(active.id)}
                   disabled={disabled}
+                  title={lang === 'zh'
+                    ? '七智能体全部跑通 → 综合结论；否则 → 智能体群'
+                    : 'All agents done → conclusion; otherwise → agents'}
                 >
-                  {t('management.summaryHint').slice(0, lang === 'zh' ? 6 : 20)} →
+                  {lang === 'zh' ? '进入项目' : 'Open project'} →
                 </button>
               </>
             ) : (
