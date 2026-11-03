@@ -1435,6 +1435,9 @@ button { cursor: pointer; }
 .bd-duo > .bd-section.is-scroll {
   max-height: 215px;
   min-height: 140px;
+}
+/* 框只包内容体：标题（敏感性分析）留在框外 */
+.bd-duo > .bd-section.is-scroll .bd-section-body {
   border: 1px solid #2d3d4a;
   border-radius: 9px;
   background: #16232e;
