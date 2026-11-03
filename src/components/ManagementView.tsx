@@ -133,6 +133,11 @@ export const ManagementView: React.FC<Props> = (props) => {
             props.onSelect(c.id);
           }
         }}
+        onMouseLeave={(e) => {
+          // 移出卡片即收起还开着的归组菜单（按钮本身已随 hover 隐藏）
+          const menu = (e.currentTarget as HTMLElement).querySelector('details.pm-assign');
+          if (menu?.hasAttribute('open')) menu.removeAttribute('open');
+        }}
       >
         <div style={{ minWidth: 0 }}>
           {/* 块级 + maxWidth 才能让长项目名在左栏卡片内截断，不超出模块框 */}

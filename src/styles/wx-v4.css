@@ -265,6 +265,13 @@ button { cursor: pointer; }
 .pm-history-item b { display: block; font-size: 11px; color: var(--text); font-weight: 600; }
 .pm-history-item small { display: block; color: var(--muted); font-size: 9px; margin-top: 4px; }
 .pm-grade { font-size: 17px; color: var(--gold2); font-weight: 700; min-width: 20px; text-align: center; }
+/* 归组/删除按钮：鼠标划过卡片（或键盘聚焦）时才浮现 */
+.pm-history-item .pm-assign,
+.pm-history-item .tag.bad { opacity: 0; visibility: hidden; transition: opacity 0.15s, visibility 0.15s; }
+.pm-history-item:hover .pm-assign,
+.pm-history-item:hover .tag.bad,
+.pm-history-item:focus-within .pm-assign,
+.pm-history-item:focus-within .tag.bad { opacity: 1; visibility: visible; }
 .pm-history-foot { margin-top: auto; padding-top: 12px; }
 
 .pm-main { padding: 18px; display: flex; flex-direction: column; gap: 13px; min-height: 490px; }
