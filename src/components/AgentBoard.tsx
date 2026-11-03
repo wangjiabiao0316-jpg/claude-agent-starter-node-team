@@ -223,6 +223,13 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
   const output = outputs[activeAgentId];
   const lamp = readLamp(output?.output_json);
 
+  // 有效产出判定（V4.4.9b）：后端 agent_output 先到只建空槽（summary 恒空），
+  // 正文流式未开始时 output 已存在——按「有正文/有结论数据」判完成，
+  // 否则空槽阶段展板会闪现完成态的全空字段（图表空条 + 全「—」+ 无灯色）
+  const hasResult =
+    Boolean(output?.summary?.trim()) ||
+    Boolean(output?.output_json && Object.keys(output.output_json).length > 0);
+
   const intake = useMemo(() => parseIntake(messages), [messages]);
   const pool = useMemo(
     () => (output?.output_json ? flattenOnce(output.output_json) : {}),
@@ -255,13 +262,13 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
     );
   }
 
-  const running = loading && !output;
-  // 图表三态：有输出=固定结论数据；运行中=随机跳动；待命=空图表
-  const chartState: 'idle' | 'running' | 'done' = output ? 'done' : running ? 'running' : 'idle';
+  const running = loading && !hasResult;
+  // 图表三态：有产出=固定结论数据；运行中=随机跳动；待命=空图表
+  const chartState: 'idle' | 'running' | 'done' = hasResult ? 'done' : running ? 'running' : 'idle';
   // 占位文案：未完成 → 结论运算中……；已完成但缺字段 → —
   const pending = zh ? '结论运算中……' : 'computing…';
   const missing = zh ? '—' : '—';
-  const fieldPlaceholder = output ? missing : pending;
+  const fieldPlaceholder = hasResult ? missing : pending;
 
   // —— 核心结论模块态：矩阵优先 + 固定图表（结论数据已落定） ——
   if (matrix) {
@@ -277,7 +284,7 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
   return (
     <div className="agent-board">
       {/* 状态条：待命 / 执行中（完成后隐藏腾空间） */}
-      {!output && (
+      {!hasResult && (
         <div className={`ab-status ${running ? 'running' : ''}`}>
           <span className="ab-status-emoji">{STATUS_EMOJI[idx] ?? '⚙️'}</span>
           <div className="ab-status-text">
@@ -330,7 +337,7 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
                   ? zh ? '黄灯 · 有条件通过' : 'Conditional'
                   : zh ? '红灯 · 不通过' : 'Blocked'}
             </span>
-          ) : output ? (
+          ) : hasResult ? (
             <span className="tag neutral">{zh ? '无灯色' : 'no lamp'}</span>
           ) : (
             <span className="tag neutral ab-pending">{pending}</span>
