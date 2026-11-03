@@ -65,6 +65,7 @@ button { cursor: pointer; }
   color: var(--gold);
   display: flex;
   font-size: 16px;
+  margin-top: 3px;
   flex: none;
 }
 .brand-mark svg { height: 2.2em; width: auto; display: block; }
@@ -198,7 +199,7 @@ button { cursor: pointer; }
 /* —— hero 主题位：左上角品牌块复制（等比放大至与 lead 行同宽，样式同 .brand-*） —— */
 /* width:max-content —— 收缩到内容自然宽，ref 测量 offsetWidth 才是组合真实宽度 */
 .hero-brand { display: flex; align-items: stretch; gap: 24px; margin: 6px 0 26px; width: max-content; }
-.hero-brand .brand-mark { font-size: 42px; }
+.hero-brand .brand-mark { font-size: 42px; margin-top: 4px; }
 .hero-brand .brand-mark .mark-ai { top: -10px; right: -14px; font-size: 11px; padding: 2px 6px; }
 .hero-brand .brand-name { font-size: 44px; letter-spacing: 4px; }
 .hero-brand .brand-title { font-size: 64px; -webkit-text-stroke: 1px currentColor; }
