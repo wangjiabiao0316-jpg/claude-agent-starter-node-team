@@ -1051,20 +1051,28 @@ function AppInner() {
   /** User clicked a conversation in the sidebar. */
   const handleSelectConversation = useCallback(async (id: string) => {
     if (loading) return; // disabled while streaming
-    if (id === conversationIdRef.current) return;
-    resetAgentState();
-    localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, id);
-    conversationIdRef.current = id;
-    setActiveConversationId(id);
-    setDockMode('chat');
+    // 目标已是当前会话（管理页左栏预览时已加载）：跳过重复加载，直接按现有 outputs 分流。
+    // 原 early-return 会让「进入项目」按钮在预览后完全失效（ref 已被预览占用）。
+    const restoredMap =
+      id === conversationIdRef.current
+        ? agentOutputs
+        : await (async () => {
+            resetAgentState();
+            localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, id);
+            conversationIdRef.current = id;
+            setActiveConversationId(id);
+            setDockMode('chat');
+            // await 期间用户可能已切换/取消选中——放弃本次分流，避免覆盖后续选择
+            const restored = await loadConversation(id);
+            if (conversationIdRef.current !== id) return null;
+            return restored;
+          })();
+    if (!restoredMap) return;
     // 加载历史后按数据完备度分流：
     // 七 agent 全部跑通 → 综合结论页；否则 → 智能体群页（能看到哪个 agent 待命）
-    const restored = await loadConversation(id);
-    // await 期间用户可能已切换/取消选中——放弃本次分流，避免覆盖后续选择
-    if (conversationIdRef.current !== id) return;
-    const allDone = AGENT_TABS.every(a => Boolean(restored[a.id]));
+    const allDone = AGENT_TABS.every(a => Boolean(restoredMap[a.id]));
     setUiStage(allDone ? 'conclusion' : 'agents');
-  }, [loading, loadConversation, resetAgentState]);
+  }, [loading, loadConversation, resetAgentState, agentOutputs]);
 
   /** 管理页左栏点击项目：仅选中 + 加载会话（中栏展示输入信息），不跳转页面；
    *  进入结论/智能体页走 handleSelectConversation（中栏「打开档案」按钮） */
