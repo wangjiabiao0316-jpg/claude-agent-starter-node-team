@@ -265,10 +265,15 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
   const running = loading && !hasResult;
   // 图表三态：有产出=固定结论数据；运行中=随机跳动；待命=空图表
   const chartState: 'idle' | 'running' | 'done' = hasResult ? 'done' : running ? 'running' : 'idle';
-  // 占位文案：未完成 → 结论运算中……；已完成但缺字段 → —
-  const pending = zh ? '结论运算中……' : 'computing…';
+  // 占位文案：未完成 → 结论运算中……（省略号呼吸闪烁）；已完成但缺字段 → —
+  const pendingNode = (
+    <>
+      {zh ? '结论运算中' : 'computing'}
+      <i className="ab-ellipsis">……</i>
+    </>
+  );
   const missing = zh ? '—' : '—';
-  const fieldPlaceholder = hasResult ? missing : pending;
+  const fieldPlaceholder = hasResult ? missing : pendingNode;
 
   // —— 核心结论模块态：矩阵优先 + 固定图表（结论数据已落定） ——
   if (matrix) {
@@ -340,7 +345,7 @@ export const AgentBoard: React.FC<Props> = ({ outputs, messages, loading, active
           ) : hasResult ? (
             <span className="tag neutral">{zh ? '无灯色' : 'no lamp'}</span>
           ) : (
-            <span className="tag neutral ab-pending">{pending}</span>
+            <span className="tag neutral ab-pending">{pendingNode}</span>
           )}
           <div className="ab-verdict-text">
             {verdictRows.every(([, v]) => !v) && <p className="ab-pending">{fieldPlaceholder}</p>}

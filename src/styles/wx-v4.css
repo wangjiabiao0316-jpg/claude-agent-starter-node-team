@@ -190,7 +190,7 @@ button { cursor: pointer; }
 .hero h1 span { color: var(--gold2); }
 /* 中文主标题强制单行：字号跟随视口缩放（上限 64px 才能塞进 hero-content 的可用宽度） */
 .hero h1.hero-title-zh { white-space: nowrap; font-size: clamp(30px, 4.2vw, 64px); }
-.hero-lead { font-size: 18px; letter-spacing: 3px; color: #e5e9ec; margin-bottom: 18px; }
+.hero-lead { font-size: 18px; letter-spacing: 3px; color: #e5e9ec; margin-bottom: 18px; white-space: nowrap; }
 .hero-desc { font-size: 13px; line-height: 1.9; color: #aebbc7; max-width: 560px; }
 .hero-foot { display: flex; align-items: center; gap: 22px; margin-top: 44px; }
 /* hero 双按钮等宽（开始使用 / 产品价值） */
@@ -331,7 +331,8 @@ button { cursor: pointer; }
 
 /* ── 项目组（左栏会话分组，前端 localStorage 持久化） ── */
 .pm-group-tools { display: flex; gap: 6px; margin: 0 0 9px; }
-.pm-group-tools .btn { flex: 1; font-size: 10px; padding: 6px 8px; }
+/* 两个工具按钮恒并排一行（V4.4.9）：收窄内边距 + 禁折行，196px 左栏不再挤成两行 */
+.pm-group-tools .btn { flex: 1; min-width: 0; font-size: 10px; padding: 6px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pm-newgroup-row { margin-bottom: 9px; }
 .pm-newgroup-row input {
   width: 100%; box-sizing: border-box;
@@ -1478,3 +1479,6 @@ button { cursor: pointer; }
 .agent-board .md code { font: 10.5px "IBM Plex Mono", Consolas, monospace; background: #0b1723; border-radius: 4px; padding: 1px 5px; color: #d9c29e; }
 .agent-board .md pre { background: #0b1723; border: 1px solid #2d4255; border-radius: 7px; padding: 11px; overflow-x: auto; }
 .agent-board .md pre code { background: none; padding: 0; }
+
+/* 展板「结论运算中」省略号呼吸（V4.4.9b）：复用 wxpulse 透明度呼吸 */
+.ab-ellipsis { display: inline-block; font-style: normal; animation: wxpulse 1.6s ease-in-out infinite; }

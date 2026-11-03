@@ -35,9 +35,21 @@ export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
   // 主题位品牌组合等比放大：宽度对齐下方 lead 文本行（zoom 等比缩放整组，布局占位同步）
   const brandRef = useRef<HTMLDivElement | null>(null);
   const leadRef = useRef<HTMLSpanElement | null>(null);
+  const leadRowRef = useRef<HTMLParagraphElement | null>(null);
   const baseWidthRef = useRef(0);
   useLayoutEffect(() => {
     const fit = () => {
+      // lead 行单行适配（V4.4.9）：先复位字号，溢出则逐步缩字号到恰好一行
+      //（nowrap + 缩字号；缩完的 lead 自然宽度继续作为 brand zoom 的对齐目标）
+      const row = leadRowRef.current;
+      if (row) {
+        row.style.fontSize = '';
+        let size = 18;
+        while (row.scrollWidth > row.clientWidth && size > 10) {
+          size -= 0.5;
+          row.style.fontSize = `${size}px`;
+        }
+      }
       const brand = brandRef.current;
       const lead = leadRef.current;
       if (!brand || !lead) return;
@@ -84,7 +96,7 @@ export const ProductHome: React.FC<ProductHomeProps> = ({ onStart }) => {
               <span className="brand-en">{t('app.subtitle')}</span>
             </span>
           </div>
-          <p className="hero-lead">
+          <p className="hero-lead" ref={leadRowRef}>
             <span ref={leadRef}>{leadMain}</span>
             {leadRest && <span>{leadRest}</span>}
           </p>
