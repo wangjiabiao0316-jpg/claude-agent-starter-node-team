@@ -71,9 +71,9 @@ button { cursor: pointer; }
 .brand-mark svg { height: 2.2em; width: auto; display: block; }
 /* AI 冒泡：嵌进两牛角之间的窝窝中心（窝底 y≈20.4/48，窝中心 x≈47.4%，右角略宽故非正中） */
 .brand-mark .mark-ai {
-  position: absolute; top: 3px; left: 47.4%; transform: translateX(-50%);
-  font-style: normal; font-size: 8px; font-weight: 700; letter-spacing: .5px;
-  line-height: 1.2; padding: 1px 4px;
+  position: absolute; top: 4px; left: 47.4%; transform: translateX(-50%);
+  font-style: normal; font-size: 7px; font-weight: 700; letter-spacing: .3px;
+  line-height: 1.2; padding: 1px 3px;
   color: #1b2833;
   background: linear-gradient(135deg, #e7c684, #c99e5f);
   border-radius: 999px;
