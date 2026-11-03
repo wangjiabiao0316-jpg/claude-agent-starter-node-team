@@ -11,7 +11,9 @@ export type PipelineNodeState = 'standby' | 'running' | 'done';
 
 /**
  * Upstream dependencies that must be done before a node can be "running".
- * Mirrors the super-skill call graph: agent1 ∥ agent2 → 3 → 4 → 5 → 6.
+ * Mirrors the super-skill call graph: agent1 ∥ agent2 → 3 → 4 → 5 → 7 → 6
+ * （agent7-建造判别 2026-10-06 注入：agent5 之后、agent6 之前）。
+ * 直接上游按链式传递闭包即可覆盖全部前置（7 完成 ⇒ 1/3/4/5 全部完成）。
  */
 export const PIPELINE_UPSTREAM: Record<string, string[]> = {
   'agent1-固有对象': [],
@@ -19,7 +21,8 @@ export const PIPELINE_UPSTREAM: Record<string, string[]> = {
   'agent3-多元融资': ['agent1-固有对象', 'agent2-政策应答'],
   'agent4-财务模型': ['agent3-多元融资'],
   'agent5-失败案例': ['agent4-财务模型'],
-  'agent6-双层决策': ['agent5-失败案例'],
+  'agent7-建造判别': ['agent5-失败案例'],
+  'agent6-双层决策': ['agent7-建造判别'],
 };
 
 /**

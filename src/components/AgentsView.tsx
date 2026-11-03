@@ -4,7 +4,7 @@ import type { RawSseEvent } from '../api';
 import AgentBoard from './AgentBoard';
 import ChatDock from './ChatDock';
 import { AGENT_TABS } from './AgentPane';
-import { readLamp } from '../lib/pipeline';
+import { readLamp, resolveNodeState } from '../lib/pipeline';
 import { useT } from '../i18n';
 
 /**
@@ -127,31 +127,36 @@ export const AgentsView: React.FC<Props> = ({
               {AGENT_TABS.map((a, i) => {
                 const out = outputs[a.id];
                 const lamp = readLamp(out?.output_json);
+                // 运行态由 DAG 判定：loading 中 + 本环节无输出 + 上游全部完成
+                const state = resolveNodeState(a.id, (id) => Boolean(outputs[id]), loading);
+                const running = state === 'running';
                 return (
                   <button
                     key={a.id}
                     type="button"
-                    className={`agent-item ${activeAgentId === a.id ? 'active' : ''}`}
+                    className={`agent-item ${activeAgentId === a.id ? 'active' : ''} ${running ? 'running' : ''}`}
                     onClick={() => onAgentSelect(a.id)}
                     aria-pressed={activeAgentId === a.id}
-                    title={out ? `${a.name} · 已完成` : `${a.name} · 待命`}
+                    title={out ? `${a.name} · 已完成` : running ? `${a.name} · 执行中` : `${a.name} · 待命`}
                   >
                     <span className={`agent-code ${lamp === 'green' ? 'done' : ''}`}>{agentCode(i)}</span>
                     <span style={{ minWidth: 0 }}>
                       <span className="agent-label">
-                        <i className={`agent-dot ${lamp ?? ''}`} aria-hidden="true" />
+                        <i className={`agent-dot ${lamp ?? ''} ${running ? 'running' : ''}`} aria-hidden="true" />
                         {a.name}
                       </span>
                       <span className="agent-caption">
-                        {out
-                          ? lamp === 'green'
-                            ? (lang === 'zh' ? '已完成 · 通过' : 'done · pass')
-                            : lamp === 'yellow'
-                              ? (lang === 'zh' ? '已完成 · 有条件' : 'done · conditional')
-                              : lamp === 'red'
-                                ? (lang === 'zh' ? '已完成 · 不通过' : 'done · blocked')
-                                : (lang === 'zh' ? '已完成' : 'done')
-                          : (lang === 'zh' ? '待命' : 'standby')}
+                        {running
+                          ? (lang === 'zh' ? '执行中…' : 'running…')
+                          : out
+                            ? lamp === 'green'
+                              ? (lang === 'zh' ? '已完成 · 通过' : 'done · pass')
+                              : lamp === 'yellow'
+                                ? (lang === 'zh' ? '已完成 · 有条件' : 'done · conditional')
+                                : lamp === 'red'
+                                  ? (lang === 'zh' ? '已完成 · 不通过' : 'done · blocked')
+                                  : (lang === 'zh' ? '已完成' : 'done')
+                            : (lang === 'zh' ? '待命' : 'standby')}
                       </span>
                     </span>
                   </button>
