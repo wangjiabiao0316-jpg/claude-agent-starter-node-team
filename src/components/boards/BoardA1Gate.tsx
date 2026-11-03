@@ -136,7 +136,7 @@ export const BoardA1Gate: React.FC<{ json: Record<string, unknown> }> = ({ json 
       </BDSection>
 
       {risks.length > 0 && (
-        <BDSection title={zh ? `风险点 · ${risks.length}` : 'RISKS'}>
+        <BDSection title={zh ? `风险点 · ${risks.length}` : 'RISKS'} scroll>
           <div className="bd-risklist">
             {risks.map((r, i) => (
               <div key={i} className="bd-risk">{r}</div>

@@ -94,7 +94,7 @@ export const BoardA7Decision: React.FC<{ json: Record<string, unknown> }> = ({ j
       )}
 
       {todos.length > 0 && (
-        <BDSection title={todoTitle}>
+        <BDSection title={todoTitle} scroll>
           <div className={`bd-todo ${top === 'yellow' ? 'warn' : ''}`}>
             {todos.map((t, i) => (
               <div key={i} className="bd-todo-item">

@@ -109,7 +109,7 @@ export const BoardA3Funding: React.FC<{ json: Record<string, unknown> }> = ({ js
       )}
 
       {tools.length > 0 && (
-        <BDSection title={zh ? `融资工具对比 · ${tools.length}` : 'INSTRUMENTS'}>
+        <BDSection title={zh ? `融资工具对比 · ${tools.length}` : 'INSTRUMENTS'} scroll>
           <div className="bd-tools">
             <div className="bd-tools-row head">
               <span>{zh ? '工具' : 'INSTRUMENT'}</span>
@@ -140,7 +140,7 @@ export const BoardA3Funding: React.FC<{ json: Record<string, unknown> }> = ({ js
       )}
 
       {risks.length > 0 && (
-        <BDSection title={zh ? '剔除与审批风险' : 'RISKS'}>
+        <BDSection title={zh ? '剔除与审批风险' : 'RISKS'} scroll>
           <div className="bd-risklist">
             {risks.map((r, i) => (
               <div key={i} className="bd-risk">{r}</div>

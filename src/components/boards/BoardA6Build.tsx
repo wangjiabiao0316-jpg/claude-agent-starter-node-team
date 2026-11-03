@@ -117,7 +117,7 @@ export const BoardA6Build: React.FC<{ json: Record<string, unknown> }> = ({ json
       )}
 
       {rows.length > 0 && (
-        <BDSection title={zh ? 'JEV 五连判' : 'FIVE CHECKS'}>
+        <BDSection title={zh ? 'JEV 五连判' : 'FIVE CHECKS'} scroll>
           <div className="bd-check">
             {rows.map((r) => (
               <div key={r.title} className="bd-checkrow">
@@ -141,7 +141,7 @@ export const BoardA6Build: React.FC<{ json: Record<string, unknown> }> = ({ json
       )}
 
       {misc.length > 0 && (
-        <BDSection title={zh ? '其他判别要素' : 'MORE'}>
+        <BDSection title={zh ? '其他判别要素' : 'MORE'} scroll>
           <div className="ab-kv">
             {misc.map(([k, v]) => (
               <div key={k} className="ab-kv-row">

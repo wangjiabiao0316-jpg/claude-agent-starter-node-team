@@ -1338,3 +1338,14 @@ button { cursor: pointer; }
   .bd-check-text { grid-column: 2 / -1; }
   .bd-tools-row { grid-template-columns: minmax(90px, 1.2fr) minmax(70px, 1fr) 52px minmax(80px, 1fr); padding: 8px 9px; gap: 7px; }
 }
+
+/* —— 局部瀑布流（V4.4.1）：展板整体不出滚动条，长内容分区在自身盒子内下滑 ——
+   规则：hero/量表/行动卡等固定区始终可见；标了 scroll 的分区按内容分摊剩余
+   高度，超出部分在 .bd-section-body 内滚动。外层 .bd 的 overflow-y:auto 仅作
+   小屏兜底（固定区自身超屏时才触发）。 */
+.bd > * { flex-shrink: 0; }
+.bd > .bd-section.is-scroll { flex: 1 1 auto; min-height: 0; flex-shrink: 1; }
+.bd-section-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.bd-section-body::-webkit-scrollbar { width: 6px; }
+.bd-section-body::-webkit-scrollbar-thumb { background: #2e4053; border-radius: 3px; }
+.bd-section-body::-webkit-scrollbar-track { background: transparent; }

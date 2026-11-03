@@ -75,24 +75,30 @@ export function LampBadge({ lamp, big }: { lamp: Lamp | null; big?: boolean }) {
   return <span className={`lamp-badge ${lamp}${big ? ' bd-lamp-big' : ''}`}>{LAMP_TEXT[lamp]}</span>;
 }
 
-/** 展板分区：金色小标题 + 渐隐分隔线 + 可选右侧注记 */
+/**
+ * 展板分区：金色小标题 + 渐隐分隔线 + 可选右侧注记。
+ * scroll = 局部滚动区：展板整体不出滚动条，该分区内容在自身盒子内下滑
+ * （用户规则：结论模块内需要下滑的内容单独形成局部瀑布流）。
+ */
 export function BDSection({
   title,
   right,
   children,
+  scroll,
 }: {
   title: string;
   right?: React.ReactNode;
   children: React.ReactNode;
+  scroll?: boolean;
 }) {
   return (
-    <div className="bd-section">
+    <div className={`bd-section${scroll ? ' is-scroll' : ''}`}>
       <div className="bd-section-head">
         <b>{title}</b>
         {right && <span className="bd-section-right">{right}</span>}
         <i className="bd-section-line" aria-hidden="true" />
       </div>
-      {children}
+      {scroll ? <div className="bd-section-body">{children}</div> : children}
     </div>
   );
 }

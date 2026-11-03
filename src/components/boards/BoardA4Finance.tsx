@@ -147,7 +147,7 @@ export const BoardA4Finance: React.FC<{ json: Record<string, unknown> }> = ({ js
       )}
 
       {sensitivity && (
-        <BDSection title={zh ? '敏感性分析' : 'SENSITIVITY'}>
+        <BDSection title={zh ? '敏感性分析' : 'SENSITIVITY'} scroll>
           <p className="bd-note" style={{ whiteSpace: 'pre-line' }}>{clampStr(sensitivity, 300)}</p>
         </BDSection>
       )}

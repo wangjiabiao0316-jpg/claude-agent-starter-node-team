@@ -30,7 +30,7 @@ export const BoardA2Policy: React.FC<{ json: Record<string, unknown> }> = ({ jso
       )}
 
       {applicable.length > 0 && (
-        <BDSection title={zh ? `可适用政策 · ${applicable.length} 条（按综合分降序）` : 'APPLICABLE POLICIES'}>
+        <BDSection title={zh ? `可适用政策 · ${applicable.length} 条（按综合分降序）` : 'APPLICABLE POLICIES'} scroll>
           <div className="bd-policygrid">
             {applicable.map((p, i) => {
               const name = str(p['政策名称']) || `${zh ? '政策' : 'Policy'} ${i + 1}`;

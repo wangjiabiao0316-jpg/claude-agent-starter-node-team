@@ -50,7 +50,7 @@ export const BoardA5Failure: React.FC<{ json: Record<string, unknown> }> = ({ js
       {h1 && <Banner tone="red">⚠ {zh ? `命中 5 类高危失败模式：${h1} —— 优先落实规避建议` : `high-risk: ${h1}`}</Banner>}
 
       {cases.length > 0 && (
-        <BDSection title={zh ? `Top${cases.length} 相似失败案例` : 'TOP CASES'}>
+        <BDSection title={zh ? `Top${cases.length} 相似失败案例` : 'TOP CASES'} scroll>
           <div className="bd-casegrid">
             {cases.map((c, i) => {
               const id = str(c['case_id']) || str(c['案例ID']) || `案例 ${i + 1}`;
