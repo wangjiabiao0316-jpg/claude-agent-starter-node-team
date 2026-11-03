@@ -29,6 +29,9 @@ type GroupedItem = ConversationSummary & { timeText: string };
 interface Props {
   /** 页眉主题词后缀：当前选中项目名（App.tsx projectLabel） */
   activeProjectName: string;
+  /** 流水线运行中：页眉显示停止按钮 + 运行提示（解释全页按钮为何禁用） */
+  skillInUse: string | null;
+  onStop: () => void;
   conversations: ConversationSummary[];
   activeConversationId: string;
   loading: boolean;
@@ -227,6 +230,18 @@ export const ManagementView: React.FC<Props> = (props) => {
             </h1>
             <p>Project Asset Summary</p>
           </div>
+          {/* 运行态提示（V4.4.9f）：流水线跑时全页禁用——必须给出因果，否则按钮「点了没反应」 */}
+          <div className="page-head-tools">
+            {props.skillInUse && <span className="skill-pill">⚡ {props.skillInUse}</span>}
+            {props.disabled && (
+              <>
+                <span className="tag neutral">{lang === 'zh' ? '流水线运行中 · 操作已锁定' : 'pipeline running'}</span>
+                <button type="button" className="stop-btn" onClick={props.onStop} aria-label={t('aria.stopGeneration')}>
+                  ■ {t('aria.stopGeneration')}
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="pm-layout">
@@ -241,6 +256,7 @@ export const ManagementView: React.FC<Props> = (props) => {
                 className="btn"
                 onClick={props.onCreate}
                 disabled={disabled}
+                title={disabled ? (lang === 'zh' ? '流水线运行中，暂不可新建' : 'pipeline running') : undefined}
               >
                 ＋ {t('sidebar.newChat')}
               </button>
@@ -412,9 +428,11 @@ export const ManagementView: React.FC<Props> = (props) => {
                   className="btn primary"
                   onClick={() => props.onSelect(active.id)}
                   disabled={disabled}
-                  title={lang === 'zh'
-                    ? '七智能体全部跑通 → 综合结论；否则 → 智能体群'
-                    : 'All agents done → conclusion; otherwise → agents'}
+                  title={disabled
+                    ? (lang === 'zh' ? '流水线运行中，暂不可进入' : 'pipeline running')
+                    : lang === 'zh'
+                      ? '七智能体全部跑通 → 综合结论；否则 → 智能体群'
+                      : 'All agents done → conclusion; otherwise → agents'}
                 >
                   {lang === 'zh' ? '进入项目' : 'Open project'} →
                 </button>
@@ -427,7 +445,14 @@ export const ManagementView: React.FC<Props> = (props) => {
           </div>
 
           {/* —— 右：新建项目（粒子卡） —— */}
-          <div className="pm-create" role="button" tabIndex={0} onClick={() => !disabled && props.onCreate()} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onCreate(); } }}>
+          <div
+            className="pm-create"
+            role="button"
+            tabIndex={0}
+            title={disabled ? (lang === 'zh' ? '流水线运行中，暂不可新建' : 'pipeline running') : undefined}
+            onClick={() => !disabled && props.onCreate()}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onCreate(); } }}
+          >
             <ParticleField variant="create" />
             <div className="pm-create-content">
               <p className="eyebrow">NEW PROJECT</p>

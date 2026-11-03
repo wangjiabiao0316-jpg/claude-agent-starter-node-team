@@ -1062,10 +1062,16 @@ function AppInner() {
             conversationIdRef.current = id;
             setActiveConversationId(id);
             setDockMode('chat');
-            // await 期间用户可能已切换/取消选中——放弃本次分流，避免覆盖后续选择
-            const restored = await loadConversation(id);
-            if (conversationIdRef.current !== id) return null;
-            return restored;
+            try {
+              // await 期间用户可能已切换/取消选中——放弃本次分流，避免覆盖后续选择
+              const restored = await loadConversation(id);
+              if (conversationIdRef.current !== id) return null;
+              return restored;
+            } catch (e) {
+              // 加载失败不分流（unhandled rejection 会静默吞掉跳转）
+              console.error('[管理页] 进入项目加载失败，已留在管理页', e);
+              return null;
+            }
           })();
     if (!restoredMap) return;
     // 加载历史后按数据完备度分流：
@@ -1083,7 +1089,13 @@ function AppInner() {
     localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, id);
     conversationIdRef.current = id;
     setActiveConversationId(id);
-    await loadConversation(id);
+    try {
+      await loadConversation(id);
+    } catch (e) {
+      // 历史接口失败不中断页面：中栏回落到「无结构化输入」+ 摘要预览
+      console.error('[管理页] 会话预览加载失败，已保持当前页面', e);
+      return;
+    }
     // 故意不按数据完备度分流——留在管理页展示该项目输入信息
   }, [loading, loadConversation, resetAgentState]);
 
@@ -1486,6 +1498,8 @@ function AppInner() {
         {uiStage === 'management' && (
           <ManagementView
             activeProjectName={projectLabel}
+            skillInUse={skillInUse}
+            onStop={handleStop}
             onDeselect={handleDeselectConversation}
             conversations={conversations}
             activeConversationId={activeConversationId}
