@@ -280,7 +280,8 @@ function AppInner() {
    * Load a conversation's messages, snapshot and image cache and put them on screen.
    * Used both for the initial restore and for switching to another conversation.
    */
-  const loadConversation = useCallback(async (convId: string) => {
+  /** 返回本次恢复出的 agent 输出表（供选中项目时判断七 agent 是否全部跑通） */
+  const loadConversation = useCallback(async (convId: string): Promise<Record<string, AgentOutput>> => {
     setHistoryLoading(true);
     setMessages([]);
     setDebugEvents([]);
@@ -344,6 +345,7 @@ function AppInner() {
         .filter(m => m.role === 'assistant' && m.content)
         .map(m => m.content)
         .join('\n\n');
+      let restored: Record<string, AgentOutput> = {};
       if (assistantText) {
         const restoredSections = parseAgentOutputs(assistantText);
         if (Object.keys(restoredSections).length > 0) {
@@ -358,8 +360,10 @@ function AppInner() {
             };
           }
           setAgentOutputs(prev => ({ ...prev, ...restoredOutputs }));
+          restored = restoredOutputs;
         }
       }
+      return restored;
     } finally {
       setHistoryLoading(false);
     }
@@ -953,7 +957,7 @@ function AppInner() {
   }, [finishBotActivity, clearBotStreaming, updateBotMessage, t]);
 
   /** User clicked a conversation in the sidebar. */
-  const handleSelectConversation = useCallback((id: string) => {
+  const handleSelectConversation = useCallback(async (id: string) => {
     if (loading) return; // disabled while streaming
     if (id === conversationIdRef.current) return;
     resetAgentState();
@@ -961,9 +965,13 @@ function AppInner() {
     conversationIdRef.current = id;
     setActiveConversationId(id);
     setDockMode('chat');
-    // === 切到旧会话跳结论屏,查看历史消息与结论 ===
-    setUiStage('conclusion');
-    void loadConversation(id);
+    // 加载历史后按数据完备度分流：
+    // 七 agent 全部跑通 → 综合结论页；否则 → 智能体群页（能看到哪个 agent 待命）
+    const restored = await loadConversation(id);
+    // await 期间用户可能已切换/取消选中——放弃本次分流，避免覆盖后续选择
+    if (conversationIdRef.current !== id) return;
+    const allDone = AGENT_TABS.every(a => Boolean(restored[a.id]));
+    setUiStage(allDone ? 'conclusion' : 'agents');
   }, [loading, loadConversation, resetAgentState]);
 
   /** 项目管理页点击空白处：取消选中，回到未选中模板态（结论页/智能体页随之显示模板口径） */
@@ -1046,6 +1054,33 @@ function AppInner() {
       return;
     }
   }, [messages, handleSend]);
+
+  /**
+   * 重跑按钮（智能体群页眉右对齐，执行证据上方）。
+   *
+   * 后端没有独立的单 agent 重跑端点（编排器为 LLM 驱动的整链 DAG），
+   * 前端-only 约束下统一走消息通道：
+   *   'all'          → 重发该会话最后一条用户消息原文（= rerun_agent 既有机制，
+   *                    编排器整链重跑）
+   *   具体 agentId   → 发送重跑指令消息，指名仅重执行该智能体、其余沿用
+   *                    上一轮结论（best-effort，由编排器理解执行）
+   * 指令会作为用户消息留在对话流中，重跑动作本身可追溯。
+   */
+  const handleRerun = useCallback((target: string | 'all') => {
+    if (loading) return;
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+    if (!lastUserMsg?.content) return; // 空会话无从重跑
+    if (target === 'all') {
+      void handleSend(lastUserMsg.content);
+      return;
+    }
+    const meta = AGENT_TABS.find(a => a.id === target);
+    if (!meta) return;
+    const instruction = lang === 'zh'
+      ? `重跑指令：仅重新执行智能体「${meta.name}」（${meta.id}）并刷新其输出，其余智能体沿用上一轮结论。`
+      : `Rerun request: re-run only the "${meta.name}" agent (${meta.id}) and refresh its output; reuse the other agents' conclusions from the previous round.`;
+    void handleSend(instruction);
+  }, [loading, messages, handleSend, lang]);
 
   /**
    * User clicked the trash icon on a sidebar item.
@@ -1364,6 +1399,7 @@ function AppInner() {
             outputs={agentOutputs}
             activeAgentId={activeAgentTab}
             onAgentSelect={setActiveAgentTab}
+            onRerun={handleRerun}
             debugEvents={debugEvents}
             onClearDebug={() => setDebugEvents([])}
             dockMode={dockMode}

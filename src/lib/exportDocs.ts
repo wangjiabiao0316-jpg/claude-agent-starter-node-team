@@ -34,13 +34,14 @@ export interface ConclusionData {
   outputs: Record<string, AgentOutput>;
 }
 
-/** A1-A6 六 agent（顺序与 AGENT_TABS 一致；A7 交付不参与判定） */
-const SIX: Array<{ id: string; name: string }> = [
+/** A1-A7 七 agent，按执行顺序排列（第 6 位建造判别、第 7 位双层决策；id 数字 ≠ 执行序） */
+const AGENT_CHAIN: Array<{ id: string; name: string }> = [
   { id: 'agent1-固有对象', name: '前置闸门' },
   { id: 'agent2-政策应答', name: '政策应答' },
   { id: 'agent3-多元融资', name: '多元融资' },
   { id: 'agent4-财务模型', name: '通用财务' },
   { id: 'agent5-失败案例', name: '失败校验' },
+  { id: 'agent7-建造判别', name: '建造判别' },
   { id: 'agent6-双层决策', name: '双层决策' },
 ];
 
@@ -196,19 +197,19 @@ function docShell(title: string, body: string): string {
 </html>`;
 }
 
-/** 四维灯 + 六维灯表格段（两版上会文件共用） */
+/** 四维灯 + 七维灯表格段（两版上会文件共用） */
 function lampTablesHtml(d: ConclusionData): string {
   const dimRows = d.dims
     .map((x) => `<tr><td>${x.key} ${x.label}</td><td style="color:${lampColor(x.lamp)};font-weight:600">${lampText(x.lamp)}</td></tr>`)
     .join('');
-  const sixRows = SIX.map((a) => {
+  const chainRows = AGENT_CHAIN.map((a) => {
     const lamp = d.hasRun ? readLamp(d.outputs[a.id]?.output_json) : null;
     return `<tr><td>${a.name}</td><td style="color:${lampColor(lamp)};font-weight:600">${lampText(lamp)}</td></tr>`;
   }).join('');
   return `
   <h2>维度判定</h2>
   <table><tr><th>双层决策四维</th><th>灯色</th></tr>${dimRows}</table>
-  <table style="margin-top:10px"><tr><th>智能体六维</th><th>灯色</th></tr>${sixRows}</table>`;
+  <table style="margin-top:10px"><tr><th>智能体七维</th><th>灯色</th></tr>${chainRows}</table>`;
 }
 
 /** 行动列表段（两版共用） */
@@ -317,9 +318,9 @@ export function buildScriptDoc(d: ConclusionData): string {
     '',
   ];
 
-  // 每个 agent 一节：灯色 + 关键字段 + 完整 JSON；未跑的 agent 标注待命（演示口径给演示灯）
-  for (let i = 0; i < SIX.length; i++) {
-    const a = SIX[i];
+  // 每个 agent 一节（执行序）：灯色 + 关键字段 + 完整 JSON；未跑的 agent 标注待命
+  for (let i = 0; i < AGENT_CHAIN.length; i++) {
+    const a = AGENT_CHAIN[i];
     const out = d.outputs[a.id];
     const lamp = d.hasRun ? readLamp(out?.output_json) : null;
     lines.push(`### A${i + 1} ${a.name}`, '');

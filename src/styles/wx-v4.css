@@ -757,6 +757,32 @@ button { cursor: pointer; }
 .stop-btn { border: 1px solid #77504b; background: #382725; color: #e2a29b; border-radius: 6px; padding: 8px 14px; font-size: 11px; }
 .stop-btn:hover { border-color: #a06a63; }
 
+/* 重跑菜单（智能体群页眉右对齐，执行证据上方）：details 原生展开，浮层暗底金边 */
+.rerun-menu { position: relative; }
+.rerun-menu summary { list-style: none; cursor: pointer; }
+.rerun-menu summary::-webkit-details-marker { display: none; }
+.rerun-btn {
+  display: inline-block;
+  border: 1px solid #4a4436; background: #2a2519; color: var(--gold2, #dfb878);
+  border-radius: 6px; padding: 8px 14px; font-size: 11px; user-select: none;
+}
+.rerun-btn:hover { border-color: var(--gold, #dfb878); color: var(--gold, #dfb878); }
+.rerun-menu[open] .rerun-btn { border-color: var(--gold, #dfb878); color: var(--gold, #dfb878); }
+.rerun-pop {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 40;
+  min-width: 210px; padding: 6px;
+  background: #141a20; border: 1px solid #33404d; border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rerun-item {
+  text-align: left; border: 0; background: transparent; color: #c2ced7;
+  font-size: 11px; padding: 7px 10px; border-radius: 5px; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rerun-item:hover { background: #1d2733; color: var(--gold, #dfb878); }
+.rerun-item.all { color: var(--gold2, #dfb878); border-bottom: 1px solid #2a3542; border-radius: 5px 5px 0 0; margin-bottom: 2px; }
+
 /* SuggestActions */
 .suggest-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
 .suggest-btn {

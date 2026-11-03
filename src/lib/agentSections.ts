@@ -53,6 +53,8 @@ const SECTION_PATTERNS: ReadonlyArray<{ regex: RegExp; agentId: string }> = [
   { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*3(?![a-zA-Z])/g, agentId: 'agent3-多元融资' },
   { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*4(?![a-zA-Z])/g, agentId: 'agent4-财务模型' },
   { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*5(?![a-zA-Z])/g, agentId: 'agent5-失败案例' },
+  // Agent7 = 建造判别（2026-10-06 注入，执行序在 agent6 双层决策之前；id 数字 ≠ 执行序）
+  { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*7(?![a-zA-Z])/g, agentId: 'agent7-建造判别' },
   { regex: /#{2,3}\s+(?:[^\sa-zA-Z]+\s*)?[Aa]gent\s*6(?![a-zA-Z])/g, agentId: 'agent6-双层决策' },
 ];
 
@@ -153,6 +155,11 @@ export function detectCurrentAgent(text: string): string | null {
 // row as the summary fallback — at least the user sees SOMETHING.
 
 const SUMMARY_TABLE_HEADER_PATTERNS = [
+  // 「七」是现行七 agent 口径；「六」兼容历史会话（2026-10-06 agent7 注入前）的旧报告
+  /七\s*[Aa]gent\s*灯色一览/,
+  /七\s*[Aa]gent\s*总览/,
+  /七\s*[Aa]gent\s*输出摘要/,
+  /七\s*[Aa]gent\s*汇总/,
   /六\s*[Aa]gent\s*灯色一览/,
   /六\s*[Aa]gent\s*总览/,
   /六\s*[Aa]gent\s*输出摘要/,
@@ -218,7 +225,7 @@ function parseSummaryTable(text: string): SummaryRow[] {
     if (!agentMatch) continue;
 
     const agentNum = parseInt(agentMatch[1], 10);
-    if (agentNum < 1 || agentNum > 6) continue;
+    if (agentNum < 1 || agentNum > 7) continue;
 
     const agentId = `agent${agentNum}-${ROLE_BY_NUM[agentNum]}`;
     result.push({ agentId, rowText: row, cells });
@@ -233,6 +240,7 @@ const ROLE_BY_NUM: Record<number, string> = {
   4: '财务模型',
   5: '失败案例',
   6: '双层决策',
+  7: '建造判别',
 };
 
 /**

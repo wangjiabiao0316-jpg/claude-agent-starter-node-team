@@ -29,6 +29,8 @@ interface Props {
   outputs: Record<string, AgentOutput>;
   activeAgentId: string;
   onAgentSelect: (id: string) => void;
+  /** 重跑：'all' 整链重跑（重发原输入）；具体 agentId 仅重跑该智能体（App.tsx handleRerun） */
+  onRerun: (target: string | 'all') => void;
   debugEvents: RawSseEvent[];
   onClearDebug: () => void;
   dockMode: 'chat' | 'code' | 'debug';
@@ -36,10 +38,9 @@ interface Props {
   onSend: (text: string) => void;
 }
 
-/** agent id → 展示码（agent1-固有对象 → A1；编号取自 id，与后端 stage 编号一致） */
-function agentCode(id: string, index: number): string {
-  const m = /^agent(\d+)/.exec(id);
-  return `A${m ? m[1] : index + 1}`;
+/** 展示码：按 AGENT_TABS 执行序位次编号（第 6 位建造判别 = A6、第 7 位双层决策 = A7；id 数字 ≠ 执行序） */
+function agentCode(index: number): string {
+  return `A${index + 1}`;
 }
 
 export const AgentsView: React.FC<Props> = ({
@@ -51,6 +52,7 @@ export const AgentsView: React.FC<Props> = ({
   outputs,
   activeAgentId,
   onAgentSelect,
+  onRerun,
   debugEvents,
   onClearDebug,
   dockMode,
@@ -81,6 +83,31 @@ export const AgentsView: React.FC<Props> = ({
             <p>Seven-Agent Workspace</p>
           </div>
           <div className="page-head-tools">
+            {/* 重跑菜单：details 原生展开；运行中隐藏（停止按钮占位该区域） */}
+            {!loading && (
+              <details className="rerun-menu">
+                <summary className="rerun-btn" aria-label={lang === 'zh' ? '重跑智能体' : 'Rerun agent'}>
+                  ↻ {lang === 'zh' ? '重跑' : 'Rerun'}
+                </summary>
+                <div
+                  className="rerun-pop"
+                  onClick={(e) => {
+                    // 选中即收起：从点击项向上找 details 关闭
+                    const menu = (e.target as HTMLElement).closest('details');
+                    if (menu) menu.removeAttribute('open');
+                  }}
+                >
+                  <button type="button" className="rerun-item all" onClick={() => onRerun('all')}>
+                    ↻ {lang === 'zh' ? '全部重跑' : 'Rerun all'}
+                  </button>
+                  {AGENT_TABS.map(a => (
+                    <button key={a.id} type="button" className="rerun-item" onClick={() => onRerun(a.id)}>
+                      ↻ {lang === 'zh' ? `重跑 ${a.name}` : `Rerun ${a.name}`}
+                    </button>
+                  ))}
+                </div>
+              </details>
+            )}
             {skillInUse && <span className="skill-pill">⚡ {skillInUse}</span>}
             {loading && (
               <button type="button" className="stop-btn" onClick={onStop} aria-label={t('aria.stopGeneration')}>
@@ -109,7 +136,7 @@ export const AgentsView: React.FC<Props> = ({
                     aria-pressed={activeAgentId === a.id}
                     title={out ? `${a.name} · 已完成` : `${a.name} · 待命`}
                   >
-                    <span className={`agent-code ${lamp === 'green' ? 'done' : ''}`}>{agentCode(a.id, i)}</span>
+                    <span className={`agent-code ${lamp === 'green' ? 'done' : ''}`}>{agentCode(i)}</span>
                     <span style={{ minWidth: 0 }}>
                       <span className="agent-label">
                         <i className={`agent-dot ${lamp ?? ''}`} aria-hidden="true" />

@@ -5,8 +5,8 @@ import { readLamp, resolveNodeState } from '../lib/pipeline';
 /**
  * PipelineBar — 七 agent 编排流水线（V4.0 大气版皮肤）。
  *
- * 调用图与业务逻辑不变：
- *   agent1 ∥ agent2 → agent3 → agent4 → agent5 → agent6 → agent7
+ * 调用图与业务逻辑不变（执行序 ≠ id 数字：agent7-建造判别 在 agent6-双层决策 之前跑）：
+ *   agent1 ∥ agent2 → agent3 → agent4 → agent5 → agent7(建造判别) → agent6(双层决策)
  *
  * 视觉映射 V4.0 .pipeline 体系：
  *   节点 .pipeline-node（灰=待命 / .done 绿=完成 / .current 金=运行中呼吸点）
@@ -21,14 +21,16 @@ interface AgentMeta {
   label: string;   // e.g. "固有对象"
 }
 
+// 展示顺序 = 执行顺序；short 编号按位次（第 6 位建造判别、第 7 位双层决策），
+// 与 AGENT_TABS 展示序、wx-v4.css 的 a6 塔吊 / a7 红绿灯动画注释一致。
 const AGENTS: AgentMeta[] = [
   { id: 'agent1-固有对象', short: 'A1', label: '前置闸门' },
   { id: 'agent2-政策应答', short: 'A2', label: '政策应答' },
   { id: 'agent3-多元融资', short: 'A3', label: '多元融资' },
   { id: 'agent4-财务模型', short: 'A4', label: '通用财务' },
   { id: 'agent5-失败案例', short: 'A5', label: '失败校验' },
-  { id: 'agent6-双层决策', short: 'A6', label: '双层决策' },
-  { id: 'agent7-成果交付', short: 'A7', label: '成果交付' },
+  { id: 'agent7-建造判别', short: 'A6', label: '建造判别' },
+  { id: 'agent6-双层决策', short: 'A7', label: '双层决策' },
 ];
 
 interface Props {
