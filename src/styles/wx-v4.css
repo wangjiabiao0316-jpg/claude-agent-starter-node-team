@@ -313,6 +313,53 @@ button { cursor: pointer; }
 
 .pm-empty { padding: 11px; border: 1px dashed #40566a; border-radius: 7px; color: #8294a5; font-size: 9px; line-height: 1.7; }
 
+/* ── 项目组（左栏会话分组，前端 localStorage 持久化） ── */
+.pm-group-tools { display: flex; gap: 6px; margin: 0 0 9px; }
+.pm-group-tools .btn { flex: 1; font-size: 10px; padding: 6px 8px; }
+.pm-newgroup-row { margin-bottom: 9px; }
+.pm-newgroup-row input {
+  width: 100%; box-sizing: border-box;
+  background: #141a20; border: 1px solid #33404d; border-radius: 6px;
+  color: var(--text); font-size: 11px; padding: 7px 9px; outline: none;
+}
+.pm-newgroup-row input:focus { border-color: #9c8159; }
+.pm-group { border: 1px solid #2a3b4d; border-radius: 8px; padding: 6px; margin-bottom: 9px; background: rgba(20, 30, 42, 0.5); }
+.pm-group-head { display: flex; align-items: center; gap: 6px; padding: 4px 6px; cursor: pointer; border-radius: 5px; }
+.pm-group-head:hover { background: #1a2c3e; }
+.pm-group-head.plain, .pm-group-head.plain:hover { cursor: default; background: transparent; }
+.pm-group-caret { color: var(--gold2); font-size: 9px; flex: none; }
+.pm-group-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 600; color: var(--gold2); }
+.pm-group-count { font-size: 9px; color: var(--muted); border: 1px solid #33404d; border-radius: 8px; padding: 1px 6px; flex: none; }
+.pm-group-del { border: 0; background: transparent; color: #6d7f8f; cursor: pointer; font-size: 10px; padding: 2px 4px; flex: none; }
+.pm-group-del:hover { color: #e2a29b; }
+.pm-group-list { display: grid; gap: 6px; margin-top: 6px; }
+.pm-group-empty { font-size: 9px; color: #6d7f8f; padding: 4px 6px; }
+
+/* 会话项归组菜单（details 浮层） */
+.pm-assign { position: relative; flex: none; }
+.pm-assign summary { list-style: none; cursor: pointer; }
+.pm-assign summary::-webkit-details-marker { display: none; }
+.pm-assign-btn {
+  display: inline-block; border: 1px solid #33404d; border-radius: 5px;
+  padding: 3px 6px; font-size: 10px; color: #8294a5; user-select: none;
+}
+.pm-assign-btn:hover { border-color: #9c8159; color: var(--gold2); }
+.pm-assign-pop {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 40;
+  min-width: 150px; padding: 5px;
+  background: #141a20; border: 1px solid #33404d; border-radius: 7px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.pm-assign-item {
+  text-align: left; border: 0; background: transparent; color: #c2ced7;
+  font-size: 10px; padding: 6px 8px; border-radius: 4px; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.pm-assign-item:hover { background: #1d2733; color: var(--gold2); }
+.pm-assign-item.bad { color: #e2a29b; border-top: 1px solid #2a3542; border-radius: 0 0 4px 4px; margin-top: 2px; }
+.pm-assign-empty { font-size: 9px; color: #6d7f8f; padding: 5px 8px; }
+
 /* ── F. 新建项目过渡页（transition） ─────────────────────── */
 .transition-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr); gap: 14px; }
 .transition-main { padding: 22px; }

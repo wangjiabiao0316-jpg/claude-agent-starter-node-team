@@ -38,7 +38,7 @@ import NiuHead from './components/NiuHead';
 import GitHubLink from './components/GitHubLink';
 import DeployLink from './components/DeployLink';
 // === 六屏单屏导航视图 ===
-import { ManagementView } from './components/ManagementView';
+import { ManagementView, type ProjectGroup } from './components/ManagementView';
 import { TransitionView } from './components/TransitionView';
 import { AgentsView } from './components/AgentsView';
 import { ConclusionView } from './components/ConclusionView';
@@ -97,6 +97,12 @@ const CONVERSATIONS_PAGE_SIZE = 20;
  * 由 extractProjectName 提炼真实项目名并在前端覆盖显示，此键保证刷新后仍生效。
  */
 const DISTILLED_TITLES_STORAGE_KEY = 'eo_distilled_titles';
+/**
+ * 项目组（前端-only：后端 /conversations 无分组字段，组表与归组映射
+ * 存 localStorage）——组表（ProjectGroup[]）与 会话 id → 组 id 映射。
+ */
+const PROJECT_GROUPS_STORAGE_KEY = 'eo_project_groups';
+const CONV_GROUP_STORAGE_KEY = 'eo_conv_group';
 
 /**
  * 模块加载时（早于 React 首渲染的 getOrCreateConversationId 写入）记录
@@ -233,6 +239,92 @@ function AppInner() {
       return {};
     }
   });
+
+  // ─── 项目组（前端-only：localStorage 持久化，后端无分组 API）───
+  const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>(() => {
+    try {
+      const raw = localStorage.getItem(PROJECT_GROUPS_STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as ProjectGroup[]) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [convGroupMap, setConvGroupMap] = useState<Record<string, string>>(() => {
+    try {
+      const raw = localStorage.getItem(CONV_GROUP_STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(PROJECT_GROUPS_STORAGE_KEY, JSON.stringify(projectGroups)); } catch { /* 配额满等异常忽略 */ }
+  }, [projectGroups]);
+  useEffect(() => {
+    try { localStorage.setItem(CONV_GROUP_STORAGE_KEY, JSON.stringify(convGroupMap)); } catch { /* 忽略 */ }
+  }, [convGroupMap]);
+
+  /** 新建项目组：同名组复用，避免重复建组 */
+  const handleCreateGroup = useCallback((name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setProjectGroups(prev => prev.some(g => g.name === trimmed)
+      ? prev
+      : [...prev, { id: crypto.randomUUID(), name: trimmed }]);
+  }, []);
+
+  /** 会话归组 / 移出组（groupId=null） */
+  const handleAssignGroup = useCallback((convId: string, groupId: string | null) => {
+    setConvGroupMap(prev => {
+      const next = { ...prev };
+      if (groupId) next[convId] = groupId;
+      else delete next[convId];
+      return next;
+    });
+  }, []);
+
+  /** 删组：组表移除 + 该组成员回到未分组 */
+  const handleDeleteGroup = useCallback((groupId: string) => {
+    setProjectGroups(prev => prev.filter(g => g.id !== groupId));
+    setConvGroupMap(prev => {
+      const next: Record<string, string> = {};
+      for (const [convId, gid] of Object.entries(prev)) {
+        if (gid !== groupId) next[convId] = gid;
+      }
+      return next;
+    });
+  }, []);
+
+  /** 智能归组：按模型提炼项目名建同名组并把会话归入（无提炼名的会话不动） */
+  const handleAutoGroup = useCallback(() => {
+    // 1) 收集所有有提炼名的会话对应的项目名
+    const names = new Set<string>();
+    for (const c of conversations) {
+      const name = distilledTitles[c.id];
+      if (name) names.add(name);
+    }
+    if (names.size === 0) return;
+    // 2) 复用同名组，缺的建新组
+    const nextGroups = [...projectGroups];
+    const idByName = new Map(nextGroups.map(g => [g.name, g.id]));
+    for (const name of names) {
+      if (!idByName.has(name)) {
+        const id = crypto.randomUUID();
+        nextGroups.push({ id, name });
+        idByName.set(name, id);
+      }
+    }
+    setProjectGroups(nextGroups);
+    // 3) 归组映射：有提炼名的会话 → 同名组 id
+    setConvGroupMap(prev => {
+      const next = { ...prev };
+      for (const c of conversations) {
+        const gid = distilledTitles[c.id] ? idByName.get(distilledTitles[c.id]) : undefined;
+        if (gid) next[c.id] = gid;
+      }
+      return next;
+    });
+  }, [conversations, distilledTitles, projectGroups]);
 
   // Stable user identifier — derived once, never changes for the lifetime of this browser
   const eoUuidRef = useRef<string>(getOrCreateEoUuid());
@@ -1101,6 +1193,13 @@ function AppInner() {
 
     // 1. Optimistically drop from sidebar.
     setConversations(prev => prev.filter(c => c.id !== id));
+    // 同步清理该会话的项目组归组映射，避免残留孤儿映射
+    setConvGroupMap(prev => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
 
     // 2. If it was the active conversation, swap to a fresh empty one
     //    so the chat panel doesn't keep rendering stale messages.
@@ -1377,6 +1476,12 @@ function AppInner() {
             onCreate={handleCreateConversation}
             onLoadMore={handleLoadMoreConversations}
             onDelete={handleDeleteConversation}
+            groups={projectGroups}
+            convGroup={convGroupMap}
+            onCreateGroup={handleCreateGroup}
+            onAssignGroup={handleAssignGroup}
+            onDeleteGroup={handleDeleteGroup}
+            onAutoGroup={handleAutoGroup}
           />
         )}
         {uiStage === 'transition' && (
