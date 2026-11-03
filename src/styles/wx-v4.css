@@ -69,9 +69,9 @@ button { cursor: pointer; }
   flex: none;
 }
 .brand-mark svg { height: 2.2em; width: auto; display: block; }
-/* 牛头右上角 AI 冒泡 */
+/* 牛头正上方 AI 冒泡（水平居中于牛头） */
 .brand-mark .mark-ai {
-  position: absolute; top: -7px; right: -10px;
+  position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
   font-style: normal; font-size: 8px; font-weight: 700; letter-spacing: .5px;
   line-height: 1.2; padding: 1px 4px;
   color: #1b2833;
@@ -200,7 +200,7 @@ button { cursor: pointer; }
 /* width:max-content —— 收缩到内容自然宽，ref 测量 offsetWidth 才是组合真实宽度 */
 .hero-brand { display: flex; align-items: stretch; gap: 24px; margin: 6px 0 26px; width: max-content; }
 .hero-brand .brand-mark { font-size: 42px; margin-top: 4px; }
-.hero-brand .brand-mark .mark-ai { top: -10px; right: -14px; font-size: 11px; padding: 2px 6px; }
+.hero-brand .brand-mark .mark-ai { top: -13px; font-size: 11px; padding: 2px 6px; }
 .hero-brand .brand-name { font-size: 44px; letter-spacing: 4px; }
 .hero-brand .brand-title { font-size: 64px; -webkit-text-stroke: 1px currentColor; }
 .hero-brand .brand-en { font-size: 14px; letter-spacing: 6px; margin-top: 10px; color: var(--gold2); }

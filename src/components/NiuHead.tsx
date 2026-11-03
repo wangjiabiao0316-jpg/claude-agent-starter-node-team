@@ -5,7 +5,7 @@ import React from 'react';
  *
  * 由位图描摹管线生成（边界跟踪 + Chaikin 平滑 + RDP 简化），实心剪影跟随容器
  * currentColor（var(--gold)），缝形双眼为 evenodd 镂空。无边框，高度由 CSS 控制。
- * 右上角 AI 气泡由 .mark-ai 承担。
+ * 正上方 AI 气泡由 .mark-ai 承担（水平居中于牛头）。
  */
 const NiuHead: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 34.29 48" aria-hidden="true" focusable="false">
